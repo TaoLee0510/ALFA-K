@@ -12,6 +12,7 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```{r}
 source("utils/sim_setup_functions.R")
 source("utils/analysis_functions_v2.R")
+dir.create("examples/example_1/sim_output")
 ```
 Setup ABM simulation with random fitness landscape
 
@@ -67,6 +68,7 @@ clone.fitness: fitness of each karyotype in matrix x. values are ordered accordi
 input_dir <- "examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/train/00000/"
 input_dir <- "../karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_0p8_rep_00/train/00000/"
 x <- proc_sim(dir=input_dir,times = seq(0,2800,400))
+
 
 ```
 

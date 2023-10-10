@@ -1,0 +1,2 @@
+p,sigma,mean,dt
+5e-05,0,0,0.1
