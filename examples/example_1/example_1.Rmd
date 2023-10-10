@@ -110,3 +110,22 @@ writeLines(config,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fit
 system("ABM/bin/ABM.exe examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fitted_landscape_config.txt")
 ```
 
+Run ABM with custom karyotype composition
+
+```{r}
+k1 <- rep(2,22)
+k2 <- rep(4,22)
+pop <- rbind(k1,k2)
+
+n_init <- c(50000,50000)
+pop <- cbind(pop,n_init)
+write.table(pop,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop.txt",sep=",",row.names = F,col.names = F)
+
+config <- readLines("examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/config.txt")
+config <- c(config,"population_file,examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop.txt")
+config <- modify_config("output_dir","examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop",config)
+writeLines(config,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop_config.txt")
+
+system("ABM/bin/ABM.exe examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop_config.txt")
+```
+
