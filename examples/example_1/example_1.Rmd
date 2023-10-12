@@ -5,13 +5,18 @@ date: "2023-10-10"
 output: html_document
 ---
 
+Ensure ABM is compiled, root dir is set to correct location of ALFA-K, and the cpp_source is correctly set to the path of the ABM executable file.
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
 ```{r}
+cpp_source <- "ABM/bin/ABM"
+```
+
+```{r}
 source("utils/sim_setup_functions.R")
-source("utils/analysis_functions_v2.R")
+source("utils/ALFA-K.R")
 dir.create("examples/example_1/sim_output")
 ```
 Setup ABM simulation with random fitness landscape
@@ -30,16 +35,43 @@ Value
 cpp_run_cmd: command necessesary to run ABM simulation
 sweep_id: name of output folder that has been generated
 
-
 The following chunk sets up and runs ABM simulation:
 ```{r}
 Nchrom <- 22
 wavelength <- 0.8
 misrate <- 0.00005
 sweep_dir <- "examples/example_1/sim_output/"
-cpp_source <- "ABM/bin/ABM.exe"
+
 info <-  gen_replicate(Nchrom=Nchrom,wavelength = wavelength,p = misrate,sweep_dir = sweep_dir,cpp_source = cpp_source)
-system(info$cpp_run_cmd)
+system(info$cpp_run_cmd,show.output.on.console = F)
+```
+The ABM simulation directory folder contains several files and folders. The config file contains a lot of the information about the ABM sim. The output_dir entry tells us where the sim output will be saved. 
+
+```{r}
+list.files(paste0(sweep_dir,info$sweep_id))
+config <-readLines(paste0(sweep_dir,info$sweep_id,"/config.txt"))
+print(config)
+output_dir <- unlist(strsplit(config[grepl("output_dir",config)],split=","))[2]
+
+```
+
+The output directory contains numbered subfolders corresponding to repeated ABM runs with identical parameter sets. If we run the ABM simulation again a new subfolder is created. 
+
+```{r}
+
+list.files(output_dir)
+system(info$cpp_run_cmd,show.output.on.console = F)
+list.files(output_dir)
+
+```
+
+Each subfolder contains numbered csv files containing population samples at indicated timepoints. There is also a summary file which contains population size of the ABM at all timepoints simulated.
+
+```{r}
+output_subdir <- paste(output_dir,list.files(output_dir)[1],sep="/")
+head(list.files(output_subdir))
+pop.size <- readLines(paste0(output_subdir,"/summary.txt"))
+plot(pop.size)
 ```
 
 Process output from ABM simulation:
@@ -65,67 +97,70 @@ clone.fitness: fitness of each karyotype in matrix x. values are ordered accordi
 
 
 ```{r}
-input_dir <- "examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/train/00000/"
-
-x <- proc_sim(dir=input_dir,times = seq(0,2800,400))
-
-
+x <- proc_sim(dir=output_subdir,times = seq(0,2800,400))
+print(head(x$x[order(rowSums(x$x),decreasing = T),]))
 ```
 
 Estimate fitness landscape:
 
 ```{r}
-library(fields)
-xo <- optimise_frequent_clones(x,min_obs = 20)
-xn <- wrap_neighbor_fitness(x,xo,use_gdata = F,pm0 = 0.00005)
-xo <- rbind(xo,xn)
-xmat <- do.call(rbind,lapply(rownames(xo), function(i){
-  as.numeric(unlist(strsplit(i,split="[.]")))
-}))
-y <- xo$f_est
-fit <- Krig(xmat,y,m=1)
-saveRDS(fit,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/krig.Rds")
 
+fit <- alfak(x,min_obs = 20)
+xmat <- do.call(rbind,lapply(rownames(fit$xo), function(i){
+    as.numeric(unlist(strsplit(i,split="[.]")))
+  }))
+f_est <- predict(fit$fit,xmat)
 ```
 
 Convert Krig to format readable by ABM and save:
 ```{r}
 
-knots <- fit$knots
-cc <- fit$c
-d <- fit$d
+knots <- fit$fit$knots
+cc <- fit$fit$c
+d <- fit$fit$d
 fscape <- rbind(cbind(knots,cc),c(d))
-write.table(fscape, "examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fitted_landscape.txt",row.names = FALSE,col.names=FALSE,sep=",")
+fitted_landscape_path <- paste0(sweep_dir,info$sweep_id,"/fitted_landscape.txt")
+write.table(fscape, fitted_landscape_path,row.names = FALSE,col.names=FALSE,sep=",")
 
 ```
 
 Generate a new config file to use fitted landscape. Run ABM.
 ```{r}
 
-config <- readLines("examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/config.txt")
-config <- modify_config("fitness_landscape_type","krig",config)
-config <- modify_config("fitness_landscape_file","examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fitted_landscape.txt",config)
-config <- modify_config("output_dir","examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/test",config)
-writeLines(config,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fitted_landscape_config.txt")
-system("ABM/bin/ABM.exe examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/fitted_landscape_config.txt")
+base_config <- readLines(paste0(sweep_dir,info$sweep_id,"/config.txt"))
+new_config <- modify_config("fitness_landscape_type","krig",base_config)
+new_config <- modify_config("fitness_landscape_file",fitted_landscape_path,new_config)
+
+# we will save output from the fitted landscape in the test subfolder
+test_dir <- paste0(sweep_dir,info$sweep_id,"/test") 
+new_config <- modify_config("output_dir",test_dir,new_config)
+
+new_config_path <- paste0(sweep_dir,info$sweep_id,"/fitted_landscape_config.txt") 
+writeLines(new_config,new_config_path)
+system(paste(cpp_source,new_config_path),show.output.on.console = F)
 ```
 
 Run ABM with custom karyotype composition
 
 ```{r}
+custom_pop_output <- paste0(sweep_dir,info$sweep_id,"/custom_pop")
+
+dir.create(custom_pop_output)
 k1 <- rep(2,22)
 k2 <- rep(4,22)
 pop <- rbind(k1,k2)
 
 n_init <- c(50000,50000)
 pop <- cbind(pop,n_init)
-write.table(pop,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop.txt",sep=",",row.names = F,col.names = F)
 
-config <- readLines("examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/config.txt")
-config <- c(config,"population_file,examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop.txt")
-config <- modify_config("output_dir","examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop",config)
-writeLines(config,"examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop_config.txt")
+custom_pop_path <- paste0(sweep_dir,info$sweep_id,"/custom_pop.txt")
+write.table(pop,custom_pop_path,sep=",",row.names = F,col.names = F)
 
-system("ABM/bin/ABM.exe examples/example_1/sim_output/N_22_w_0p8_m_0.00005_rep_00/custom_pop_config.txt")
+config <- readLines(paste0(sweep_dir,info$sweep_id,"/config.txt"))
+config <- c(config,paste0("population_file,",custom_pop_path))
+config <- modify_config("output_dir",custom_pop_output,config)
+custom_config_path <- paste0(sweep_dir,info$sweep_id,"/custom_pop_config.txt")
+writeLines(config,custom_config_path)
+system(paste(cpp_source,custom_config_path),show.output.on.console = F)
 ```
 
