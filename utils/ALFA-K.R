@@ -267,3 +267,18 @@ alfak <- function(x,min_obs=5,min_tp=0,misseg_rate=0.00005){
   fit <- Krig(xmat,y,m=1)
   return(list(fit=fit,xo=xo))
 }
+
+## read a GRF landscape for use to calculate fitness
+gen_fitness_object <- function(cfig_path,lscape_path){
+  lscape <- read.table(lscape_path,sep=",")
+  cfig <- readLines(cfig_path)
+  pk_scale <- cfig[grepl("scale",cfig)]
+  pk_wl <- cfig[grepl("wavelength",cfig)]
+  pk_scale <- as.numeric(tail(unlist(strsplit(pk_scale,split=",")),1))
+  pk_wl <- as.numeric(tail(unlist(strsplit(pk_wl,split=",")),1))
+  list(peaks=lscape,scale=pk_scale,wavelength=pk_wl)
+}
+getf <- function(pk,fobj){
+  d <- apply(fobj$peaks,1,function(pki) sqrt(sum((pk-pki)^2)))
+  sum(sin(d/fobj$wavelength)*fobj$scale)
+}
