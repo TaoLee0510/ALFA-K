@@ -2,7 +2,7 @@
 
 The ABM requires compilation before use. E.g. to compile with the GCC C++ compiler, change to ALFA-K root directory and run:
 
-g++ ./ABM/main.cpp -o ./ABM/bin/ABM
+g++ ./ABM/main.cpp -o ./ABM/bin/ABM -std=c++17
 
 Example_1 demonstrates:
 1) setting up and running ABM with randomly generated fitness landscape

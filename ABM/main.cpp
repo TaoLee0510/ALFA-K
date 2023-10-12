@@ -12,7 +12,7 @@
 #include <chrono>
 
 using namespace std;
-int PI=3.14159;
+double PI=3.14159;
 
 #include "setup.h"
 #include "fitness_landscapes.h"
