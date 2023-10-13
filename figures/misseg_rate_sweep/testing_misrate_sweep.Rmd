@@ -9,7 +9,9 @@ output: html_document
 knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
-First a new sweep was generated using generate_ABM_sims.R
+Input data for this sweep was generated using the following command:
+
+Rscript generate_ABM_sweep.R -n data/misrate -c 6 -r 100 -w 0.8 -m 0.00001,0.00003,0.0001,0.0003,0.001 & Rscript process_abm_sweep.R -n data/misrate -c 6
 
 ```{r}
 source("~/projects/008_birthrateLandscape/karyotype_evolution/rscripts/landscape_functions.R")
