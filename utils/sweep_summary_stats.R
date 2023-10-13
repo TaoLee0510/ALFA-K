@@ -46,7 +46,6 @@ setwd(root.dir)
 library(parallel)
 
 
-setwd("~/projects/008_birthrateLandscape/ALFA-K/")
 sweep.dir <- paste0(opt$name,"/")
 
 proc_run <- function(fi,sweep.dir){
