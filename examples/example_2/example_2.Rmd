@@ -17,7 +17,7 @@ source("utils/ALFA-K.R")
 ```
 Below are copy number calls for hTERTa data set already formatted for alfa-k. Note the units of "time" are passage numbers (we do not know how long the passages were). We assumed passage length of 5 days, hence dt is set to 5 so fitness will be in units of day^(-1).
 ```{r}
-x <- readRDS("examples/example_2/data/hTERTa.Rds")
+x <- readRDS("examples/example_2/example_data/hTERTa.Rds")
 head(x$x)
 print(x$dt)
 ```
