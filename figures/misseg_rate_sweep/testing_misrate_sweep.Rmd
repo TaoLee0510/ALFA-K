@@ -11,7 +11,9 @@ knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
 
 Input data for this sweep was generated using the following command:
 
-Rscript generate_ABM_sweep.R -n data/misrate -c 6 -r 100 -w 0.8 -m 0.00001,0.00003,0.0001,0.0003,0.001 & Rscript process_abm_sweep.R -n data/misrate -c 6
+Rscript generate_ABM_sweep.R -n data/misrate -r 100 -w 0.8 -m 0.00001,0.00003,0.0001,0.0003,0.001 
+Rscript process_abm_sweep.R -n data/misrate 
+Rscript sweep_summary_stats -n data/misrate -o data/misrate_stats.Rds
 
 ```{r}
 source("~/projects/008_birthrateLandscape/karyotype_evolution/rscripts/landscape_functions.R")
@@ -20,6 +22,33 @@ library(ggplot2)
 library(fields)
 library(parallel)
 ```
+Check performance vs misseg rate and look for summary statistics that explain good performance
+
+```{r}
+x <- readRDS("data/misrate_stats.Rds")
+df <- reshape2::melt(x[,c("m","r_fq","r_nn","r_d2n")],id.vars="m")
+p <- ggplot(df,aes(x=factor(m),y=value))+
+  facet_grid(rows=vars(variable))+
+  geom_violin()
+p
+
+p <- ggplot(x,aes(x=nfq,y=r_fq))+
+  facet_grid(rows=vars(m),scales="free")+
+  geom_point()+
+  geom_smooth(method="lm")
+p
+
+xc <- x[,-c(1,2,4)]
+for(i in 1:ncol(xc)) xc[,i] <- as.numeric(xc[,i])
+corrplot::corrplot(cor(xc,method = "spearman"))
+xc <- split(xc,f=xc$m)
+
+for(xci in xc){
+  corrplot::corrplot(cor(xci,method = "spearman"))
+}
+
+```
+
 Then all sims were processed and landscapes estimated (this does take quite a while):
 ```{r,eval=F}
 source("rscripts/process_abm_sims.R")
@@ -174,7 +203,7 @@ More informative metrics might be had via looking at results in a more fine grai
 ```
 
 ```{r}
-
+setwd("~/projects/008_birthrateLandscape/karyotype_evolution/")
 library(snifter)
 
 preproc <- function(fi,dir){
