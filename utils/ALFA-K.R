@@ -254,7 +254,7 @@ wrap_neighbor_fitness <- function(x,x_opt,pm0=0.00005,ntp=100){
 }
 
 
-alfak <- function(x,min_obs=5,min_tp=0,misseg_rate=0.00005){
+alfak <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
   x0 <- opt_g_free(x,min_obs,min_tp)
   x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
   x0$id <- "fq"
