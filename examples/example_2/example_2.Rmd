@@ -36,7 +36,7 @@ xfq <- opt$xo[opt$xo$id=="fq",]
 df <- do.call(rbind,lapply(1:nrow(xfq),function(i) optim_loo(i,x,xfq)))
 
 ##positive correlation indicates predictive value
-plot(df$pred,xo$f_est)
-cor(df$pred,xo$f_est)
+plot(df$pred,xfq$f_est)
+cor(df$pred,xfq$f_est)
 ```
 
