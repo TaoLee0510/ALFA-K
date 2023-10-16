@@ -56,7 +56,13 @@ for(xci in xc){
 }
 
 ```
+```{r}
+x <- readRDS("data/misrate_fq.Rds")
+x <- x[x$rep<20,]
 
+
+
+```
 Then all sims were processed and landscapes estimated (this does take quite a while):
 ```{r,eval=F}
 source("rscripts/process_abm_sims.R")

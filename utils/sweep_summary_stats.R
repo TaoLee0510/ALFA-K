@@ -49,6 +49,9 @@ library(parallel)
 sweep.dir <- paste0(opt$name,"/")
 
 proc_run <- function(fi,sweep.dir){
+  R2 <- function(obs,pred){
+    1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
+  }
   dir <- paste0(sweep.dir,fi,"/fits/00000/")
   if(!file.exists(paste0(dir,"krig.Rds"))) return(NULL)
   info <- unlist(strsplit(fi,split="_"))
@@ -68,14 +71,15 @@ proc_run <- function(fi,sweep.dir){
                    f_tru=apply(n,1,getf,fobj=fobj)))
   xo <- split(xo,f=xo$id)
   
-  df$r_fq <- cor(xo[["fq"]]$f_est,xo[["fq"]]$f_tru)
-  df$r_nn <- cor(xo[["nn"]]$f_est,xo[["nn"]]$f_tru)
-  df$r_d2n <- cor(xo[["d2n"]]$f_est,xo[["d2n"]]$f_tru)
+  df$r_fq <- R2(xo[["fq"]]$f_tru,xo[["fq"]]$f_est)
+  df$r_nn <- R2(xo[["nn"]]$f_tru,xo[["nn"]]$f_est)
+  df$r_d2n <- R2(xo[["d2n"]]$f_tru,xo[["d2n"]]$f_est)
   df$ll_fq <- mean(xo[["fq"]]$ll)
   df$ll_nn <- mean(xo[["nn"]]$ll)
   df$nfq <- nrow(xo$fq)
   df$nnn <- nrow(xo$nn)
   df$nd2n <- nrow(xo$d2n)
+  saveRDS(df,paste0(dir,"summary_stats.Rds"))
   return(df)
 }
 
