@@ -26,17 +26,25 @@ Check performance vs misseg rate and look for summary statistics that explain go
 
 ```{r}
 x <- readRDS("data/misrate_stats.Rds")
+x$ll_fq <- -x$ll_fq
+x$ll_nn <- -x$ll_nn
 df <- reshape2::melt(x[,c("m","r_fq","r_nn","r_d2n")],id.vars="m")
-p <- ggplot(df,aes(x=factor(m),y=value))+
+ids <- c(" frequent","d1","d2")
+names(ids)<-c("r_fq","r_nn","r_d2n")
+df$variable <- ids[df$variable]
+p0 <- ggplot(df,aes(x=factor(m),y=value))+
   facet_grid(rows=vars(variable))+
-  geom_violin()
-p
+  geom_violin()+
+  geom_jitter(height=0,width=0.2)+
+  scale_y_continuous("true/pred fitness correlation")+
+  scale_x_discrete("missegregation rate")
+p0
 
-p <- ggplot(x,aes(x=nfq,y=r_fq))+
+p1 <- ggplot(x,aes(x=nfq,y=r_fq))+
   facet_grid(rows=vars(m),scales="free")+
   geom_point()+
   geom_smooth(method="lm")
-p
+p1
 
 xc <- x[,-c(1,2,4)]
 for(i in 1:ncol(xc)) xc[,i] <- as.numeric(xc[,i])
