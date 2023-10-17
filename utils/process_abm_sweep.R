@@ -7,7 +7,7 @@ option_list = list(
               help="sweep folder name. If sweep already exists, new runs are added.", metavar="character"),
   make_option(c("-c", "--cores"), type="numeric", default=1, 
               help="number of parallel cores [default= %default]"),
-  make_option(c("-m", "--min_obs"), type="numeric", default=5, 
+  make_option(c("-m", "--min_obs"), type="numeric", default=20, 
               help="detection threshold for frequent clones [default= %default]")
 ); 
 

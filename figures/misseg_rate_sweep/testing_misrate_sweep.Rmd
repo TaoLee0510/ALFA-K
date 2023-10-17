@@ -70,7 +70,7 @@ x <- split(x,f=interaction(x$rep,x$m))
 
 df <- do.call(rbind,lapply(x, function(xi){
   dfi <- xi[1,c("m","rep")]
-  dfi$ll <- sum(xi$ll
+  dfi$ll <- sum(xi$ll)
   optimR2 <- function(offset) R2(xi$f_tru,xi$f_est+offset)
   dfi$r2 <- optimise(optimR2,interval=c(-1,1),maximum=T)$objective
   return(dfi)
