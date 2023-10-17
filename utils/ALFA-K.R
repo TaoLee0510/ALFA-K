@@ -53,7 +53,9 @@ fitm <- function(par,xj,dt){
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
-  sum(ll)
+  sdfi <- 0
+  if(length(fi)>1) sdfi <- sd(fi)
+  sum(ll)+sdfi
 }
 
 inifitm <- function(inipar, opar,xj,dt){
@@ -71,8 +73,9 @@ inifitm <- function(inipar, opar,xj,dt){
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
-  sum(ll)
-  
+  sdfi <- 0
+  if(length(fi)>1) sdfi <- sd(fi)
+  sum(ll)+sdfi
 }
 opt_g_free <- function(x,min_obs=5,mintp=0){
   
