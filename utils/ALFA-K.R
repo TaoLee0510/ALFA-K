@@ -271,6 +271,76 @@ alfak <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
   return(list(fit=fit,xo=xo))
 }
 
+
+
+dij <- function(xi,xj,parij){
+  xi <- xi[rownames(xi)%in%rownames(xj),]
+  xj <- xj[rownames(xj)%in%rownames(xi),]
+  xj <- xj[rownames(xi),]
+  sqrt(mean((xi$f_est+parij[1]-xj$f_est-parij[2])^2))
+}
+
+fit_dists <- function(par,xd){
+  sum(sapply(1:length(xd), function(i){
+    sum(sapply(i:length(xd), function(j){
+      dij(xd[[i]],xd[[j]],par[c(i,j)])
+    }))
+  }))
+}
+
+## combining multiple replicates on same landscape
+alfak2 <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
+  x0 <- lapply(x, function(xi) opt_g_free(xi,min_obs,min_tp))
+  x1 <- lapply(1:length(x), function(i){
+    wrap_neighbor_fitness(x[[i]],x0[[i]],pm0=misseg_rate)
+  })
+  rx <- unlist(sapply(x0, rownames))
+  dups <- unique(rx[duplicated(rx)]) ## find frequent karyotypes common to both landscapes
+  
+  ##add constant value
+  xd <- lapply(x0, function(xi) xi[rownames(xi)%in%dups,])
+  par <- rep(0,length(xd))
+  opt <- optim(par,fn=fit_dists,xd=xd)
+  for(i in 1:length(par)){
+    x0[[i]]$f_est <- x0[[i]]$f_est+opt$par[i]
+    x1[[i]]$f_est <- x1[[i]]$f_est+opt$par[i]
+  }
+  
+  ##gather basic data for krig fit
+  rx <- c(unlist(sapply(x0,rownames)),unlist(sapply(x1,rownames)))
+  f <- c(unlist(sapply(x0, function(xi) xi$f_est)),
+         unlist(sapply(x1, function(xi) xi$f_est)))
+  xmat <- do.call(rbind,lapply(rx, function(xi) {
+    as.numeric(unlist(strsplit(xi,split="[.]")))
+  }))
+  
+  ## find weights for values in krig fit
+  id <- c(rep("fq",sum(sapply(x0,nrow))),rep("nn",sum(sapply(x1,nrow))))
+  dfx <- data.frame(k=rx,f,id)
+  
+  sxfq <- dfx[dfx$id=="fq",]
+  dfq <- aggregate(list(var=sxfq$f),by=list(k=sxfq$k),var)
+  dfq <- dfq[!is.na(dfq$var),]
+  
+  sxnn <- dfx[dfx$id=="nn",]
+  dnn <- aggregate(list(var=sxnn$f),by=list(k=sxnn$k),var)
+  dnn <- dnn[!is.na(dnn$var),]
+  
+  w <- c(mean(dfq$var),mean(dnn$var))
+  names(w) <- c("fq","nn")
+  
+  fit <- Krig(xmat,f,m=1,weights=1/w[id])
+  
+  xo <- lapply(1:length(x), function(i){
+    x0[[i]]$id <- "fq"
+    x1[[i]]$id <- "nn"
+    rbind(x0[[i]],x1[[i]])
+  })
+  names(xo) <- names(x)
+  list(xo=xo,fit=fit)
+}
+
+
 ## read a GRF landscape for use to calculate fitness
 gen_fitness_object <- function(cfig_path,lscape_path){
   lscape <- read.table(lscape_path,sep=",")

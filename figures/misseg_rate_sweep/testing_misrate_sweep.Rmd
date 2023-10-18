@@ -28,32 +28,32 @@ Check performance vs misseg rate and look for summary statistics that explain go
 x <- readRDS("data/misrate_stats.Rds")
 x$ll_fq <- -x$ll_fq
 x$ll_nn <- -x$ll_nn
-df <- reshape2::melt(x[,c("m","r_fq","r_nn","r_d2n")],id.vars="m")
+df <- reshape2::melt(x[,c("m","nfq","r_fq","r_nn","r_d2n")],id.vars=c("m","nfq"))
 ids <- c(" frequent","d1","d2")
 names(ids)<-c("r_fq","r_nn","r_d2n")
 df$variable <- ids[df$variable]
+df$value[df$value<(-1)] <- -1
 p0 <- ggplot(df,aes(x=factor(m),y=value))+
   facet_grid(rows=vars(variable))+
   geom_violin()+
   geom_jitter(height=0,width=0.2)+
-  scale_y_continuous("true/pred fitness correlation")+
+  scale_y_continuous(expression(predicted~fitness~R^2))+
   scale_x_discrete("missegregation rate")
 p0
 
-p1 <- ggplot(x,aes(x=nfq,y=r_fq))+
-  facet_grid(rows=vars(m),scales="free")+
-  geom_point()+
-  geom_smooth(method="lm")
+df <- reshape2::melt(x[,c("m","r_fq","nfq","nnn","nd2n")],id.vars=c("m","r_fq"))
+ids <- c(" frequent","d1","d2")
+names(ids)<-c("nfq","nnn","nd2n")
+df$variable <- ids[df$variable]
+df$r_fq[df$r_fq<(-1)] <- -1
+p1 <- ggplot(df,aes(x=factor(m),y=value,color=r_fq))+
+  facet_grid(rows=vars(variable),scales="free")+
+  geom_violin()+
+  geom_jitter(height=0,width=0.2)+
+  scale_y_log10("number of karyotypes")+
+  scale_x_discrete("missegregation rate")+
+  scale_color_viridis_c(expression(frequent~clone~R^2))
 p1
-
-xc <- x[,-c(1,2,4)]
-for(i in 1:ncol(xc)) xc[,i] <- as.numeric(xc[,i])
-corrplot::corrplot(cor(xc,method = "spearman"))
-xc <- split(xc,f=xc$m)
-
-for(xci in xc){
-  corrplot::corrplot(cor(xci,method = "spearman"))
-}
 
 ```
 ```{r}

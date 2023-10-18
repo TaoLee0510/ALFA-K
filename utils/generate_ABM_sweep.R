@@ -11,6 +11,8 @@ option_list = list(
               help="number of chromosomes per cell [default= %default]"),
   make_option(c("-r", "--reps"), type="numeric", default=1, 
               help="number of ABM repeats per parameter combination [default= %default]"),
+  make_option(c("-s", "--landscapereps"), type="numeric", default=1, 
+              help="number of ABM repeats per idential landscape [default= %default]"),
   make_option(c("-w", "--wavelengths"), type="character", default="0.1,0.2,0.4,0.8,1.6", 
               help="wavelengths for GRF landscape [default= %default]"),
   make_option(c("-m", "--misrates"), type="character", default="0.001,0.0001,0.00001", 
@@ -62,7 +64,9 @@ for(wavelength in wavelengths){
     setup_info <- lapply(1:opt$reps, function(dummyvar){
       gen_replicate(Nchrom=opt$nchrom,wavelength = wavelength,p = misrate,sweep_dir = sweep_dir,cpp_source = cpp_source)
     })
+    for(i in 1:opt$landscapereps){
+      parSapplyLB(cl,setup_info,function(xx) system(xx$cpp_run_cmd))
+    }
     #print(setup_info)
-   parSapplyLB(cl,setup_info,function(xx) system(xx$cpp_run_cmd))
   }
 }
