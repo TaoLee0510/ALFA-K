@@ -1,6 +1,7 @@
 struct parameters{
 
     float p=0.001;
+    float pgd=0.;
     float deltaf=0.0;
     int pop_write_freq = 10000000000;
     float deltafu=0.0;
@@ -107,6 +108,7 @@ parameters::parameters(string path){
         if(words[0]=="pop_write_freq") pop_write_freq=stoi(words[1]);
         if(words[0]=="dt") dt=stof(words[1]);
         if(words[0]=="p") p=stof(words[1]);
+        if(words[0]=="pgd") pgd=stof(words[1]);
         if(words[0]=="treat_on") treat_on=stoi(words[1]);
         if(words[0]=="treat_off") treat_off=stoi(words[1]);
         if(words[0]=="wavelength") wavelength=stof(words[1]);

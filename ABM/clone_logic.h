@@ -7,9 +7,9 @@ struct karyotype{
     float fitness=1;
     karyotype()=default;
     karyotype(vector<int>&,int,float);
-    void divide(float,mt19937&,list<karyotype>&);
-    void divide(float,mt19937&,list<karyotype>&,float);
-    void divide(float,mt19937&,list<karyotype>&,float,float,float);
+    void divide(float,float,mt19937&,list<karyotype>&);
+    void divide(float,float,mt19937&,list<karyotype>&,float);
+    void divide(float,float,mt19937&,list<karyotype>&,float,float,float);
 };
 
 karyotype::karyotype(vector<int> &founder, int N, float f){
@@ -23,7 +23,7 @@ karyotype::karyotype(vector<int> &founder, int N, float f){
 
 // all cells divide
 // all cells divide
-void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants){
+void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants){
 
     binomial_distribution<> d1(cn.size(), p); // isn't this an error? first arg should be n..!?
 
@@ -71,7 +71,7 @@ void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants){
 //in overloaded version, karyotype fitness is interpreted as net growth rate and
 // only fitness*dt*n get to divide. This does have problems though because using the
 // net growth rate means we will underestimate the number of divisions.
-void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants, float dt){
+void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants, float dt){
 
 
     float p_div = dt*abs(fitness);
@@ -82,6 +82,20 @@ void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants, float dt
         n-=n_divs;
         return;
     }
+
+    // first we will sort out the number of dividing cells that undergo WGD.
+    binomial_distribution<> dgd(n_divs, pgd);
+    int ngd = dgd(gen);
+    if(ngd>0){
+        vector<int> dgd = cn;
+        for(int i = 0; i<dgd.size();i++) dgd[i]=2*dgd[i];
+        karyotype tmp(dgd,ngd,fitness); // note fitness is recomputed later so the value here doesnt matter
+        mutants.push_back(tmp);
+    }
+    n-=ngd;
+    n_divs-=ngd;
+
+
 
     std::uniform_real_distribution<> unidis(0.0, 1.0);
 
@@ -146,7 +160,7 @@ void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants, float dt
 
 //in this version, karyotype fitness is interpreted as net growth rate but cell death is still possible for positive growth rates.
 // this is required for a model with a carrying capacity to stop the model "freezing".
-void karyotype::divide(float p, mt19937& gen, list<karyotype>& mutants, float dt, float turnover,float grr){
+void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants, float dt, float turnover,float grr){
     //float r = 1/(1+exp(-fitness*k));
     //if(r==0.5) r=0.5001; // following line undefined at r - 0.5
     //float g = fitness*r/(2*r-1);

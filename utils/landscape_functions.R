@@ -74,3 +74,33 @@ assess_ruggedness <- function(wavelength,Nwaves,Nchrom=4,Nreps= 10){
   data.frame(wavelength=wavelength,Nwaves=Nwaves,Nchrom=Nchrom,
              mean.ruggedness=mean(x),sd.ruggedness=sd(x))
 }
+
+abm_from_krig <- function(fit,dir,pars=NULL,cpp_cmd="ABM/bin/ABM.exe"){
+  options(scipen = 999)
+  dir.create(dir,recursive = T)
+  dir.create(paste0(dir,"/train"))
+  knots <- fit$knots
+  cc <- fit$c
+  d <- fit$d
+  fscape <- rbind(cbind(knots,cc),c(d))
+  fitted_landscape_path <- paste0(dir,"/landscape.txt")
+  write.table(fscape, fitted_landscape_path,row.names = FALSE,col.names=FALSE,sep=",")
+  
+  parnames <- c("init_kary","fitness_landscape_type","fitness_landscape_file",
+                "dt","p","pgd","Nsteps","output_dir","init_size")
+  parvals <- c("2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2","krig",
+               paste0(dir,"/landscape.txt"),"0.1","0.00005","0.0","3000",
+               paste0(dir,"/train"),"100000")
+
+  config <- cbind(parnames,parvals)
+  for(i in 1:length(pars)){
+    parname <- names(pars)[i]
+    parval <- as.character(pars[i])
+    config[config[,1]==parname,2] <- parval
+  }
+  config <- apply(config,1,paste,collapse=",")
+  config_path <- paste0(dir,"/config.txt")
+  writeLines(config,config_path)
+  cmd <- paste(cpp_cmd,config_path)
+  return(cmd)
+}

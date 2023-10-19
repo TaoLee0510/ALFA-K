@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
         float max_fitness = min_fitness;
         ncells=0;
         for (auto& [key, value] : m){
-            value.divide(par.p,gen,mutants,par.dt);
+            value.divide(par.p,par.pgd,gen,mutants,par.dt);
             mean_fitness=(value.n*value.fitness+ncells*mean_fitness)/(ncells+value.n);
             min_fitness = min(min_fitness,value.fitness);
             max_fitness = max(max_fitness,value.fitness);
