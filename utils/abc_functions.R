@@ -1,4 +1,11 @@
-
+cna <- function(k){
+  if(!is.numeric(k)) k <- as.numeric(unlist(strsplit(k,split="[.]")))
+  cnas <- rep(0,length(k))
+  cnas[which(k>median(k))] <- 1
+  cnas[which(k<median(k))] <- -1
+  # or (?) paste0(which(k<median(k)),"-")
+  cnas
+}
 process_dist <- function(dir,target.fitness){
   ksim <- lapply(dir, function(di){
     x <- proc_sim(di,times=seq(0,3000,100))
@@ -45,7 +52,7 @@ ll_cna <- function(df){
 
 
 
-dist_cna <- function(df){
+dist_cna <- function(df,nchrom=22){
   cnas <- do.call(rbind,lapply(rownames(df),cna))
   fneut <- sum(df$dat*apply(cnas,1,function(i) sum(i==0)))/sum(df$dat*nchrom)
   cngs <- apply(cnas,2,function(ci) sum(as.numeric(ci>0)*df$sim))
@@ -92,18 +99,18 @@ getLL <- function(id,root.dir,sweep_dir,cpp_source,fit,config){
   ddat <- load_dat(config$data_sources) ##slightly wasteful to load each time
   rx <- unique(c(names(ddat),names(dsim)))
   df <- data.frame(sim=rep(0,length(rx)),dat=rep(0,length(rx)))
-  df$sim[rx%in%names(nsim)] <- nsim[rx[rx%in%names(nsim)]]
-  df$dat[rx%in%names(ndat)] <- ndat[rx[rx%in%names(ndat)]]
+  df$sim[rx%in%names(dsim)] <- dsim[rx[rx%in%names(dsim)]]
+  df$dat[rx%in%names(ddat)] <- ddat[rx[rx%in%names(ddat)]]
   rownames(df) <- rx
   logl <- ll_cna(df)
   dcna <- dist_cna(df)
   result <- c(p,pgd,logl)
   names(result) <- c("p","pgd","ll")
-  
   ##save result
   saveRDS(result,paste0(this.dir,"/result.Rds"))
   saveRDS(dcna,paste0(this.dir,"/cna_dist.Rds"))
   #delete sim output (takes a lot of space)
   unlink(target.dir,recursive = T)
+  return(0)
 }
 

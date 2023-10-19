@@ -53,13 +53,14 @@ library(parallel)
 
 ##
 config <- readRDS(paste0(root.dir,opt$filename))
-data_sources <- paste0(root.dir,config$data_sources)
+config$data_sources <- paste0(root.dir,config$data_sources)
 fit <- readRDS(paste0(root.dir,config$landscape))$fit
 
 cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
 clusterCall(cl, function(script_dir){
   source(paste0(script_dir,"abc_functions.R"))
   source(paste0(script_dir,"landscape_functions.R"))
+  source(paste0(script_dir,"ALFA-K.R"))
 },script_dir=script_dir)
 
 i <- 1:config$npars
