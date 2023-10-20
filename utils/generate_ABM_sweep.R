@@ -60,7 +60,7 @@ if(opt$augment>0){
   if(dir_success) stop("parameter a intended for use with existing sweep")
   fo <- list.files(sweep_dir)
   cpp_cmds <- paste(cpp_source,paste0(sweep_dir,"/",fo,"/config.txt"))
-  for(i in 1:a){
+  for(i in 1:opt$augment){
     parSapplyLB(cl,cpp_cmds,function(xx) system(xx))
   }
 }
