@@ -57,7 +57,7 @@ library(parallel)
 cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
 dir_success <- dir.create(sweep_dir,recursive = T)
 if(opt$augment>0){
-  if(dir_succes) stop("parameter a intended for use with existing sweep")
+  if(dir_success) stop("parameter a intended for use with existing sweep")
   fo <- list.files(sweep_dir)
   cpp_cmds <- paste(cpp_source,paste0(sweep_dir,"/",fo,"/config.txt"))
   for(i in 1:a){
