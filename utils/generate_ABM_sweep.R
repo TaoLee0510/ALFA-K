@@ -9,6 +9,8 @@ option_list = list(
               help="number of parallel cores [default= %default]"),
   make_option(c("-l", "--nchrom"), type="numeric", default=22, 
               help="number of chromosomes per cell [default= %default]"),
+  make_option(c("-a", "--augment"), type="numeric", default=0, 
+              help="run additional replicates of a sweep using existing landscapes"),
   make_option(c("-r", "--reps"), type="numeric", default=1, 
               help="number of ABM repeats per parameter combination [default= %default]"),
   make_option(c("-s", "--landscapereps"), type="numeric", default=1, 
@@ -50,15 +52,27 @@ script_dir <- paste0(root.dir,"utils/")
 cpp_source <- paste0(root.dir,"ABM/bin/ABM")
 if(Sys.info()["sysname"]=="Windows") cpp_source <- paste0(cpp_source,".exe")
 sweep_dir <- paste0(root.dir,opt$name)
-dir.create(sweep_dir,recursive = T)
+
+library(parallel)
+cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
+dir_success <- dir.create(sweep_dir,recursive = T)
+if(opt$augment>0){
+  if(dir_succes) stop("parameter a intended for use with existing sweep")
+  fo <- list.files(sweep_dir)
+  cpp_cmds <- paste(cpp_source,paste0(sweep_dir,"/",fo,"/config.txt"))
+  for(i in 1:a){
+    parSapplyLB(cl,cpp_cmds,function(xx) system(xx))
+  }
+}
+
+
 
 source(paste0(script_dir,"sim_setup_functions.R"))
-library(parallel)
 
 wavelengths <- as.numeric(unlist(strsplit(opt$wavelengths,split=",")))
 misrates <- as.numeric(unlist(strsplit(opt$misrates,split=",")))
 
-cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
+
 for(wavelength in wavelengths){
   for(misrate in misrates){
     setup_info <- lapply(1:opt$reps, function(dummyvar){
