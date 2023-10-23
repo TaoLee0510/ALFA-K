@@ -22,7 +22,7 @@ root.dir <- paste0(paste(root.dir,collapse="/"),"/")
 script_dir <- paste0(root.dir,"utils/")
 source(paste0(script_dir,"comparison_functions.R"))
 source(paste0(script_dir,"ALFA-K.R"))
-
+ff <- list.files(target_dir)
 df <- expand.grid(test=ff,ref=ff)
 df$ll <- pbapply::pbsapply(1:nrow(df),function(i){
   dir1 <- paste0(target_dir,df$test[i],"/")
