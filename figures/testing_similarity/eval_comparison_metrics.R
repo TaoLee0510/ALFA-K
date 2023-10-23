@@ -44,7 +44,7 @@ eval_metrics <- function(dirs,t_eval=1200){
              dwass=wasserstein_distance(test,ref,t=t_eval,is.ref.multiple.objects = T))
 }
 
-df2<- do.call(rbind,parLapplyLB(cl=cl,x=df_list,eval_metrics))
+df2<- do.call(rbind,parLapplyLB(cl=cl,X=df_list,eval_metrics))
 df <- cbind(df,df2)
 saveRDS(df,"figures/testing_similarity/metrics.Rds")
 
