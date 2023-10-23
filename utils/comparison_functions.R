@@ -89,6 +89,8 @@ ssd <- function(f1,f2,g=g,landscape=NaN){
   data.frame(d11=d11,d22=d22,d12=d12,g=g,landscape=landscape)
 }
 
+## gets wasserstein distance between two populations formatted in a specific way.
+## better use wasserstein distance function as a wrapper
 get_dwass <- function(s1,s2){
   #wpp fails if there is only one coordinate. 
   ## to avoid this, add a tiny amount of mass close to the single coordinate
@@ -104,11 +106,37 @@ get_dwass <- function(s1,s2){
   pp2 <- transport::wpp(s2$x,s2$n/sum(s2$n))
   transport::wasserstein(pp1,pp2)
 }
+##formats objects for get_dwass
+make_wass_object <- function(x,t,is.multiple.objects=F){
+  k <- NULL
+  if(!is.multiple.objects){
+    k <- kary_vec(x,t)
+  }else{
+    k <- unlist(lapply(x,kary_vec,t=t))
+    tmp <- aggregate(list(n=k),by=list(k=names(k)),sum)
+    k <- tmp$n
+    names(k) <- tmp$k
+  }
+  
+  kx <- do.call(rbind,lapply(names(k),function(ki){
+    as.numeric(unlist(strsplit(ki,split="[.]")))
+  }))
+  list(x=kx,n=as.numeric(k))
+}
+
+## gets wasserstein distance between two populations formatted as output from 
+## proc_sim. Can use lists of populations. 
+wasserstein_distance <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F){
+  s1 <- make_wass_object(test,1200,is.multiple.objects = is.test.multiple.objects)
+  s2 <- make_wass_object(ref,1200,is.multiple.objects = is.ref.multiple.objects)
+  get_dwass(s1,s2)
+}
 
 ##function takes output of proc_sim and returns karyotype frequency vector at a certain timepoint
 kary_vec <- function(x,t){
   col_id <- which.min(abs(as.numeric(colnames(x$x))-t))
-  x$x[,col_id]
+  k <- x$x[,col_id]
+  k[k>0]
 }
 
 kary_df <- function(vt,vr){
@@ -119,7 +147,7 @@ kary_df <- function(vt,vr){
   names(vr) <- tmp$k
   df$test[rownames(df)%in%names(vt)] <- vt[rownames(df)[rownames(df)%in%names(vt)]]
   df$ref[rownames(df)%in%names(vr)] <- vr[rownames(df)[rownames(df)%in%names(vr)]]
-  df <- df[rowSums(df)>0,]
+  #df <- df[rowSums(df)>0,]
   return(df)
 }
 
@@ -148,4 +176,32 @@ ll_cna <- function(test,ref,t){
     sum(-log(cngs[i])*df$test[cnas[,i]>0])+sum(-log(cnls[i])*df$test[cnas[,i]<0])+sum(-log(cnns[i])*df$test[cnas[,i]==0])
   })
   sum(ll)
+}
+
+##functions for computing angle metric
+mag <- function(v) sqrt(sum(v^2))
+getangle <- function(a,b) 180*acos(sum(a*b)/(mag(a)*mag(b)))/pi
+get_mean <- function(x,t,is.multiple.objects=F){
+  k <- NULL
+  if(!is.multiple.objects){
+    k <- kary_vec(x,t)
+  }else{
+    k <- unlist(lapply(x,kary_vec,t=t))
+    tmp <- aggregate(list(n=k),by=list(k=names(k)),sum)
+    k <- tmp$n
+    names(k) <- tmp$k
+  }
+  n <- as.numeric(k)
+  N <- sum(n)
+  xi <- do.call(rbind,lapply(names(k),function(ki){
+    as.numeric(unlist(strsplit(ki,split="[.]")))
+  }))
+  as.numeric(apply(xi,2,function(k){
+    sum(k*n)/N
+  }))
+}
+angle_metric <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F,x0=2){
+  xt <- get_mean(test,1200,is.multiple.objects = is.test.multiple.objects)-x0
+  xr <- get_mean(ref,1200,is.multiple.objects = is.ref.multiple.objects)-x0
+  getangle(xt,xr)
 }

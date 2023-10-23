@@ -26,15 +26,19 @@ library(parallel)
 
 
 
-dir1 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_05/train/"
-dir2 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_05/train/"
+dir1 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_04/train/"
+dir2 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_04/train/"
 
-test_dir <- paste0(dir1,list.files(dir)[1])
-ref_dirs <- paste0(dir2,list.files(dir)[-1])
+test_dir <- paste0(dir1,list.files(dir1)[1])
+ref_dirs <- paste0(dir2,list.files(dir2)[-1])
 
-test <- proc_sim(test_dir,times = seq(0,2800,400))
-ref <- lapply(ref_dirs,proc_sim,times=seq(0,2800,400))
+test <- proc_sim(test_dir,times = seq(0,1200,1200))
+ref <- lapply(ref_dirs,proc_sim,times=seq(0,1200,1200))
 
 ll_cna(test,ref,t=1200)
+wasserstein_distance(test,ref,t=1200,is.ref.multiple.objects = T) 
+angle_metric(test,ref,t=1200,is.ref.multiple.objects = T)
+
+
 ```
 
