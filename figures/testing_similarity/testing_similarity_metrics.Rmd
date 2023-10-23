@@ -1,0 +1,40 @@
+---
+title: "Testing similarity metrics"
+author: "Richard J Beck"
+date: "3/10/2023"
+output: html_document
+---
+
+Various ways of establishing similarity between populations.
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+
+```{r}
+source("utils/landscape_functions.R")
+source("utils/ALFA-K.R")
+source("utils/comparison_functions.R")
+library(ggplot2)
+library(fields)
+library(parallel)
+```
+
+
+```{r}
+
+
+
+dir1 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_05/train/"
+dir2 <- "~/projects/008_birthrateLandscape/karyotype_evolution/ABM/output/nchrom_22_v2/N_22_w_1p6_rep_05/train/"
+
+test_dir <- paste0(dir1,list.files(dir)[1])
+ref_dirs <- paste0(dir2,list.files(dir)[-1])
+
+test <- proc_sim(test_dir,times = seq(0,2800,400))
+ref <- lapply(ref_dirs,proc_sim,times=seq(0,2800,400))
+
+ll_cna(test,ref,t=1200)
+```
+

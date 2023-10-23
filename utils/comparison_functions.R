@@ -104,3 +104,48 @@ get_dwass <- function(s1,s2){
   pp2 <- transport::wpp(s2$x,s2$n/sum(s2$n))
   transport::wasserstein(pp1,pp2)
 }
+
+##function takes output of proc_sim and returns karyotype frequency vector at a certain timepoint
+kary_vec <- function(x,t){
+  col_id <- which.min(abs(as.numeric(colnames(x$x))-t))
+  x$x[,col_id]
+}
+
+kary_df <- function(vt,vr){
+  rx <- unique(c(names(vt),names(vr)))
+  df <- data.frame(test=rep(0,length(rx)),ref=rep(0,length(rx)),row.names = rx)
+  tmp <- aggregate(list(n=vr),by=list(k=names(vr)),sum)
+  vr <- tmp$n
+  names(vr) <- tmp$k
+  df$test[rownames(df)%in%names(vt)] <- vt[rownames(df)[rownames(df)%in%names(vt)]]
+  df$ref[rownames(df)%in%names(vr)] <- vr[rownames(df)[rownames(df)%in%names(vr)]]
+  df <- df[rowSums(df)>0,]
+  return(df)
+}
+
+cna <- function(k){
+  if(!is.numeric(k)) k <- as.numeric(unlist(strsplit(k,split="[.]")))
+  cnas <- rep(0,length(k))
+  cnas[which(k>median(k))] <- 1
+  cnas[which(k<median(k))] <- -1
+  # or (?) paste0(which(k<median(k)),"-")
+  cnas
+}
+
+ll_cna <- function(test,ref,t){
+  vt <- kary_vec(test,t)
+  vr <- unlist(lapply(ref, kary_vec,t=t))
+  df <- kary_df(vt,vr)
+  cnas <- do.call(rbind,lapply(rownames(df),cna))
+  cngs <- apply(cnas,2,function(ci) sum(as.numeric(ci>0)*df$ref))
+  cnns <- apply(cnas,2,function(ci) sum(as.numeric(ci==0)*df$ref))
+  cnls <-  apply(cnas,2,function(ci) sum(as.numeric(ci<0)*df$ref))
+  nobs <- sum(df$ref)
+  cngs <- cngs/nobs
+  cnls <- cnls/nobs
+  cnns <- cnns/nobs
+  ll <- sapply(1:ncol(cnas),function(i){
+    sum(-log(cngs[i])*df$test[cnas[,i]>0])+sum(-log(cnls[i])*df$test[cnas[,i]<0])+sum(-log(cnns[i])*df$test[cnas[,i]==0])
+  })
+  sum(ll)
+}
