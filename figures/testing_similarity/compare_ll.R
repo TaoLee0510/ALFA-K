@@ -18,7 +18,7 @@ root.dir <- gsub("[\\]","/",thisFile())
 root.dir <- unlist(strsplit(root.dir,split="/"))
 root.dir <- root.dir[1:(length(root.dir)-3)]
 root.dir <- paste0(paste(root.dir,collapse="/"),"/")
-
+setwd(root.dir)
 script_dir <- paste0(root.dir,"utils/")
 source(paste0(script_dir,"comparison_functions.R"))
 source(paste0(script_dir,"ALFA-K.R"))
