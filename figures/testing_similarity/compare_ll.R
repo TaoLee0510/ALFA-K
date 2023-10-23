@@ -25,8 +25,8 @@ source(paste0(script_dir,"ALFA-K.R"))
 ff <- list.files(target_dir)
 df <- expand.grid(test=ff,ref=ff)
 df$ll <- pbapply::pbsapply(1:nrow(df),function(i){
-  dir1 <- paste0(target_dir,df$test[i],"/")
-  dir2 <- paste0(target_dir,df$ref[i],"/")
+  dir1 <- paste0(target_dir,df$test[i],"/train/")
+  dir2 <- paste0(target_dir,df$ref[i],"/train/")
   test_dir <- paste0(dir1,list.files(dir1)[1])
   ref_dirs <- paste0(dir2,list.files(dir2)[-1])
   
