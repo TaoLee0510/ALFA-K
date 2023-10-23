@@ -34,9 +34,10 @@ clusterCall(cl, function(script_dir){
   source(paste0(script_dir,"ALFA-K.R"))
 },script_dir=script_dir)
 
-eval_metrics <- function(dirs,t_eval=1200){
-  test_dir <- paste0(dir1,list.files(dirs[1])[1])
-  ref_dirs <- paste0(dir2,list.files(dirs[2])[-1])
+eval_metrics <- function(dirs,target_dir,t_eval=1200){
+  dirs <- paste0(target_dir,dirs,"/train/")
+  test_dir <- paste0(dirs[1],list.files(dirs[1])[1])
+  ref_dirs <- paste0(dirs[2],list.files(dirs[2])[-1])
   test <- proc_sim(test_dir,times = seq(0,t_eval,t_eval))
   ref <- lapply(ref_dirs,proc_sim,times=seq(0,t_eval,t_eval))
   data.frame(ll=ll_cna(test,ref,t=t_eval),
@@ -44,7 +45,7 @@ eval_metrics <- function(dirs,t_eval=1200){
              dwass=wasserstein_distance(test,ref,t=t_eval,is.ref.multiple.objects = T))
 }
 
-df2<- do.call(rbind,parLapplyLB(cl=cl,X=df_list,eval_metrics))
+df2<- do.call(rbind,parLapplyLB(cl=cl,X=df_list,eval_metrics,target_dir=target_dir))
 df <- cbind(df,df2)
 saveRDS(df,"figures/testing_similarity/metrics.Rds")
 
