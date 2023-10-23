@@ -24,7 +24,7 @@ source(paste0(script_dir,"comparison_functions.R"))
 source(paste0(script_dir,"ALFA-K.R"))
 
 df <- expand.grid(test=ff,ref=ff)
-ll <- pbapply::pbsapply(1:nrow(df),function(i){
+df$ll <- pbapply::pbsapply(1:nrow(df),function(i){
   dir1 <- paste0(target_dir,df$test[i],"/")
   dir2 <- paste0(target_dir,df$ref[i],"/")
   test_dir <- paste0(dir1,list.files(dir1)[1])
@@ -35,4 +35,5 @@ ll <- pbapply::pbsapply(1:nrow(df),function(i){
   
   ll_cna(test,ref,t=1200)
 })
+saveRDS(df,"figures/testing_similarity/ll_cn.Rds")
 
