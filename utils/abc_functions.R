@@ -110,8 +110,8 @@ getLL <- function(id,root.dir,sweep_dir,cpp_source,config){
   rownames(df) <- rx
   logl <- ll_cna(df)
   dcna <- dist_cna(df)
-  result <- c(p[1],p[2],pgd,logl)
-  names(result) <- c("p1","p2","pgd","ll")
+  result <- c(p[1],p[2],pgd,Nlandscapes,logl)
+  names(result) <- c("p1","p2","pgd","Nls","ll")
   ##save result
   saveRDS(result,paste0(this.dir,"/result.Rds"))
   saveRDS(dcna,paste0(this.dir,"/cna_dist.Rds"))
