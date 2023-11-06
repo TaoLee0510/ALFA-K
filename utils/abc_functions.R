@@ -86,7 +86,7 @@ getLL <- function(id,root.dir,sweep_dir,cpp_source,config){
   
   # generate random loguniform distributed parameters
   pgd <- config$pgd
-  p <- exp(runif(2,log(c(config$pgd_range[2],config$p_range[2]))))
+  p <- exp(runif(2,min=log(config$p_range[1]),max=log(config$p_range[2])))
   if(!config$different_misrates) p[2] <- p[1]
   
   for(i in 1:Nlandscapes){
