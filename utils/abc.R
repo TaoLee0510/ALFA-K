@@ -47,14 +47,16 @@ source(paste0(script_dir,"sim_setup_functions.R"))
 source(paste0(script_dir,"abc_functions.R"))
 
 
-
+# Rscript abc.R -n data/abc -c 50 -f config/abc_config.R
 
 library(parallel)
 
 ##
-config <- readRDS(paste0(root.dir,opt$filename))
+config <- readRDS(paste0(root.dir,"config/combined_config.Rds"))
 config$data_sources <- paste0(root.dir,config$data_sources)
-fit <- readRDS(paste0(root.dir,config$landscape))$fit
+config$fits <- lapply(config$landscape, function(li){
+  readRDS(paste0(root.dir,li))$fit
+})
 
 cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
 clusterCall(cl, function(script_dir){
@@ -63,6 +65,29 @@ clusterCall(cl, function(script_dir){
   source(paste0(script_dir,"ALFA-K.R"))
 },script_dir=script_dir)
 
+config$different_misrates <- TRUE
 i <- 1:config$npars
 ids <- stringr::str_pad(i,5,pad=0)
-x <- parLapplyLB(cl=cl,ids,getLL,root.dir=root.dir,sweep_dir=sweep_dir,cpp_source=cpp_source,fit=fit,config=config)
+x <- parLapplyLB(cl=cl,ids,getLL,root.dir=root.dir,sweep_dir=sweep_dir,cpp_source=cpp_source,config=config)
+
+config$different_misrates <- FALSE
+i <- config$npars+1:config$npars
+ids <- stringr::str_pad(i,5,pad=0)
+x <- parLapplyLB(cl=cl,ids,getLL,root.dir=root.dir,sweep_dir=sweep_dir,cpp_source=cpp_source,config=config)
+
+config <- readRDS(paste0(root.dir,"config/combined_config.Rds"))
+config$data_sources <- paste0(root.dir,config$data_sources)
+config$fits <- lapply(config$landscape, function(li){
+  readRDS(paste0(root.dir,li))$fit
+})
+
+config$different_misrates <- TRUE
+i <- 2*config$npars+1:config$npars
+ids <- stringr::str_pad(i,5,pad=0)
+x <- parLapplyLB(cl=cl,ids,getLL,root.dir=root.dir,sweep_dir=sweep_dir,cpp_source=cpp_source,config=config)
+
+config$different_misrates <- FALSE
+i <- 3*config$npars+1:config$npars
+ids <- stringr::str_pad(i,5,pad=0)
+x <- parLapplyLB(cl=cl,ids,getLL,root.dir=root.dir,sweep_dir=sweep_dir,cpp_source=cpp_source,config=config)
+

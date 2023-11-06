@@ -97,6 +97,7 @@ clone.fitness: fitness of each karyotype in matrix x. values are ordered accordi
 
 
 ```{r}
+x <- proc_sim("data/htert/train/00000/",times = seq(0,2800,400))
 x <- proc_sim(dir=output_subdir,times = seq(0,2800,400))
 print(head(x$x[order(rowSums(x$x),decreasing = T),]))
 ```

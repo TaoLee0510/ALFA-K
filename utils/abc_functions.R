@@ -77,20 +77,26 @@ dist_cna <- function(df,nchrom=22){
 }
 
 
-getLL <- function(id,root.dir,sweep_dir,cpp_source,fit,config){
+getLL <- function(id,root.dir,sweep_dir,cpp_source,config){
+  
+  Nlandscapes <- length(config$fits)
+  Nreps <- config$nreps/Nlandscapes
   
   this.dir <- paste0(sweep_dir,"/",id)
   
   # generate random loguniform distributed parameters
-  pars <- exp(runif(2,log(c(config$pgd_range[1],config$p_range[1])),
-                    log(c(config$pgd_range[2],config$p_range[2]))))
-  pgd <- pars[1]
-  p <- pars[2]
+  pgd <- config$pgd
+  p <- exp(runif(2,log(c(config$pgd_range[2],config$p_range[2]))))
+  if(!config$different_misrates) p[2] <- p[1]
   
-  # run ABM
-  cpp_cmd <- abm_from_krig(fit,dir = this.dir,pars=c(Nsteps=config$Nsteps,dt=config$dt,pgd=pgd,p=p),
-                           cpp_cmd = cpp_source)
-  for(i in 1:config$nreps) tmp <- system(cpp_cmd,intern = T)
+  for(i in 1:Nlandscapes){
+    # run ABM
+    cpp_cmd <- abm_from_krig(config$fits[[i]],dir = this.dir,pars=c(Nsteps=config$Nsteps,dt=config$dt,pgd=pgd,p=p[i]),
+                             cpp_cmd = cpp_source)
+    for(i in 1:Nreps) tmp <- system(cpp_cmd,intern = T)
+    
+  }
+  
   
   ##compute ll on summary stat
   target.dir <- paste0(this.dir,"/train/")
@@ -104,8 +110,8 @@ getLL <- function(id,root.dir,sweep_dir,cpp_source,fit,config){
   rownames(df) <- rx
   logl <- ll_cna(df)
   dcna <- dist_cna(df)
-  result <- c(p,pgd,logl)
-  names(result) <- c("p","pgd","ll")
+  result <- c(p[1],p[2],pgd,logl)
+  names(result) <- c("p1","p2","pgd","ll")
   ##save result
   saveRDS(result,paste0(this.dir,"/result.Rds"))
   saveRDS(dcna,paste0(this.dir,"/cna_dist.Rds"))

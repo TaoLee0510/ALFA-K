@@ -1,5 +1,5 @@
 target_dir <- "data/main/"
-ncores <- 3
+ncores <- 4
 library(parallel)
 ## https://stackoverflow.com/questions/1815606/determine-path-of-the-executing-script
 thisFile <- function() {
@@ -25,8 +25,8 @@ source(paste0(script_dir,"comparison_functions.R"))
 source(paste0(script_dir,"ALFA-K.R"))
 ff <- list.files(target_dir)
 df <- expand.grid(test=ff,ref=ff)
-df <- df[sample(1:nrow(df),10000),]
-df_list <- lapply(1:nrow(df), function(i) df[i,])
+
+df_list <- lapply(1:nrow(df), function(i) c(df$test[i],df$ref[i]))
 
 cl <- makeCluster(getOption("cl.cores", ncores))
 clusterCall(cl, function(script_dir){
@@ -35,7 +35,9 @@ clusterCall(cl, function(script_dir){
 },script_dir=script_dir)
 
 eval_metrics <- function(dirs,target_dir,t_eval=1200){
+  out <- tryCatch({
   dirs <- paste0(target_dir,dirs,"/train/")
+#  print(dirs)
   test_dir <- paste0(dirs[1],list.files(dirs[1])[1])
   ref_dirs <- paste0(dirs[2],list.files(dirs[2])[-1])
   test <- proc_sim(test_dir,times = seq(0,t_eval,t_eval))
@@ -43,6 +45,8 @@ eval_metrics <- function(dirs,target_dir,t_eval=1200){
   data.frame(ll=ll_cna(test,ref,t=t_eval),
              angle=angle_metric(test,ref,t=t_eval,is.ref.multiple.objects = T),
              dwass=wasserstein_distance(test,ref,t=t_eval,is.ref.multiple.objects = T))
+},error=function(e) return(data.frame(ll=NaN,angle=NaN,dwass=NaN)))
+return(out)
 }
 
 df2<- do.call(rbind,parLapplyLB(cl=cl,X=df_list,eval_metrics,target_dir=target_dir))
