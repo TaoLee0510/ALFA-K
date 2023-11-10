@@ -24,7 +24,23 @@ script_dir <- paste0(root.dir,"utils/")
 source(paste0(script_dir,"comparison_functions.R"))
 source(paste0(script_dir,"ALFA-K.R"))
 ff <- list.files(target_dir)
-df <- expand.grid(test=ff,ref=ff)
+ff <- ff[grepl("0.00005",ff)]
+
+cids <- lapply(ff,function(fo){
+  fi <- unlist(strsplit(fo,split="_"))
+  paste(fi[1:6],collapse="_")
+})
+ff <- split(ff,f=cids)
+
+fy <- lapply(ff, function(ffc){
+  sapply(ffc, function(ffci){
+    sample(ffc[!ffc==ffci],1)
+  })
+})
+
+df <- data.frame(test=rep(unlist(ff),2),
+                 ref=c(unlist(ff),unlist(fy)),row.names = NULL)
+
 
 df_list <- lapply(1:nrow(df), function(i) c(df$test[i],df$ref[i]))
 

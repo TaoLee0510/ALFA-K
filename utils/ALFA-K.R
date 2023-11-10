@@ -37,6 +37,12 @@ proc_sim <- function(dir,times){
   list(x=x,pop.fitness=pop.fitness,clone.fitness = clone.fitness,dt=dt)
 }
 
+## karyotypes are represented either as strings "2.2.2.2.2" or
+## vectors c(2,2,2,2,2), these functions convert between:
+s2v <- function(s) as.numeric(unlist(strsplit(s,split="[.]")))
+v2s <- function(v) paste(v,collapse="[.]")
+
+
 fitm <- function(par,xj,dt){
   N <- colSums(xj)
   x0i <- exp(head(par,length(par)/2))
@@ -129,7 +135,7 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
 }
 
 
-gen_all_neighbours <- function(ids,as.strings=T){
+gen_all_neighbours <- function(ids,as.strings=T,remove_nullisomes=T){
   if(as.strings) ids <- lapply(ids, function(ii) as.numeric(unlist(strsplit(ii,split="[.]"))))
   nkern <- do.call(rbind,lapply(1:length(ids[[1]]), function(i){
     x0 <- rep(0,length(ids[[1]]))
@@ -145,7 +151,7 @@ gen_all_neighbours <- function(ids,as.strings=T){
   n <- rbind(do.call(rbind,ids),n)
   n <- unique(n)
   n <- n[-(1:nids),]  
-  n <- n[apply(n,1,function(ni) sum(ni<1)==0),]
+  if(remove_nullisomes) n <- n[apply(n,1,function(ni) sum(ni<1)==0),]
   n
 }
 
