@@ -1,0 +1,11 @@
+---
+title: "Comparing fit quality"
+author: "Richard J Beck"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$knit(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
