@@ -34,10 +34,10 @@ source("figures/comparing_fit_quality/loo_xv.R")
 Interpretation of the above results is as follows:
 
 1.  separate landscapes scores better on all metrics.
-2.  Combined landscape scores *extremely* poorly on the *r*<sup>2</sup>
+2.  Combined landscape scores *extremely* poorly on the *R*<sup>2</sup>
     metric.
 3.  The reason that the combined landscape scores so poorly on the
-    *r*<sup>2</sup> metric is largely due to a bias i.e. tendency to
+    *R*<sup>2</sup> metric is largely due to a bias i.e. tendency to
     always overestimate fitness values by a constant factor. It is not
     clear to me why this would happen. Notably, the separate landscape
     also seems to feel this effect although it is not clear exactly why.
