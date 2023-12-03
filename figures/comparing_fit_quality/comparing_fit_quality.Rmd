@@ -6,6 +6,214 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$knit(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
+knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
+We would like to evaluate whether fitting hTERTa and hTERTb separately is better/worse than fitting them together. Some ideas...
+
+1) Plot the fits to the frequent clone data and evaluate quality. THIS WILL NOT WORK BECAUSE FITTING COMBINED LANDSCAPES STILL DOES THE FREQUENT CLONE STEP INDEPENDENTLY SO WE WOULD SEE NO DIFFERENCE. 
+2) LOO X validation style procedure. The most fair way I can think of to do this would be to do LOO XV on hTERTa and b independently and somehow merge those results. Then compare with the hTERTa/b combined fit. Is that fair?
+
+
+
+```{r}
+library(ggplot2)
+source("utils/comparison_functions.R")
+source("utils/ALFA-K.R")
+```
+This didn't work very well. Why? One reason is that we are tending to overestimate the fitness of the left out clones (this is puzzling in and of itself). Another is that hTERTb (by itself) gets a poor X-validation score. I think the (practical) answer to this riddle is to figure out why the biased prediction. 
+
+```{r}
+
+dir <- "figures/comparing_fit_quality/loo_xv/"
+hTERTa <- readRDS(paste0(dir,"hTERTa.Rds"))
+hTERTb <- readRDS(paste0(dir,"hTERTb.Rds"))
+xsep <- rbind(hTERTa,hTERTb)
+xcomb <-  readRDS(paste0(dir,"hTERTcomb.Rds"))
+#xcomb$loo_pred <- 0.2+xcomb$loo_pred-min(xcomb$loo_pred)
+#xcomb$f_est <- 0.2+xcomb$f_est-min(xcomb$f_est)
+
+xsep$id2 <- "separate"
+xcomb$id2 <- "combined"
+
+x <- rbind(xsep,xcomb)
+
+
+p <- ggplot(x,aes(x=f_est,y=loo_pred,color=id2))+
+  geom_point()+
+  geom_abline()
+p
+
+RMSE <- function(obs,pred){
+  round(sqrt(mean((obs-pred)^2)),digits=4)
+}
+RMSE(xsep$f_est,xsep$loo_pred)
+RMSE(xcomb$f_est,xcomb$loo_pred)
+R2(xsep$f_est,xsep$loo_pred)
+R2(xcomb$f_est,xcomb$loo_pred)
+cor(xsep$f_est,xsep$loo_pred)^2
+cor(xcomb$f_est,xcomb$loo_pred)^2
+
+rx <- rownames(hTERTa)[rownames(hTERTa)%in%rownames(hTERTb)]
+
+plot(hTERTa[rx,"f_est"],hTERTb[rx,"f_est"])
+```
+```{r}
+
+dir <- "figures/comparing_fit_quality/loo_xv/"
+hTERTb <- readRDS(paste0(dir,"hTERTb.Rds"))
+xmat <- do.call(rbind,lapply(rownames(hTERTb),s2v))
+d <- as.matrix(dist(xmat))
+
+err <- abs(hTERTb$f_est-hTERTb$loo_pred)
+dmin <- apply(d,1,function(di) min(di[di>0]))
+d2 <- apply(d,1,function(di) sum(di<2)-1)
+
+plot(err,dmin)
+plot(d2,err)
+plot(log(hTERTb$n),err)
+```
+
+3)Forward sims. I think the best way to do this is the old idea of using the fitted landscape over multiple runs to form a reference distribution and compare against that. 
+
+An important question is *how long* do we need to run the sims for? I think best answer is until we travel the same distance away from the origin as the data. So:
+
+Using the Wasserstein distance metric:
+```{r}
+
+cond_mapr <- c(hTERTa="hTERTa",hTERTb="hTERTb",hTERTcomb_1="hTERTa",hTERTcomb_2="hTERTb")
+
+dir <- "figures/comparing_fit_quality/evo_pred/"
+conds <- list.files(dir)
+ci <- conds[[2]]
+di <- paste0(dir,ci,"/out/")
+
+y <- readRDS(paste0("data/cellLines/02_optim_data/",cond_mapr[ci],".Rds"))
+ty <- as.numeric(tail(colnames(y$x),2))
+y1 <- make_wass_object(y,t=ty[1])
+y2 <- make_wass_object(y,t=ty[2])
+dtarg <- get_dwass(y1,y2)
+
+fi <- list.files(di)
+fi <- paste0(di,fi)
+tt <- seq(0,1000,100)
+
+x <- lapply(fi, function(fij){
+  proc_sim(fij,times=tt)
+})
+
+d <- sapply(tt, function(t2){
+  mean(sapply(x,function(xij){
+    x1 <- make_wass_object(xij,t=0)
+    x2 <- make_wass_object(xij,t=t2)
+    get_dwass(x1,x2)
+  }))
+})
+d <- d[-1]
+tt <- tt[-1]
+tt <- tt[which.min(abs(d-dtarg))]
+
+x <- lapply(x,function(xi){
+  make_wass_object(xi,t=tt)
+})
+
+dwass <- unlist(lapply(1:length(x), function(i){
+  unlist(lapply(i:length(x), function(j){
+    if(i==j) return(NULL)
+    get_dwass(x[[i]],x[[j]])
+  }))
+}))
+
+dwass_tst <- sapply(x,function(xi) get_dwass(y2,xi))
+
+df <- rbind(data.frame(dwass=dwass,id="train"),
+            data.frame(dwass=dwass_tst,id="test"))
+
+
+
+p <- ggplot(df,aes(x=dwass,color=id))+
+  stat_ecdf(geom="step")+
+  ggtitle(ci)
+p
+
+```
+
+Using the angle metric:
+
+```{r}
+
+cond_mapr <- c(hTERTa="hTERTa",hTERTb="hTERTb",hTERTcomb_1="hTERTa",hTERTcomb_2="hTERTb")
+
+dir <- "figures/comparing_fit_quality/evo_pred/"
+conds <- list.files(dir)
+ci <- conds[[4]]
+di <- paste0(dir,ci,"/out/")
+fi <- list.files(di)
+fi <- paste0(di,fi)
+y <- readRDS(paste0("data/cellLines/02_optim_data/",cond_mapr[ci],".Rds"))
+ty <- as.numeric(tail(colnames(y$x),2))
+
+y1 <- get_mean(y,ty[1])
+y2 <- get_mean(y,ty[2])
+
+vy <- y2-y1
+dtarg <- sqrt(mean(vy^2))
+
+tt <- seq(0,1000,100)
+x <- lapply(fi,function(fij){
+  proc_sim(fij,times=tt)
+})
+
+d <- 0
+use_wasserstein <- TRUE
+if(use_wasserstein){
+d <- sapply(tt, function(t2){
+  mean(sapply(x,function(xij){
+    x1 <- make_wass_object(xij,t=0)
+    x2 <- make_wass_object(xij,t=t2)
+    get_dwass(x1,x2)
+  }))
+})
+}else{
+d <- sapply(tt, function(t2){
+  mean(sapply(x,function(xij){
+    x1 <- get_mean(xij,0)
+    x2 <- get_mean(xij,t2)
+    vx <- x2-x1
+    sqrt(mean(vx^2))
+  }))
+})
+}
+tt <- tt[-1]
+d <- d[-1]
+
+tt <- tt[which.min(abs(d-dtarg))]
+
+
+amet <- unlist(lapply(1:length(x), function(i){
+  unlist(lapply(i:length(x), function(j){
+    if(i==j) return(NULL)
+    x0 <- get_mean(x[[i]],0)
+    x1 <- get_mean(x[[i]],tt)-x0
+    x2 <- get_mean(x[[j]],tt)-x0
+    getangle(x1,x2)
+  }))
+}))
+
+amet_tst <- sapply(x,function(xi){
+    x0 <- get_mean(xi,0)
+    x1 <- get_mean(xi,tt)-x0
+    getangle(x1,vy)
+})
+
+df <- rbind(data.frame(amet=amet,id="train"),
+            data.frame(amet=amet_tst,id="test"))
+
+
+
+p <- ggplot(df,aes(x=amet,color=id))+
+  stat_ecdf(geom="step")+
+  ggtitle(ci)
+p
+
+```

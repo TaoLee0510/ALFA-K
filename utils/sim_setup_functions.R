@@ -78,44 +78,44 @@ modify_config <- function(parname,parval,config){
 }
 
 
-setup_abm <- function(pars,pop=NULL){
+setup_abm <- function(sim_dir,pars=NULL,pop=NULL,fit=NULL){
   options(scipen=999)
+  
   config <- c(init_kary="2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2",
               fitness_landscape_type="krig",
-              fitness_landscape_file="landscape.txt",
+              fitness_landscape_file=paste0(sim_dir,"/landscape.txt"),
               dt=0.1,
               pop_write_freq=1000000000,
               max_size=2000000,
               p=0.00005,
               pgd=0.0001,
               Nsteps=3000,
-              output_dir="out",
+              output_dir=paste0(sim_dir,"/out"),
               init_size=100000,
-              population_file="custom_pop.txt"
+              population_file=paste0(sim_dir,"/pop.txt")
   )
-  if(!"population_file"%in%names(pars)) config <- config[!names(config)=="population_file"]
-  dir.create(pars["output_dir"],recursive=T)
-  if(!is.null(pop)){
+  dir.create(config["output_dir"],recursive=T)
+  if(is.null(pop)){
+    config <- config[!names(config)=="population_file"]
+  }else{
     pop <- apply(pop,1,paste,collapse=",")
-    writeLines(pop,pars["population_file"])
+    writeLines(pop,config["population_file"])
   }
-  if("fitness_landscape_file"%in%names(pars)){
+  if(is.null(fit)){
+    stop("I didn't add this yet")
+  }else{
     knots <- fit$knots
     cc <- fit$c
     d <- fit$d
     fscape <- rbind(cbind(knots,cc),c(d))
-    write.table(fscape, pars["fitness_landscape_file"],row.names = FALSE,col.names=FALSE,sep=",")
+    write.table(fscape, config["fitness_landscape_file"],row.names = FALSE,col.names=FALSE,sep=",")
   }
-  
   
   config[names(pars)] <- pars
   config <- paste0(names(config),",",config)
-  setwd(pars["output_dir"])
-  setwd("../")
-  config_path <- paste0(getwd(),"/config.txt")
+  config_path <- paste0(sim_dir,"/config.txt")
   writeLines(config,config_path)
   return(config_path)
-    
 }
 
 

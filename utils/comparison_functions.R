@@ -1,4 +1,11 @@
 
+R2 <- function(obs,pred){
+  1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
+}
+RMSE <- function(obs,pred){
+  round(sqrt(mean((obs-pred)^2)),digits=2)
+}
+
 load_sim_dat <- function(fo,g){
  foi <- list.files(fo) 
  x <- foi[!foi%in%c("log.txt","proc_data")]
