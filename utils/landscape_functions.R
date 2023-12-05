@@ -104,3 +104,25 @@ abm_from_krig <- function(fit,dir,pars=NULL,cpp_cmd="ABM/bin/ABM.exe"){
   cmd <- paste(cpp_cmd,config_path)
   return(cmd)
 }
+
+
+roughness_meas <- function(landscape){
+  m <- landscape$fit
+  x <- landscape$xo
+  if(!is.null(ncol(x))) x <- list(x)
+  k <- unlist(lapply(x, rownames))
+  k <- unique(k)
+  
+  xmat <- do.call(rbind,lapply(k, function(i) as.numeric(unlist(strsplit(i,split="[.]")))))
+  nn <- lapply(k,gen_all_neighbours)
+  f0 <- c(predict(m,xmat))
+  roughness <- sapply(1:length(nn), function(i){
+    f0 <- f0[i]
+    fn <- predict(m,nn[[i]])
+    mean(abs(f0-fn))
+  })
+  
+  ploidy <- apply(xmat,1,mean)
+  
+  data.frame(ploidy=ploidy,roughness=roughness)
+}
