@@ -18,6 +18,23 @@ library(fields)
 
 ```
 
+```{r}
+source("utils/visualisation_functions.R")
+xo <- readRDS("example_data/SA609ln1.Rds")
+xo$dt <- 30
+fit <- alfak(xo)
+saveRDS(fit,"example_data/SA609ln1_fit.Rds")
+plt <- melt_for_plotting(xo,20,fit)
+
+p <- ggplot(plt$data,aes(x=time,y=frequency))+
+  facet_wrap(~karyotype)+
+  geom_point(size=2)+
+  geom_line(data=plt$fit)+
+  theme_classic(base_size=12)
+p
+
+```
+
 **1.** Is there evidence for (diminishing returns) epistasis?
 
 Epistasis is defined as a "deviation from additivity in the effect of alleles at different loci with respect to their contribution to a quantitative phenotype"(Fisher, 1918 - see *Epistasis: what it means, what it doesn't mean, and statistical methods to detect it in humans. Heather J. Cordell.*). The logical extension of this definition to karyotype space implies that a chromosome can exhibit epistasis *with itself*. 
@@ -70,7 +87,9 @@ idvec <- function(i){
 find_epistasis <- function(cellLine){
   x <- readRDS(paste0("example_data/",cellLine,"_fit.Rds"))
   k <- x$xo
-  k <- rownames(k)[k$id=="fq"]
+  if(!is.null(dim(k))) k <- list(k)
+  kvec <- unique(unlist(lapply(k,function(ki) rownames(ki)[ki$id=="fq"])))
+  k <- kvec
   kvec <- lapply(k,s2v)
   y <- lapply(kvec, function(ki) rbind(ki,t(apply(m,1,function(mi) mi+ki))))
 
@@ -93,12 +112,12 @@ m <- do.call(rbind,lapply(1:22, function(i){
   return(mi)
 }))
 
-
+#"example_data/hTERTcomb.Rds"
 df1 <- find_epistasis("hTERTa")
 df2 <- find_epistasis("hTERTb")
+df <- rbind(df1,df2)
 
-
-p1 <- ggplot(df2[!df$nullisomy&df$id<11,],aes(x=fk,y=df))+
+p1 <- ggplot(df2[!df2$nullisomy&df2$id<11,],aes(x=fk,y=df))+
   facet_wrap(~mut_id,ncol=2)+
   geom_point()+
   scale_x_continuous("fitness")+
@@ -106,19 +125,14 @@ p1 <- ggplot(df2[!df$nullisomy&df$id<11,],aes(x=fk,y=df))+
   ggtitle("epistasis for selected mutations hTERTb")
 p1
 
-p2 <- ggplot(df1,aes(x=fk,y=df))+
+p2 <- ggplot(df,aes(x=fk,y=df))+
+  facet_grid(rows=vars(cellLine))+
   geom_point()+
   scale_x_continuous("fitness")+
   scale_y_continuous("delta fitness")+
-  ggtitle(paste("hTERTa. correlation:",round(cor(df1$df,df1$fk),digits=3)))
+  theme_bw(base_size=12)
 p2
 
-p3 <- ggplot(df2,aes(x=fk,y=df))+
-  geom_point()+
-  scale_x_continuous("fitness")+
-  scale_y_continuous("delta fitness")+
-  ggtitle(paste("hTERTb. correlation:",round(cor(df2$df,df2$fk),digits=3)))
-p3
 
 
 ```
@@ -137,6 +151,11 @@ df$ploidyround <- round(df$ploidy)
 
 print("mean roughness by ploidy (rounded to nearest integer)")
 aggregate(list(roughness=df$roughness),by=list(ploidy=df$ploidyround),mean)
+
+r2 <- df$roughness[df$ploidyround==2]
+r4 <- df$roughness[df$ploidyround==4]
+
+t.test(r2,r4)
 
 p <- ggplot(df,aes(x=ploidy,y=roughness))+
   geom_point()
@@ -174,6 +193,11 @@ x <- readRDS("example_data/hTERTcomb_fit.Rds")
 karyotypes <- unique(unlist(lapply(x$xo,rownames)))
 fit <- x$fit
 df <- moran_freq(karyotypes,fit)
+df$ploidyround <- round(df$ploidy)
+r2 <- df$Ii[df$ploidyround==2]
+r4 <- df$Ii[df$ploidyround==4]
+
+t.test(r2,r4)
 p <- ggplot(df,aes(x=ploidy,y=Ii))+
   geom_point()+
   scale_x_continuous("ploidy")+
