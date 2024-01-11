@@ -40,7 +40,7 @@ proc_sim <- function(dir,times){
 ## karyotypes are represented either as strings "2.2.2.2.2" or
 ## vectors c(2,2,2,2,2), these functions convert between:
 s2v <- function(s) as.numeric(unlist(strsplit(s,split="[.]")))
-v2s <- function(v) paste(v,collapse="[.]")
+v2s <- function(v) paste(v,collapse=".")
 
 
 fitm <- function(par,xj,dt){
@@ -87,7 +87,12 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
   
   dt <- x$dt
   x <- x$x
-  x <- x[rowSums(x)>min_obs,]
+  
+  ##following is to ensure there is at least one karyotype per timepoint
+  y <- x[rowSums(x)>min_obs,,drop=F]
+  csy <- colSums(y)
+  x <- unique(rbind(y,x[apply(x[,which(csy==0),drop=F],2,which.max),]))
+
   ntp <- apply(x,1,function(xi) sum(xi>0))
   x <- x[ntp>mintp,]
   x <- x[order(rowSums(x),decreasing=T),]

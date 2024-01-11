@@ -1,0 +1,79 @@
+---
+title: "README"
+author: "Richard J Beck"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Validating ALFA-K against output of ABM simulations
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+```{r}
+library(ggplot2)
+```
+
+INCLUDE DETAILS ABOUT HOW ABM OUTPUT WAS GENERATED
+
+First provide some background info about the sims which might help in interpreting results:
+
+```{r,eval=F}
+source("figures/alfak_ABM_tests/extract_sim_summary_info.R") ## ran on workstation
+```
+
+First check the fitness changes that occured in the ABM simulations. 
+```{r}
+x <- readRDS("figures/alfak_ABM_tests/sim_summary_info.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$cond_id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep")
+x <- cbind(x,ids)
+x <- x[x$misrate=="0.00005",]
+p <- ggplot(x,aes(x=time,y=fitness,group=interaction(rep_id,cond_id)))+
+  facet_grid(cols=vars(wavelength))+
+  geom_line(alpha=0.1)
+p
+
+```
+
+
+```{r}
+
+x <- readRDS("figures/alfak_ABM_tests/fit_summaries.Rds")
+x <- x[!sapply(x,is.null)]
+x <- x[sapply(x,ncol)==6]
+x <- do.call(rbind,x)
+ids <- data.frame(do.call(rbind,lapply(x$cond_id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep")
+x <- cbind(x,ids)
+x <- x[x$misrate=="0.00005",]
+x$ntp <- paste(x$ntp,"samples")
+x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
+
+p <- ggplot(x,aes(x=wavelength,y=r2,color=id))+
+  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
+  geom_jitter(height=0,width=0.2,alpha=0.5)
+p
+
+```
+
+
+```{r}
+
+x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep2")
+x <- cbind(x,ids)
+ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
+colnames(ids) <- c("min_obs","ntp")
+x <- cbind(x,ids)
+x$ntp <- paste(x$ntp,"samples")
+x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
+
+p <- ggplot(x,aes(x=wavelength,y=p3))+
+  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
+  geom_violin()+
+  geom_hline(yintercept=90,color="red")
+p
+```

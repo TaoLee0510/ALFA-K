@@ -207,8 +207,8 @@ get_mean <- function(x,t,is.multiple.objects=F){
     sum(k*n)/N
   }))
 }
-angle_metric <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F,x0=2){
-  xt <- get_mean(test,1200,is.multiple.objects = is.test.multiple.objects)-x0
-  xr <- get_mean(ref,1200,is.multiple.objects = is.ref.multiple.objects)-x0
+angle_metric <- function(test,ref,t=1200,is.test.multiple.objects=F,is.ref.multiple.objects=F,x0=2){
+  xt <- get_mean(test,t,is.multiple.objects = is.test.multiple.objects)-x0
+  xr <- get_mean(ref,t,is.multiple.objects = is.ref.multiple.objects)-x0
   getangle(xt,xr)
 }
