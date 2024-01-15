@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-Validating ALFA-K against output of ABM simulations
+Validating ALFA-K against output of ABM simulations  
 
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
@@ -37,6 +37,27 @@ p
 
 ```
 
+
+```{r}
+
+x <- readRDS("figures/alfak_ABM_tests/fit_summary_info.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$id1, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep")
+x <- cbind(x,ids)
+x <- x[x$misrate=="0.00005",]
+
+ids <- data.frame(do.call(rbind,lapply(x$id2, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
+colnames(ids) <- c("min_obs","ntp")
+x <- cbind(x,ids)                   
+x$ntp <- paste(x$ntp,"samples")
+x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
+x <- x[,!colnames(x)%in%c("id1","id2")]
+
+p <- ggplot(x,aes(x=wavelength,y=cor,color=id))+
+  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
+  geom_jitter(height=0,width=0.2,alpha=0.5)
+p
+```
 
 ```{r}
 
@@ -74,6 +95,34 @@ x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
 p <- ggplot(x,aes(x=wavelength,y=p3))+
   facet_grid(rows=vars(min_obs),cols=vars(ntp))+
   geom_violin()+
+  geom_jitter(height=0,width=0.3,alpha=0.2)+
   geom_hline(yintercept=90,color="red")
 p
+```
+
+
+```{r}
+x <- readRDS("figures/alfak_ABM_tests/loo_summaries.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$rep, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep")
+x <- cbind(x,ids)
+
+x <- split(x,f=interaction(x$ntp,x$minobs,x$rep))
+
+df <- do.call(rbind,lapply(x,function(xi){
+  
+  dfi <- xi[,c("ntp","minobs","wavelength","misrate")]
+  
+dfi$cor <- tryCatch(R2(xi$pred[!is.na(xi$pred)],xi$f_est[!is.na(xi$pred)]),
+                    error=function(e) return(NaN))
+return(dfi)
+}))
+df$cor[df$cor<(-1)]<- -1
+p <- ggplot(df,aes(x=wavelength,y=cor))+
+  facet_grid(rows=vars(minobs),cols=vars(ntp))+
+  geom_violin()+
+  geom_jitter(height=0,width=0.3,alpha=0.1)+
+  scale_y_continuous(expression(R^2))
+p
+
 ```

@@ -4,12 +4,12 @@ source("utils/ALFA-K.R")
 min_obs <- 5
 
 ff <- list.files("data/salehi/alfak_inputs/")
-ff <- ff[c(4,6,8,9)]
 
 lapply(ff, function(fi){
   print(fi)
   tryCatch({
     x <- readRDS(paste0("data/salehi/alfak_inputs/",fi))
+    x$x <- x$x[,1:(ncol(x$x)-1)]
     
     n_obs <- table(rowSums(x$x))
     n <- as.numeric(names(n_obs))
@@ -33,7 +33,7 @@ lapply(ff, function(fi){
       
     })
     names(fits) <- paste0("minobs_",n)
-    saveRDS(fits,paste0("data/salehi/alfak_fits_minobs_adaptive/",fi))
+    saveRDS(fits,paste0("data/salehi/alfak_fits_minobs_adaptive_exclude_final/",fi))
   },error=function(e) print(e))
   
 })

@@ -14,6 +14,10 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
 ```{r}
+library(gtable)
+library(ape)
+library(ggtree)
+library(treeio)
 library(ggplot2)
 library(xlsx)
 ```
@@ -26,6 +30,9 @@ source("figures/salehi_data_fitting/fit_alfak.R")
 ```
 
 Fit alfa-k and test performance across all lineages. It turned out that for these cell lines the results of the cross validation procedure could be quite sensitive to the value of min_obs. Therefore alfa-k was fit using all possible values for min_obs>5 on each cell line and the "best" value of min_obs was used. The criterion for best was the value that maximised the product of $r^2$ with the number of unique karyotypes considered as frequent clones. This was done instead of simply taking the highest $r^2$ value, to prevent choosing values for min_obs that would result in high $r^2$ values across only a couple of karyotypes.
+
+One thing we will have to explain is why we get such a good result for the Her2+ cell line when Salehi et al didn't. One possibilitiy is that the more detailed resolution CNA info they used to cluster cells was a red herring. 
+
 ```{r}
 
 
@@ -50,150 +57,257 @@ df <- data.frame(cor=cor[j],
 }))
 
 
-p <- ggplot(x,aes(x=id,y=cor^2))+
+p1 <- ggplot(x,aes(x=id,y=sign(cor)*cor^2))+
   geom_col()+
   coord_flip()+
   scale_x_discrete("")+
   scale_y_continuous(expression(r^2))
-p
+p1
 
-p <- ggplot(x,aes(x=id,y=n))+
+p2 <- ggplot(x,aes(x=id,y=n))+
   geom_col()+
   coord_flip()+
   scale_x_discrete("")+
   scale_y_continuous("number of frequent karyotypes")
+p2
+
+
+
+```
+
+It would be very interesting to compare how similar population evolution was in the instances where we have parallel evolution going on. 
+
+The result is not as expected
+
+```{r}
+source("utils/comparison_functions.R")
+x <- readRDS("data/salehi/chrom_level_cn.Rds")
+m <- read.csv("data/salehi/metadata.csv")
+m <- m[m$PDX_id=="SA609",]
+
+nm <- table(m$parent)
+nm <- names(nm)[nm>1]
+
+l <- do.call(rbind,lapply(nm, function(ni) {
+  children <- m$uid[m$parent==ni & !is.na(m$parent)]
+  combos <- combn(1:length(children),2)
+  cond_match <- apply(combos,2,function(ci){
+    m$on_treatment[m$uid==children[ci[1]]]==m$on_treatment[m$uid==children[ci[2]]]
+  })
+  data.frame(parent=ni,child1=children[combos[1,]],
+             child2=children[combos[2,]],cond_match)
+}))
+
+l <- cbind(l,data.frame(t(apply(l[,1:3],1,function(li){
+  sapply(li, function(lij) m$library_ids[m$uid==lij])
+}))))
+colnames(l)[1:3] <- paste0("uid_",colnames(l)[1:3])
+
+
+
+l$angles <- sapply(1:nrow(l), function(i){
+  idpar <- unlist(strsplit(l$parent[i],split=";"))
+  idc1 <- unlist(strsplit(l$child1[i],split=";"))
+  idc2 <- unlist(strsplit(l$child2[i],split=";"))
+  
+  vpar <- colMeans(do.call(rbind,lapply(idpar,function(id) x[[id]])))
+  vc1 <- colMeans(do.call(rbind,lapply(idc1,function(id) x[[id]])))-vpar
+  vc2 <- colMeans(do.call(rbind,lapply(idc2,function(id) x[[id]])))-vpar
+  
+  getangle(vc1,vc2)
+})
+
+
+p <- ggplot(l,aes(x=angles))+
+  facet_wrap(~cond_match)+
+  geom_histogram(binwidth=10)
+p
+
+aggregate(l$angles,by=list(l$cond_match),mean)
+```
+```{r}
+source("utils/comparison_functions.R")
+x <- readRDS("data/salehi/chrom_level_cn.Rds")
+m <- read.csv("data/salehi/metadata.csv")
+#m <- m[m$PDX_id=="SA609",]
+
+nm <- table(m$parent)
+nm <- names(nm)[nm>1]
+
+l <- do.call(rbind,lapply(nm, function(ni) {
+  children <- m$uid[m$parent==ni & !is.na(m$parent)]
+  combos <- combn(1:length(children),2)
+  cond_match <- apply(combos,2,function(ci){
+    m$on_treatment[m$uid==children[ci[1]]]==m$on_treatment[m$uid==children[ci[2]]]
+  })
+  data.frame(parent=ni,child1=children[combos[1,]],
+             child2=children[combos[2,]],cond_match)
+}))
+
+l <- cbind(l,data.frame(t(apply(l[,1:3],1,function(li){
+  sapply(li, function(lij) m$library_ids[m$uid==lij])
+}))))
+colnames(l)[1:3] <- paste0("uid_",colnames(l)[1:3])
+
+
+
+l$w <- sapply(1:nrow(l), function(i){
+  idpar <- unlist(strsplit(l$parent[i],split=";"))
+  idc1 <- unlist(strsplit(l$child1[i],split=";"))
+  idc2 <- unlist(strsplit(l$child2[i],split=";"))
+  
+  x0 <- do.call(rbind,lapply(idpar,function(id) x[[id]]))
+  x1 <- do.call(rbind,lapply(idc1,function(id) x[[id]]))
+  x2 <- do.call(rbind,lapply(idc2,function(id) x[[id]]))
+  
+  x0 <- transport::wpp(x0,mass=rep(1/nrow(x0),nrow(x0)))
+  x1 <- transport::wpp(x1,mass=rep(1/nrow(x1),nrow(x1)))
+  x2 <- transport::wpp(x2,mass=rep(1/nrow(x2),nrow(x2))) 
+  
+  d01 <- transport::wasserstein(x0,x1)
+  d02 <- transport::wasserstein(x0,x2)
+  d12 <- transport::wasserstein(x1,x2)
+  d12/(d01+d02)
+})
+
+
+p <- ggplot(l,aes(x=w))+
+  facet_wrap(~cond_match)+
+  geom_histogram()
+p
+
+aggregate(l$w,by=list(l$cond_match),mean)
+```
+
+```{r}
+
+f0 <- list.files("data/salehi/forward_sims/")
+
+df <- do.call(rbind,lapply(f0,function(fi){
+x <- readRDS(paste0("data/salehi/alfak_inputs/",fi,".Rds"))$x
+k <- do.call(rbind,lapply(rownames(x),s2v))
+
+x0 <- colSums(x[,ncol(x)-1]*k)/sum(x[,ncol(x)-1])
+x1 <- colSums(x[,ncol(x)]*k)/sum(x[,ncol(x)])-x0
+
+dir <- paste0("data/salehi/forward_sims/",fi,"/output/00000/")
+ff <- list.files(dir)
+ff <- ff[!ff%in%c("log.txt","summary.txt")]
+tt <- as.numeric(sapply(ff, function(fi) unlist(strsplit(fi,split=".csv"))[1]))
+xtst <- proc_sim(dir,times=tt)$x
+
+k <- do.call(rbind,lapply(rownames(xtst),s2v))
+
+angles <- sapply(1:ncol(xtst), function(i){
+  xni <- colSums(xtst[,i]*k)/sum(xtst[,i])-x0
+  getangle(xni,x1)
+})
+tt <- colnames(xtst)  
+data.frame(id=fi,angles,time=as.numeric(tt))
+}))
+
+p <- ggplot(df,aes(x=time,y=angles))+
+  facet_wrap(~id)+
+  geom_point()
 p
 
 
 
 ```
 
-```{r,eval=F}
+Below is stuff for plotting the lineages
+```{r}
 
-library("treeio")
-library("ggtree")
+plotmaker <- function(pdx,m){
+  print(pdx)
+  conds <- data.frame(id=c("A96146A","A96149B","A118833A","A110673B","A118862A",
+                         "A96219B","A118845B","A98244A","A98256A","A98283A",
+                         "A96162B"),
+                    dt=c(5,5,15,15,15,15,15,15,15,15,15),
+                    mintp=c(1,1,1,3,3,1,1,5,1,4,1))
 
-nwk <- system.file("extdata", "sample.nwk", package="treeio")
-tree <- read.tree(nwk)
+z <- lapply(1:nrow(conds),function(i){
+  mintp <- paste0("X",conds$mintp[i])
+  id <- conds$id[i]
+  sid <- paste(gsub(" ", "", m$label[grepl(id,m$library_ids)],fixed = TRUE),m$timepoint[grepl(id,m$library_ids)],sep = "_")
+  sid <- gsub("/", "", sid,fixed = TRUE)
+  
+  uids <- c(m$uid[grepl(id,m$library_ids)],m$parent[grepl(id,m$library_ids)])
+  
+  while(!is.na(tail(uids,1))){
+    uids <- c(uids,m$parent[m$uid==tail(uids,1)])
+  }
+  
+  msel <- m[m$uid%in%uids,]
 
-ggplot(tree, aes(x, y)) + geom_tree() + theme_tree()
+  if(msel$PDX_id[1]!=pdx) return(NULL)
+    msel[msel$timepoint>=mintp,]
+})
 
-```
+z <- z[!sapply(z,is.null)]
 
-```{r,eval=F}
-library(ggtree)
+maxl <- max(sapply(z,nrow))
+
+uids <- do.call(rbind,z)
+uids <- unique(uids$uid)
+
+d <- matrix(0,nrow=length(uids),ncol=length(z))
+for(i in 1:length(z)){
+  d[uids%in%z[[i]]$uid,i] <- 1 
+}
+for(i in 1:nrow(d)) d[i,] <- d[i,]/sum(d[i,])
+d <- data.frame(d)
+
 
 
 m <- read.csv("data/salehi/metadata.csv")
+m <- m[m$PDX_id==pdx,]
+m$on_treatment <- c(n="no",y="yes")[m$on_treatment]
+m2 <- m[!is.na(m$parent),]
 
-m <- split(m,f=m$PDX_id)[[2]]
+tr <- as.phylo(m2[,c("uid","parent")])
+tr$edge.length <- rep(1,nrow(tr$edge))
+
+x <- as_tibble(tr)
+nodelablr <- x$node
+names(nodelablr) <- x$label
+x$on_treatment <- sapply(x$label,function(i){
+  m$on_treatment[m$uid==i]
+})
+tr <- as.treedata(x)
+
+ff <- cbind(node=nodelablr[as.character(uids)],d)
+tmp <- reshape2::melt(ff,id.vars="node")
+
+pies <- nodepie(ff,cols=2:(1+length(z)))
+pies <- lapply(pies, function(g) g+scale_fill_viridis_d())
+
+##create  a dummy data frame to generate a fillable legend
+
+nodesz <- .32#0.2*maxl/8
+if(pdx=="SA609") nodesz <- 0.25
+if(pdx=="SA906") nodez <- 0.4
+df2 <- data.frame(x=rep(Inf,length(z)),
+                  y=rep(Inf,length(z)),
+                  z=paste0("X",1:length(z)))
+
+p <- ggtree(tr)+ 
+  geom_point(data=df2,aes(x=x,y=y,fill=z,linetype=NULL),shape=21)+
+    aes(linetype=on_treatment)+
+    #geom_nodepoint()+
+  geom_inset(pies, width = nodesz, height = nodesz, x = "node")+
+  ggtitle(pdx)+
+  scale_linetype_discrete("on treament")+
+  scale_fill_viridis_d("lineage")
+p
+}
 
 ```
-
-```{r,eval=F}
-
-dir <- "data/salehi/alfak_fits_minobs_adaptive/"
-ff <- list.files(dir)
-
-x <- do.call(rbind,lapply(ff, function(fi) {
-  df <- readRDS(paste0(dir,fi))$xv
-  id <- unlist(strsplit(fi,split=".Rds"))[1]
-  print(id)
-  cc <- tryCatch({cor(df$f_est,df$f_xv,use="complete.obs")},
-                 error=function(e) return(NaN))
-  data.frame(cor=cc,id)
-  }))
-
-p <- ggplot(x,aes(x=id,y=cor))+
-  geom_col()+
-  coord_flip()
-p
-
-
-
-x <- do.call(rbind,lapply(ff, function(fi) {
-  df <- readRDS(paste0(dir,fi))$xv
-  id <- unlist(strsplit(fi,split=".Rds"))[1]
-  df$id <- id
-  df
-  }))
-
-p <- ggplot(x,aes(x=f_est,y=f_xv))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-p
-
+```{r}
+m <- read.csv("data/salehi/metadata.csv")
+pdx <- c("SA906","SA609","SA1035","SA535")#,"SA532")
+x <- lapply(pdx,plotmaker,m=m)
+#x
+#p <- cowplot::plot_grid(x[[1]],x[[2]],x[[3]],x[[4]],ncol=2)
 ```
-
-
-```{r,eval=F}
-
-
-dir <- "data/salehi/alfak_fits_minobs_adaptive/"
-ff <- list.files(dir)
-
-x <- do.call(rbind,lapply(ff, function(fi) {
-  print(fi)
-xi <- readRDS(paste0(dir,fi))
-xi <- xi[!sapply(xi,is.null)]
-if(length(xi)==0) return(NULL)
-df <- data.frame(cor=sapply(xi, function(xij) xij$vx_cor),
-                 n=sapply(xi, function(xij) nrow(xij$xv_res)),
-                 id=unlist(strsplit(fi,split=".Rds"))[1])
-}))
-
-
-p <- ggplot(x,aes(x=n,y=cor))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-p
-
-fi <- ff[3]
-xi <- readRDS(paste0(dir,fi))
-
-df <- do.call(rbind,lapply(1:length(xi), function(j) {
-  dfj <- xi[[j]]$xv_res
-  dfj$id2 <- j
-  dfj
-}))
-
-p <- ggplot(df,aes(x=f_est,y=f_xv))+
-  facet_wrap(~id2,scales="free")+
-  geom_point()
-p
-
-```
-```{r,eval=F}
-
-
-dir <- "data/salehi/alfak_fits_minobs_adaptive/"
-ff <- list.files(dir)
-
-x <- do.call(rbind,lapply(ff, function(fi) {
-  print(fi)
-xi <- readRDS(paste0(dir,fi))
-xi <- xi[!sapply(xi,is.null)]
-if(length(xi)==0) return(NULL)
-cor<-sapply(xi, function(xij) xij$vx_cor)
-n <-sapply(xi, function(xij) nrow(xij$xv_res))
-
-goodness <- cor*n
-
-j <- which.max(goodness)
-
-df <- data.frame(cor=cor[j],
-                 n=n[j],
-                 id=unlist(strsplit(fi,split=".Rds"))[1])
-}))
-
-
-p <- ggplot(x,aes(x=id,y=cor^2))+
-  geom_col()+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous(expression(r^2))
-p
-
-
-
-```
+http://127.0.0.1:32487/graphics/plot_zoom_png?width=632&height=314
