@@ -1,4 +1,11 @@
 
+R2 <- function(obs,pred){
+  1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
+}
+RMSE <- function(obs,pred){
+  round(sqrt(mean((obs-pred)^2)),digits=2)
+}
+
 load_sim_dat <- function(fo,g){
  foi <- list.files(fo) 
  x <- foi[!foi%in%c("log.txt","proc_data")]
@@ -200,8 +207,8 @@ get_mean <- function(x,t,is.multiple.objects=F){
     sum(k*n)/N
   }))
 }
-angle_metric <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F,x0=2){
-  xt <- get_mean(test,1200,is.multiple.objects = is.test.multiple.objects)-x0
-  xr <- get_mean(ref,1200,is.multiple.objects = is.ref.multiple.objects)-x0
+angle_metric <- function(test,ref,t=1200,is.test.multiple.objects=F,is.ref.multiple.objects=F,x0=2){
+  xt <- get_mean(test,t,is.multiple.objects = is.test.multiple.objects)-x0
+  xr <- get_mean(ref,t,is.multiple.objects = is.ref.multiple.objects)-x0
   getangle(xt,xr)
 }

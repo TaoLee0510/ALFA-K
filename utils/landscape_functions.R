@@ -104,3 +104,72 @@ abm_from_krig <- function(fit,dir,pars=NULL,cpp_cmd="ABM/bin/ABM.exe"){
   cmd <- paste(cpp_cmd,config_path)
   return(cmd)
 }
+
+
+roughness_meas <- function(landscape,only_fq=F){
+  m <- landscape$fit
+  x <- landscape$xo
+  if(!is.null(ncol(x))) x <- list(x)
+  if(only_fq) x <- lapply(x, function(xi) xi[xi$id=="fq",])
+  k <- unlist(lapply(x, rownames))
+  k <- unique(k)
+  
+  xmat <- do.call(rbind,lapply(k, function(i) as.numeric(unlist(strsplit(i,split="[.]")))))
+  nn <- lapply(k,gen_all_neighbours)
+  f0 <- c(predict(m,xmat))
+  roughness <- sapply(1:length(nn), function(i){
+    f0 <- f0[i]
+    fn <- predict(m,nn[[i]])
+    mean(abs(f0-fn))
+  })
+  
+  ploidy <- apply(xmat,1,mean)
+  
+  data.frame(ploidy=ploidy,roughness=roughness,f_est=f0)
+}
+
+nviable_meas <- function(landscape,only_fq=F){
+  m <- landscape$fit
+  x <- landscape$xo
+  if(!is.null(ncol(x))) x <- list(x)
+  if(only_fq) x <- lapply(x, function(xi) xi[xi$id=="fq",])
+  k <- unlist(lapply(x, rownames))
+  k <- unique(k)
+  
+  xmat <- do.call(rbind,lapply(k, function(i) as.numeric(unlist(strsplit(i,split="[.]")))))
+  nn <- lapply(k,gen_all_neighbours)
+  f0 <- c(predict(m,xmat))
+  fviable <- sapply(1:length(nn), function(i){
+    f0 <- f0[i]
+    fn <- predict(m,nn[[i]])
+    mean(fn>f0)
+  })
+  
+  ploidy <- apply(xmat,1,mean)
+  
+  data.frame(ploidy=ploidy,fviable=fviable,f_est=f0)
+}
+
+moran_freq <- function(karyotypes,fit=NULL,fitness=NULL,m=2){
+  if(is.null(fit)&is.null(fitness)) stop("supply either landscape or fitness estimates")
+  
+  xmat <- do.call(rbind,lapply(karyotypes, function(i){
+    as.numeric(unlist(strsplit(i,split="[.]")))
+  }))
+  if(is.null(fitness)) fitness <- predict(fit,xmat)
+  ploidy <- apply(xmat,1,mean)
+  xbar <- mean(fitness)
+  N <- length(fitness)
+  d <- as.matrix(dist(xmat))
+  w <- (1/d^m)#d*(d==1)
+  diag(w) <- 0
+  w <- apply(w,1,function(wi) wi/sum(wi))
+  zi <- fitness-xbar
+  
+  m2 <- sum(zi^2)/N
+  
+  Ii <- sapply(1:length(fitness), function(i){
+    zi[i]/m2*sum(w[i,]*zi)
+  })  
+  data.frame(Ii,ploidy)
+}

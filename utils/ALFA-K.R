@@ -40,7 +40,7 @@ proc_sim <- function(dir,times){
 ## karyotypes are represented either as strings "2.2.2.2.2" or
 ## vectors c(2,2,2,2,2), these functions convert between:
 s2v <- function(s) as.numeric(unlist(strsplit(s,split="[.]")))
-v2s <- function(v) paste(v,collapse="[.]")
+v2s <- function(v) paste(v,collapse=".")
 
 
 fitm <- function(par,xj,dt){
@@ -55,7 +55,9 @@ fitm <- function(par,xj,dt){
   pred <- matrix(pred,ncol=ncol(xj))
   
   ll <- do.call(rbind,lapply(1:nrow(xj), function(i){
-    -dbinom(xj[i,],size = N,prob=pred[i,],log=T)
+    -dbinom(as.numeric(xj[i,]),
+            size = as.numeric(N),
+            prob=pred[i,],log=T)
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
@@ -75,7 +77,7 @@ inifitm <- function(inipar, opar,xj,dt){
   pred <- apply(logx,2,function(lxi) exp(lxi)/sum(exp(lxi)))
   
   ll <- do.call(rbind,lapply(1:nrow(xj), function(i){
-    -dbinom(xj[i,],size = N,prob=pred[i,],log=T)
+    -dbinom(as.numeric(xj[i,]),size = N,prob=pred[i,],log=T)
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
@@ -86,17 +88,22 @@ inifitm <- function(inipar, opar,xj,dt){
 opt_g_free <- function(x,min_obs=5,mintp=0){
   
   dt <- x$dt
-  x <- x$x
-  x <- x[rowSums(x)>min_obs,]
-  ntp <- apply(x,1,function(xi) sum(xi>0))
-  x <- x[ntp>mintp,]
-  x <- x[order(rowSums(x),decreasing=T),]
+  xx <- data.frame(x$x,check.names = F)
+  
+  ##following is to ensure there is at least one karyotype per timepoint
+  y <- xx[rowSums(xx)>min_obs,,drop=F]
+  csy <- colSums(y)
+  xx <- unique(rbind(y,xx[apply(xx[,which(csy==0),drop=F],2,which.max),]))
+
+  ntp <- apply(xx,1,function(xi) sum(xi>0))
+  xx <- xx[ntp>mintp,]
+  xx <- xx[order(rowSums(xx),decreasing=T),]
   ##some initial parameter guesses
   x0 <- log(1/10^9)
   f0 <- 0.5
   
   i <- 1
-  xj <- x[1:i,,drop=F]
+  xj <- xx[1:i,,drop=F]
   par <- c(x0,f0)
   
   opt <- optim(par,fitm,xj=xj,dt=dt)
@@ -105,10 +112,10 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
   x0 <- head(par,length(par)/2)
   f0 <- tail(par,length(par)/2)
   
-  for(i in 2:nrow(x)){
+  for(i in 2:nrow(xx)){
     print(i)
     guesses <- randomLHS(n=100,k=2)
-    xj <- x[1:i,,drop=F]
+    xj <- xx[1:i,,drop=F]
     rx0 <- max(x0+25)-min(x0-25)
     guesses[,1] <- (guesses[,1]-0.5)*rx0+median(x0)
     
@@ -128,7 +135,7 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
   min_f0 <- min(f0)
   delta_f0 <- 0.2-min_f0
   f0 <- f0+delta_f0
-  xopt <- data.frame(f_est=f0,u0=x0,ll=err,n=rowSums(x),ntp=apply(x,1,function(xi) sum(xi>0)))
+  xopt <- data.frame(f_est=f0,u0=x0,ll=err,n=rowSums(xx),ntp=apply(xx,1,function(xi) sum(xi>0)))
   
   rownames(xopt) <- rownames(xj)[1:nrow(xopt)]
   xopt
@@ -239,7 +246,7 @@ get_neighbor_fitness <- function(ni,x_opt,x,pm0,ntp=100){
     aj*diff(tp)[1]*x$dt*pm[j]*x_opt_i$f_est[j]
   })))
   
-  oni <- optimise(optim_neighbor_fitness,interval=c(0,1),tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
+  oni <- optimise(optim_neighbor_fitness,interval=c(0,max(x_opt$f_est)),tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
                   u=u,tt=colnames(x$x),pop_size=colSums(x$x),f_est=x_opt_i$f_est,dt=x$dt)
   data.frame(f_est=oni$minimum,u0=NaN,ll=oni$objective,n=sum(u),ntp=sum(u>0))
 }
@@ -262,23 +269,6 @@ wrap_neighbor_fitness <- function(x,x_opt,pm0=0.00005,ntp=100){
   x2
 }
 
-
-alfak <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
-  x0 <- opt_g_free(x,min_obs,min_tp)
-  x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
-  x0$id <- "fq"
-  x1$id <- "nn"
-  xo <- rbind(x0,x1)
-  xmat <- do.call(rbind,lapply(rownames(xo), function(i){
-    as.numeric(unlist(strsplit(i,split="[.]")))
-  }))
-  y <- xo$f_est
-  fit <- Krig(xmat,y,m=1)
-  return(list(fit=fit,xo=xo))
-}
-
-
-
 dij <- function(xi,xj,parij){
   xi <- xi[rownames(xi)%in%rownames(xj),]
   xj <- xj[rownames(xj)%in%rownames(xi),]
@@ -294,13 +284,27 @@ fit_dists <- function(par,xd){
   }))
 }
 
+alfak <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
+  x0 <- opt_g_free(x,min_obs,min_tp)
+  x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
+  x0$id <- "fq"
+  x1$id <- "nn"
+  xo <- rbind(x0,x1)
+  xmat <- do.call(rbind,lapply(rownames(xo), function(i){
+    as.numeric(unlist(strsplit(i,split="[.]")))
+  }))
+  y <- xo$f_est
+  fit <- Krig(xmat,y,m=1)
+  return(list(fit=fit,xo=xo))
+}
+
 ## combining multiple replicates on same landscape
 alfak2 <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
   x0 <- lapply(x, function(xi) opt_g_free(xi,min_obs,min_tp))
   x1 <- lapply(1:length(x), function(i){
     wrap_neighbor_fitness(x[[i]],x0[[i]],pm0=misseg_rate)
   })
-  rx <- unlist(sapply(x0, rownames))
+  rx <- c(sapply(x0, rownames))
   dups <- unique(rx[duplicated(rx)]) ## find frequent karyotypes common to both landscapes
   
   ##add constant value
@@ -383,4 +387,56 @@ optim_loo <- function(i,xx,xo){
   fit <- Krig(xmat,y,m=1)
   pred <- predict(fit,matrix(xi,nrow=1))
   data.frame(pred=pred,row.names = xistr)
+}
+
+#leave one out cross validation procedure
+optim_loo2 <- function(j,i,x,xo){
+  
+  trial <- xo[[j]][i,]
+  print(rownames(trial))
+  x0 <- xo
+  x0[[j]] <- xo[[j]][-i,]
+  x1 <- lapply(1:length(x), function(i){
+    wrap_neighbor_fitness(x[[i]],x0[[i]])
+  })
+  rx <- unlist(sapply(x0, rownames))
+  dups <- unique(rx[duplicated(rx)]) ## find frequent karyotypes common to both landscapes
+  
+  ##add constant value
+  xd <- lapply(x0, function(xi) xi[rownames(xi)%in%dups,])
+  par <- rep(0,length(xd))
+  opt <- optim(par,fn=fit_dists,xd=xd)
+  for(i in 1:length(par)){
+    x0[[i]]$f_est <- x0[[i]]$f_est+opt$par[i]
+    x1[[i]]$f_est <- x1[[i]]$f_est+opt$par[i]
+  }
+  
+  ##gather basic data for krig fit
+  rx <- c(unlist(sapply(x0,rownames)),unlist(sapply(x1,rownames)))
+  f <- c(unlist(sapply(x0, function(xi) xi$f_est)),
+         unlist(sapply(x1, function(xi) xi$f_est)))
+  xmat <- do.call(rbind,lapply(rx, function(xi) {
+    as.numeric(unlist(strsplit(xi,split="[.]")))
+  }))
+  
+  ## find weights for values in krig fit
+  id <- c(rep("fq",sum(sapply(x0,nrow))),rep("nn",sum(sapply(x1,nrow))))
+  dfx <- data.frame(k=rx,f,id)
+  
+  sxfq <- dfx[dfx$id=="fq",]
+  dfq <- aggregate(list(var=sxfq$f),by=list(k=sxfq$k),var)
+  dfq <- dfq[!is.na(dfq$var),]
+  
+  sxnn <- dfx[dfx$id=="nn",]
+  dnn <- aggregate(list(var=sxnn$f),by=list(k=sxnn$k),var)
+  dnn <- dnn[!is.na(dnn$var),]
+  
+  w <- c(mean(dfq$var),mean(dnn$var))
+  names(w) <- c("fq","nn")
+  
+  fit <- Krig(xmat,f,m=1,weights=1/w[id])
+  
+  test <- matrix(s2v(row.names(trial)),nrow=1)
+  trial$loo_pred <- predict(fit,test)
+  return(trial)
 }

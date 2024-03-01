@@ -1,0 +1,47 @@
+Sample ID as it appears in SCIVA,Sample Type,Sample ID,Day from LMM Diagnosis,Date Collected relative to death,Date Collected relative to last contact,Mutation Status,"Source (LP, Ommaya, Surgery)",Clinical response/survival time (months),History of Targeted Therapy (not currently on),History of Immune Therapy (more than 30 days),"Treatment relative to collection (immune therapy within month, targeted therapy currently on, radiation within the last week)",Past Targeted Therapy,Past Checkpoint Inhibitors,Current Targeted Therapy,Current Checkpoint Inhibitors,Current Radiation Therapy,Response at collection time,Additional Sample Info
+CSF-10,CSF,10,1,133,,BRAF V600E ,LP,4.4,"BRAF, BRAF/MEK",Ipi/Nivo,On BRAF/MEK,Yes,Yes,Yes,No,No,Progression,LMD Patient C
+CSF-11,CSF,11,32,102,,BRAF V600E ,Ommaya reservoir,4.4,"BRAF, BRAF/MEK",Ipi/Nivo,"On BRAF/MEK, Nivo, WBRT, RT to spine",Yes,Yes,Yes,Yes,Yes,Progression,LMD Patient C
+CSF-12,CSF,12,101,33,,BRAF V600E ,Ommaya reservoir,4.4,"BRAF, BRAF/MEK","Ipi/Nivo, Nivo","On BRAF/MEK, Nivo",Yes,Yes,Yes,Yes,No,Progression,LMD Patient C
+CSF-13,CSF,13,116,18,,BRAF V600E ,Ommaya reservoir,4.4,"BRAF, BRAF/MEK","Ipi/Nivo, Nivo","On BRAF/MEK, IT Thiptepa",Yes,Yes,Yes,No,No,Progression,LMD Patient C
+CSF-14,CSF,14,129,5,,BRAF V600E ,Ommaya reservoir,4.4,"BRAF, BRAF/MEK","Ipi/Nivo, Nivo","On BRAF/MEK, IT Thiotepa",Yes,Yes,Yes,No,No,Progression,LMD Patient C
+CSF-15,CSF,15,5,37,,BRAF V600E ,LP,1.2,BRAF/MEK,None,None,Yes,No,No,No,No,Progression,LMD Patient D
+CSF-16,CSF,16,20,22,,BRAF V600E ,Ommaya reservoir,1.2,BRAF/MEK,None,None,Yes,No,No,No,No,Progression,LMD Patient D
+CSF-17,CSF,17,22,20,,BRAF V600E ,Ommaya reservoir,1.2,BRAF/MEK,None,WBRT,Yes,No,No,No,Yes,Progression,LMD Patient D
+CSF-18,CSF,18,36,6,,BRAF V600E ,LP,1.2,BRAF/MEK,None,WBRT,Yes,No,No,No,Yes,Progression,LMD Patient D
+CSF-20,CSF,20,38,96,,BRAF V600E mt,Ommaya reservoir,4.4,"BRAF, BRAF/MEK","Ipi/Nivo, Nivo","On BRAF/MEK, Nivo, WBRT, RT to spine",Yes,Yes,Yes,Yes,Yes,Progression,LMD Patient C
+CSF-21,CSF,21,29,26,,BRAF V600E ,Ommaya reservoir,1.8,BRAF/MEK/HSP90,"Pembro, Ipi/Nivo",Ipi/Nivo,Yes,Yes,No,Yes,No,Progression,LMD Patient E
+CSF-22,CSF,22,35,20,,BRAF V600E ,Ommaya reservoir,1.8,BRAF/MEK/HSP90,"Pembro, Ipi/Nivo",Ipi/Nivo,Yes,Yes,No,Yes,No,Progression,LMD Patient E
+CSF-23,CSF,23,404,768,,BRAF Mutant,Ommaya reservoir,32+,None,"Ipi/Nivo, Nivo",BRAF/MEK,No,Yes,Yes,No,No,Stable,LMD Patient F
+CSF-26,CSF,26,796,376,,BRAF Mutant,Ommaya reservoir,32+,None,"Ipi/Nivo, Nivo","BRAF/MEK, Nivo",No,Yes,Yes,Yes,No,Asymptomatic Progression,LMD Patient F
+CSF-27,CSF,27,,,,-,LP,-,-,-,-,-,-,-,-,-,-,LMD Normal 1
+CSF-28,CSF,28,,,,-,LP,-,-,-,-,-,-,-,-,-,-,LMD Normal 2
+CSF-29,CSF,29,320,852,,BRAF Mutant,Ommaya reservoir,32+,None,"Ipi/Nivo, Nivo",BRAF/MEK,No,Yes,Yes,No,No,Stable,LMD Patient F
+CSF-30,CSF,30,768,404,,BRAF Mutant,Ommaya reservoir,32+,None,"Ipi/Nivo, Nivo",BRAF/MEK,No,Yes,Yes,No,No,Asymptomatic Progression,LMD Patient F
+CSF-04,CSF,4,65,62,,BRAF V600E ,Ommaya reservoir,4.2,None,None,On BRAF/MEK,No,No,Yes,No,No,Stable?,LMD Patient A
+CSF-08,CSF,8,33,30,,BRAF V600E ,Ommaya reservoir,2.1,BRAF/MEK,Ipi/Nivo,None,Yes,Yes,No,No,No,Progression,LMD Patient B
+CSF-09,CSF,9,63,0,,BRAF V600E ,Autopsy,2.1,BRAF/MEK,Ipi/Nivo,Nivo,Yes,Yes,No,Yes,No,Progression,LMD Patient B
+CSF-K,CSF,K,5,58,,BRAF V600E ,LP,2.1,BRAF/MEK,Ipi/Nivo,FSRT,Yes,Yes,No,No,Yes,Progression,LMD Patient B
+CSF-N,CSF,N,99,28,,BRAF V600E ,Ommaya reservoir,4.2,None,None,On BRAF/MEK,No,No,Yes,No,No,Progression,LMD Patient A
+MB-10,Brain Met,8,-,275,,BRAF V600E,Surgery,Disease progression ( stable disease of non CNS until 1 month before death),BRAF/MEK,None,None,Yes,No,No,No,No,,
+MB-12,Brain Met,2,-,226,,BRAF V600E,Surgery,Disease progression,None,Ipi/Nivo,None,No,Yes,No,No,No,,
+MB-13,Brain Met,3,-,85,,BRAF V600E,Surgery,Disease progression,None,None,Pembro,No,No,No,Yes,No,,
+MB-14,Brain Met,5,-,,1114,BRAF V600E,Surgery,Stable disease?,None,None,None,No,No,No,No,No,,
+MB-15,Brain Met,7,-,,1331,BRAF p.D594N,Surgery,Stable disease,None,None,None,No,No,No,No,No,,
+MB-16,Brain Met,9,-,153,,No clinically relevant results identified,Surgery,Disease progressin,None,None,Pembro,No,No,No,Yes,No,,
+MB-17,Brain Met,10,-,,1371,No clinically relevant results identified,Surgery,Complete response,None,Ipi,None,No,Ipi,No,No,No,,
+MB-18,Brain Met,11,-,84,,BRAF  V600E,Surgery,Progressive disease,BRAF/MEK,None,Pembro,Yes,No,No,Yes,No,,
+MB-19,Brain Met,"13, 6",-,172,,BRAF V600E,Surgery,Disease progression,BRAF/MEK,None,Nivo,Yes,No,No,Yes,No,,
+MB-20,Brain Met,14,-,315,,BRAF  V600E,Surgery,Stable disease,None,Ipi,None,No,Ipi,No,No,No,,
+MB-04,Brain Met,1,-,349,,"BRAF V600K, pTen p.Y225",Surgery,Disease progression,None,None,None,No,No,No,No,No,,
+MB-05,Brain Met,6,-,279,,BRAF V600E,Surgery,Disease progression,None,None,None,No,No,No,No,No,,
+MB-08,Brain Met,12,-,98,,NRAS p. Q61K,Surgery,N/A,None,None,None,No,No,No,No,No,,
+MB-09,Brain Met,4,-,51,,"BRAF K601E, GNAS R201P, APC T1141S",Surgery,N/A,None,None,None,No,No,No,No,No,,
+XL01,Skin,XL1,-,649,,BRAF Mutant,Biopsy,,,,None,,,No,No,No,,20
+XL10,Skin,XL10,-,,,BRAF WT,Biopsy,"The patient has progressed on multiple lines of systemic therapy including pembrolizumab, talimogene laherparepvec, ipilimumab plus nivolumab and TIL. progression on all those treatments prior to biopsy",,"Pembro, talimogene laherparepvec,  ipi/nivo, TIL",,No,Yes,,,No,Progression,Progression
+XL02,Skin,XL2,-,,849,BRAF Mutant,Biopsy,"Partial Response then disease progression, relapse during active treatment",,,None,,,No,No,No,,10
+XL03,Skin,XL3,-,,842,BRAF Mutant,Biopsy,"Partial Response then disease progression, relapse during active treatment",,,BRAF/MEK/HSP90,,,Yes,No,No,,10
+XL04,Skin,XL4,-,,471,BRAF Mutant,Biopsy,"Partial Response then disease progression, relapse during active treatment",,,BRAF/MEK/HSP90,,,Yes,No,No,Progression,10
+XL05,Skin,XL5,-,,518,BRAF Mutant,Biopsy,Partial Response,,,None,,,None,No,No,,9
+XL06,Skin,XL6,-,,511,BRAF Mutant,Biopsy,Partial Response,,,BRAF/MEK/HSP90,,,Yes,No,No,,9
+XL07,Skin,XL7,-,136,,BRAF Mutant,Biopsy,"Partial Response then disease progression, relapse during active treatment",,,None,,,None,No,No,,24
+XL09,Skin,XL9,-,,532,BRAF Mutant,Biopsy,,,,None,,,None,No,No,,15

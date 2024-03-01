@@ -20,6 +20,9 @@ df <- do.call(cbind,lapply(1:length(x0), function(i){
   exp(x0[i]+f[i]*t)
 }))
 
+df1 <- data.frame(df)
+df1$time <- t
+df1 <- reshape2::melt(df1,id.vars="time")
 df <- data.frame(t(apply(df,1, function(di) {
   dii <- di*rnorm(length(di),mean=1,sd=0.2)
   dii/sum(dii)
@@ -38,19 +41,72 @@ df2 <- data.frame(t(apply(df2,1, function(dii) {
 df2$time <- t
 df2 <- reshape2::melt(df2,id.vars="time")
 
-p <- ggplot(df,aes(x=time,y=value,color=variable))+
+p1 <- ggplot(df1,aes(x=time,y=value,color=variable))+
+  geom_line()+
+  scale_y_log10("karyotype number")+
+  scale_x_continuous("time (days)")+
+  scale_color_discrete("karyotype\nID")+
+  theme_classic(base_size=12)
+p1
+
+p2 <- ggplot(df,aes(x=time,y=value,color=variable))+
   geom_point(size=2)+
   geom_line(data=df2)+
   scale_y_continuous("karyotype frequency")+
   scale_x_continuous("time (days)")+
   scale_color_discrete("karyotype\nID")+
   theme_classic(base_size=12)
-p
+p2
 
-ggsave("fq_fit.png",plot=p,width=4,height=2.5,units="in")
+ggsave("fq_mod.png",plot=p1,width=4,height=2.5,units="in")
+ggsave("fq_fit.png",plot=p2,width=4,height=2.5,units="in")
 
 
 ```
+Neighbors example
+```{r}
+
+a <- rep(2,5)
+b <- a
+b[2] <- 3
+
+a <- paste0(paste(a,collapse="."),"...")
+b <- paste0(paste(b,collapse="."),"...")
+
+t <- 0:10
+
+x0 <- c(0,-8,-15,-5)
+f <- c(0.3,0.5,0.6,0.45)
+t <- seq(0,100,8)
+df <- data.frame(do.call(cbind,lapply(1:length(x0), function(i){
+  exp(x0[i]+f[i]*t)
+})))
+
+df <- data.frame(t(apply(df,1, function(dii) {
+  dii/sum(dii)
+  })))
+
+df <- rbind(data.frame(t,n=rbinom(length(df$X4),150,df$X4),id=a),
+      data.frame(t,n=rbinom(length(df$X4),150,df$X4/100),id=b))
+      
+
+
+p <- ggplot(df,aes(x=t,y=n,color=id))+
+  geom_point()+
+  scale_y_sqrt("number of cells",breaks=c(2,10,100,200,400))+
+  scale_x_continuous("time (days)")+
+  scale_color_discrete("karyotype\nID")+
+  theme_bw(base_size=12)
+p
+
+ggsave("nn_est.png",plot=p,width=4,height=2.5,units="in")
+```
+```{r}
+
+
+
+```
+
 
 ```{r}
 

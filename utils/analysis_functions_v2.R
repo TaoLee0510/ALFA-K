@@ -1,3 +1,4 @@
+stop("this file is deprecated!")
 library(lhs)
 ##prepare ABM data for input to pipeline
 proc_sim <- function(dir,times){
