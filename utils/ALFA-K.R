@@ -55,7 +55,9 @@ fitm <- function(par,xj,dt){
   pred <- matrix(pred,ncol=ncol(xj))
   
   ll <- do.call(rbind,lapply(1:nrow(xj), function(i){
-    -dbinom(xj[i,],size = N,prob=pred[i,],log=T)
+    -dbinom(as.numeric(xj[i,]),
+            size = as.numeric(N),
+            prob=pred[i,],log=T)
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
@@ -75,7 +77,7 @@ inifitm <- function(inipar, opar,xj,dt){
   pred <- apply(logx,2,function(lxi) exp(lxi)/sum(exp(lxi)))
   
   ll <- do.call(rbind,lapply(1:nrow(xj), function(i){
-    -dbinom(xj[i,],size = N,prob=pred[i,],log=T)
+    -dbinom(as.numeric(xj[i,]),size = N,prob=pred[i,],log=T)
   }))
   ll <- ll[,!N==0]
   ll[!is.finite(ll)] <- 1e+9
@@ -86,22 +88,22 @@ inifitm <- function(inipar, opar,xj,dt){
 opt_g_free <- function(x,min_obs=5,mintp=0){
   
   dt <- x$dt
-  x <- x$x
+  xx <- data.frame(x$x,check.names = F)
   
   ##following is to ensure there is at least one karyotype per timepoint
-  y <- x[rowSums(x)>min_obs,,drop=F]
+  y <- xx[rowSums(xx)>min_obs,,drop=F]
   csy <- colSums(y)
-  x <- unique(rbind(y,x[apply(x[,which(csy==0),drop=F],2,which.max),]))
+  xx <- unique(rbind(y,xx[apply(xx[,which(csy==0),drop=F],2,which.max),]))
 
-  ntp <- apply(x,1,function(xi) sum(xi>0))
-  x <- x[ntp>mintp,]
-  x <- x[order(rowSums(x),decreasing=T),]
+  ntp <- apply(xx,1,function(xi) sum(xi>0))
+  xx <- xx[ntp>mintp,]
+  xx <- xx[order(rowSums(xx),decreasing=T),]
   ##some initial parameter guesses
   x0 <- log(1/10^9)
   f0 <- 0.5
   
   i <- 1
-  xj <- x[1:i,,drop=F]
+  xj <- xx[1:i,,drop=F]
   par <- c(x0,f0)
   
   opt <- optim(par,fitm,xj=xj,dt=dt)
@@ -110,10 +112,10 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
   x0 <- head(par,length(par)/2)
   f0 <- tail(par,length(par)/2)
   
-  for(i in 2:nrow(x)){
+  for(i in 2:nrow(xx)){
     print(i)
     guesses <- randomLHS(n=100,k=2)
-    xj <- x[1:i,,drop=F]
+    xj <- xx[1:i,,drop=F]
     rx0 <- max(x0+25)-min(x0-25)
     guesses[,1] <- (guesses[,1]-0.5)*rx0+median(x0)
     
@@ -133,7 +135,7 @@ opt_g_free <- function(x,min_obs=5,mintp=0){
   min_f0 <- min(f0)
   delta_f0 <- 0.2-min_f0
   f0 <- f0+delta_f0
-  xopt <- data.frame(f_est=f0,u0=x0,ll=err,n=rowSums(x),ntp=apply(x,1,function(xi) sum(xi>0)))
+  xopt <- data.frame(f_est=f0,u0=x0,ll=err,n=rowSums(xx),ntp=apply(xx,1,function(xi) sum(xi>0)))
   
   rownames(xopt) <- rownames(xj)[1:nrow(xopt)]
   xopt
@@ -244,7 +246,7 @@ get_neighbor_fitness <- function(ni,x_opt,x,pm0,ntp=100){
     aj*diff(tp)[1]*x$dt*pm[j]*x_opt_i$f_est[j]
   })))
   
-  oni <- optimise(optim_neighbor_fitness,interval=c(0,1),tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
+  oni <- optimise(optim_neighbor_fitness,interval=c(0,max(x_opt$f_est)),tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
                   u=u,tt=colnames(x$x),pop_size=colSums(x$x),f_est=x_opt_i$f_est,dt=x$dt)
   data.frame(f_est=oni$minimum,u0=NaN,ll=oni$objective,n=sum(u),ntp=sum(u>0))
 }
@@ -302,7 +304,7 @@ alfak2 <- function(x,min_obs=20,min_tp=0,misseg_rate=0.00005){
   x1 <- lapply(1:length(x), function(i){
     wrap_neighbor_fitness(x[[i]],x0[[i]],pm0=misseg_rate)
   })
-  rx <- unlist(sapply(x0, rownames))
+  rx <- c(sapply(x0, rownames))
   dups <- unique(rx[duplicated(rx)]) ## find frequent karyotypes common to both landscapes
   
   ##add constant value

@@ -72,7 +72,7 @@ gen_replicate <- function(Nchrom,wavelength,sweep_dir,cpp_source,p=0.00005,Nwave
 
 modify_config <- function(parname,parval,config){
   new_entry <- paste(parname,parval,sep=",")
-  to_modify <- which(grepl(parname,config))
+  to_modify <- which(grepl(paste0(parname,","),config))
   config[to_modify] <- new_entry 
   return(config)
 }

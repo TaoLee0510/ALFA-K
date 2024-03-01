@@ -21,15 +21,16 @@ x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
     k <- do.call(rbind,lapply(rownames(fit$xo),s2v))
     f <- as.numeric(apply(k,1,getf,fobj=fobj))
     cor_fq <- cor(fit$xo$f_est[fit$xo$id=="fq"],f[fit$xo$id=="fq"],use="complete")
+    n_fq <- length(fit$xo$f_est[fit$xo$id=="fq"])
     cor_nn <- cor(fit$xo$f_est[fit$xo$id=="nn"],f[fit$xo$id=="nn"],use="complete")
-    
+    n_nn <- length(fit$xo$f_est[fit$xo$id=="nn"])
     n2 <- gen_all_neighbours(rownames(fit$xo))
     f <- as.numeric(apply(n2,1,getf,fobj=fobj))
     fpred <- predict(fit$fit,n2)
     
     cor_n2 <- cor(f,fpred,use="complete")
-    
-    data.frame(cor=c(cor_fq,cor_nn,cor_n2),id=c("fq","nn","n2"),
+    n_n2 <- length(f)
+    data.frame(cor=c(cor_fq,cor_nn,cor_n2),n=c(n_fq,n_nn,n_n2),id=c("fq","nn","n2"),
                id1=fi,id2=fij)
     
   }))

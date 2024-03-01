@@ -17,10 +17,38 @@ knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
 library(ggplot2)
 source("utils/comparison_functions.R")
 source("utils/ALFA-K.R")
+get_best <- function(x){
+  cx <- sapply(x, function(xi){
+    if(is.null(xi)) return(-Inf)
+    if("loo_pred"%in%colnames(xi$xv_res)){
+      return(cor(xi$xv_res$f_est,xi$xv_res$loo_pred)*nrow(xi$xv_res))
+    }
+    if("f_xv"%in%colnames(xi$xv_res)){
+      return(cor(xi$xv_res$f_est,xi$xv_res$f_xv)*nrow(xi$xv_res))
+    }
+    
+  }) 
+  return(x[[which.max(cx)]])
+}
 ```
 
-Before diving into the analysis, it is useful to know that there are several "frequent clones" shared between hTERTa and hTERTb, and there is some (but not an overwhelming amount of) correlation between our fitness estimates on them.
+Before diving into the analysis, it is useful to know that there are several "frequent clones" shared between hTERTa and hTERTb, and there is a decent amount of correlation between our fitness estimates on them.
 
+NEW
+
+```{r,echo=FALSE}
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+hTERTa <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))$xv_res
+hTERTb <- get_best(readRDS(paste0(dir,"p53--b_X55.Rds")))$xv_res
+rx <- rownames(hTERTa)[rownames(hTERTa)%in%rownames(hTERTb)]
+plot(hTERTa[rx,"f_est"],hTERTb[rx,"f_est"],xlab = "hTERTa fitness est.",ylab="hTERTb fitness est.")
+
+print(paste("correlation coefficient between independent fitness estimates is:", 
+      round(cor(hTERTa[rx,"f_est"],hTERTb[rx,"f_est"]),digits=2)))
+
+```
+
+OLD
 ```{r,echo=FALSE}
 dir <- "figures/comparing_fit_quality/loo_xv/"
 hTERTa <- readRDS(paste0(dir,"hTERTa.Rds"))
@@ -33,13 +61,70 @@ print(paste("correlation coefficient between independent fitness estimates is:",
 
 ```
 
+NEW
+
+**1. Cross validation**
+
+The first thing we try is the leave-one-out cross validation procedure.
+
+```{r}
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+hTERTa <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))$xv_res
+hTERTb <- get_best(readRDS(paste0(dir,"p53--b_X55.Rds")))$xv_res
+
+xsep <- rbind(hTERTa,hTERTb)
+dir <- "data/salehi/"
+xcomb <-  get_best(readRDS(paste0(dir,"alfak_fits_htert_combined.Rds")))$xv_res
+#xcomb$loo_pred <- 0.2+xcomb$loo_pred-min(xcomb$loo_pred)
+#xcomb$f_est <- 0.2+xcomb$f_est-min(xcomb$f_est)
+
+xsep$id2 <- "separate"
+xcomb$id2 <- "combined"
+colnames(xsep)[colnames(xsep)=="f_xv"] <- "loo_pred"
+x <- rbind(xsep,xcomb)
+
+
+p <- ggplot(x,aes(x=f_est,y=loo_pred,color=id2))+
+  geom_point()+
+  geom_abline()+
+  scale_x_continuous("direct fitness estimate")+
+  scale_y_continuous("Krig fitness estimate")+
+  scale_color_discrete("landscape\ntype")
+p
+
+RMSE <- function(obs,pred){
+  round(sqrt(mean((obs-pred)^2)),digits=4)
+}
+
+df_smm <- data.frame(value=c(RMSE(xsep$f_est,xsep$loo_pred),
+                             RMSE(xcomb$f_est,xcomb$loo_pred),
+                             R2(xsep$f_est,xsep$loo_pred),
+                             R2(xcomb$f_est,xcomb$loo_pred),
+                             cor(xsep$f_est,xsep$loo_pred)^2,
+                             cor(xcomb$f_est,xcomb$loo_pred)^2),
+                     id = rep(c("separate","combined"),3),
+                     metric = c("RMSE","RMSE","R^2","R^2","r^2","r^2"))
+
+
+p <- ggplot(df_smm,aes(x=id,y=value))+
+  facet_wrap(~metric,scales="free",nrow=1,labeller = "label_parsed")+
+  geom_col()+
+  scale_y_continuous("metric value")+
+  scale_x_discrete("landscape type")
+p
+
+```
+
+(OLD)
 **1. Cross validation**
 
 The first thing we try is the leave-one-out cross validation procedure. This is done using the following script (which takes a while, so the intermediate results are saved):
 
 ```{r,eval=F}
 source("figures/comparing_fit_quality/loo_xv.R")
+
 ```
+
 
 ```{r,echo=F}
 
@@ -102,6 +187,8 @@ Interpretation of the above results is as follows:
 2)  Combined landscape scores *extremely* poorly on the $R^2$ metric.
 3)  The reason that the combined landscape scores so poorly on the $R^2$ metric is largely due to a bias i.e. tendency to always overestimate fitness values by a constant factor. It is not clear to me why this would happen. Notably, the separate landscape also seems to feel this effect although it is not clear exactly why.
 4)  The separately fit landscapes have about 400 degrees of freedom more than the combined fit. I am not entirely clear what *degrees of freedom* means in this context (there are varying definitions), but the separately fit models should be penalized somehow to account for this. I do not know how to do so.
+
+ALL BELOW IS NOT YET UPDATED:
 
 **2. Ability to predict evolution**
 

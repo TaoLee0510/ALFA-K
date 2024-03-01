@@ -23,7 +23,7 @@ analyse_sims_in_dir <- function(d0){
     x0 <- proc_sim(paste0(d0,"train/00000/"),times=tt0)
     ntp_x0 <- ncol(x0$x)
     x_0 <- get_mean(x0,t=min(tt0))
-    odir <- paste0(d0,"test/")
+    odir <- paste0(d0,"test_v2/")
     dirs <- paste0(odir,list.files(odir),"/")
     a <- do.call(rbind,lapply(dirs,function(di){
       fij <- list.files(di)
@@ -34,18 +34,20 @@ analyse_sims_in_dir <- function(d0){
         tt <- as.numeric(sapply(ff,function(fi) unlist(strsplit(fi,split="[.]"))[1]))
         x <- proc_sim(simdir,times=tt)
         
+        colnames(x$x) <- as.numeric(colnames(x$x))+min(as.numeric(colnames(x0$x)))
+        eval_times <- seq(2100,2900,100)
         ## I think instead of using "raw" time, it is better to compare similarity on a passage
         ## by passage basis. That is what we are organizing here:
-        ntp_x <- ncol(x$x)
-        if(ntp_x>ntp_x0) x$x <- x$x[,1:ncol(x0$x)]
-        colnames(x$x) <- colnames(x0$x)[1:ncol(x$x)]
-        a <- sapply(as.numeric(colnames(x$x))[-1], function(ti){
+        ##ntp_x <- ncol(x$x)
+        ##if(ntp_x>ntp_x0) x$x <- x$x[,1:ncol(x0$x)]
+        ##colnames(x$x) <- colnames(x0$x)[1:ncol(x$x)]
+        a <- sapply(eval_times, function(ti){
           angle_metric(x0,x,t=ti,x0 = x_0)
-        })[1:5]
+        })
         
         return(a)
       }))
-      colnames(a) <- paste0("p",1:ncol(a))
+      colnames(a) <- paste0("t",seq(2100,2900,100))
       a <- data.frame(a,check.names = F)
       a <- cbind(a,rep=fij)
       ids <- unlist(strsplit(di,split="/"))

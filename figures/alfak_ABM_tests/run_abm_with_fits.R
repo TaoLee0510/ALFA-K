@@ -8,10 +8,11 @@ conditions <- conditions[ids=="0.00005"]
 dirs <- paste0(dir,conditions,"/")
 
 run_sims_in_dir <- function(d0){
-  gen_abm_landscape <- function(fit){
+  gen_abm_landscape <- function(fit,deltaf=0){
     knots <- fit$knots
     cc <- fit$c
     d <- fit$d
+    d[1] <- d[1]+deltaf
     fscape <- rbind(cbind(knots,cc),c(d))
     return(fscape)
   }
@@ -20,7 +21,9 @@ run_sims_in_dir <- function(d0){
   cpp_cmd <- "ABM/bin/ABM"
   source("utils/sim_setup_functions.R")
   source("utils/ALFA-K.R")
-  x <- proc_sim(paste0(d0,"train/00000"),times=2000)$x
+  x <- proc_sim(paste0(d0,"train/00000"),times=2000)
+  pop.fitness <- x$pop.fitness
+  x <- x$x
   pop0 <- cbind(do.call(rbind,lapply(rownames(x),s2v)),x)
   rownames(pop0) <- NULL
   colnames(pop0) <- NULL
@@ -37,10 +40,12 @@ run_sims_in_dir <- function(d0){
   
   for(fi in fits){
     fitname <- unlist(strsplit(fi,split=".Rds"))[1]
-    odir <- paste0(d0,"test/",fitname)
-    dir.create(odir)
+    odir <- paste0(d0,"test_v2/",fitname)
+    dir.create(odir,recursive = T)
     x <- readRDS(paste0(d0,"sweep_fits/",fi))
-    lscape <- gen_abm_landscape(x$fit)
+    fpred <- predict(x$fit,pop0[,-ncol(pop0)])
+    deltaf <- pop.fitness-mean(fpred)
+    lscape <- gen_abm_landscape(x$fit,deltaf)
     lscape_path <- paste0(lscape_dir,fitname,".csv")
     write.table(lscape, lscape_path,row.names = FALSE,col.names=FALSE,sep=",")
     cfig <- modify_config("fitness_landscape_file",parval = lscape_path,config = cfig0)

@@ -17,7 +17,19 @@ source("utils/landscape_functions.R")
 source("utils/ALFA-K.R")
 library(ggplot2)
 library(fields)
-
+get_best <- function(x){
+  cx <- sapply(x, function(xi){
+    if(is.null(xi)) return(-Inf)
+    if("loo_pred"%in%colnames(xi$xv_res)){
+      return(cor(xi$xv_res$f_est,xi$xv_res$loo_pred)*nrow(xi$xv_res))
+    }
+    if("f_xv"%in%colnames(xi$xv_res)){
+      return(cor(xi$xv_res$f_est,xi$xv_res$f_xv)*nrow(xi$xv_res))
+    }
+    
+  }) 
+  return(x[[which.max(cx)]])
+}
 ```
 
 **1.** Is there evidence for (diminishing returns) epistasis?
@@ -56,6 +68,7 @@ p
 
 ```
 
+
 **Epistasis for hTERTa and hTERTb.** 
 There are only 44 possible mutations in karyotype space (Chr1 gain, Chr1 loss, Chr2 gain...etc). Our approach will be ask what delta fitness is associated with each of the 44 mutations using each of the *frequent clones* as a starting point. We will then see if the distribution of delta fitnesses is dependent on starting fitness. 
 
@@ -70,7 +83,8 @@ idvec <- function(i){
 
 
 find_epistasis <- function(cellLine){
-  x <- readRDS(paste0("example_data/",cellLine,"_fit.Rds"))
+  x <- get_best(readRDS(paste0("data/salehi/alfak_fits_minobs_adaptive/",cellLine,".Rds")))
+
   k <- x$xo
   k <- rownames(k)[k$id=="fq"]
   kvec <- lapply(k,s2v)
@@ -96,8 +110,8 @@ m <- do.call(rbind,lapply(1:22, function(i){
 }))
 
 
-df1 <- find_epistasis("hTERTa")
-df2 <- find_epistasis("hTERTb")
+df1 <- find_epistasis("p53--a_X57")
+df2 <- find_epistasis("p53--b_X55")
 
 
 p1 <- ggplot(df2[!df2$nullisomy&df2$id<11,],aes(x=fk,y=df))+
@@ -122,27 +136,76 @@ p3 <- ggplot(df2,aes(x=fk,y=df))+
   ggtitle(paste("hTERTb. correlation:",round(cor(df2$df,df2$fk),digits=3)))
 p3
 
+p4 <- ggplot(rbind(df1,df2),aes(x=fk,y=df))+
+  facet_grid(rows=vars(cellLine))+
+  geom_point()+
+  scale_x_continuous("fitness")+
+  scale_y_continuous("delta fitness")
+p4 
 
 ```
 The results show some diminishing returns epistasis for hTERTb and little to no evidence of epistasis for hTERTa. An interpretation of this could be that hTERTb is nearing or has reached a peak in the fitness landscape whereas hTERTa is still climbing (??).
 
 **2.** Characterizing landscape topology using Morans' I and "roughness" metric.
 
-Roughness metric as defines as the mean absolute difference in fitness between a karyotype and all it's distance 1 neighbours:
+**Preliminaries for comparing hTERTa and hTERTb topologies**
+
+Mainly, the fact that the near tetraploid cells exhibit higher fitness overall. Could this be the reason why the landscape appears to be more "rough?"
+
+```{r}
+
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+hTERTa <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))$xo
+hTERTb <- get_best(readRDS(paste0(dir,"p53--b_X55.Rds")))$xo
+hTERTa$ploidy <- sapply(rownames(hTERTa),function(i)mean(s2v(i)))
+hTERTb$ploidy <- sapply(rownames(hTERTb),function(i)mean(s2v(i)))
+
+x <- rbind(cbind(hTERTa,cellLine="hTERTa"),
+           cbind(hTERTb,cellLine="hTERTb"))
+
+p <- ggplot(x,aes(x=ploidy,y=f_est,color=cellLine))+
+  geom_point()+
+  ggtitle("fitness")
+p
+
+```
+
+
+Roughness metric as defines as the mean absolute difference in fitness between a karyotype and all it's distance 1 neighbours. Now we have landscape around high ploidy cells being substantially rougher than 2N cells. It doesn't seem to be due to i) taking different threshold for min_obs ii) calculating roughness around frequent clones or also including nearest neighbours. It really seems to be in the data.  
 
 ```{r,echo=F}
 
-x <- readRDS("example_data/hTERTcomb_fit.Rds")
-df <- roughness_meas(x)
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+hTERTa <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))
+hTERTb <- get_best(readRDS(paste0(dir,"p53--b_X55.Rds")))
+hTERTcomb <- get_best(readRDS("data/salehi/alfak_fits_htert_combined.Rds"))
 
+df <- roughness_meas(hTERTcomb,only_fq = F)
 df$ploidyround <- round(df$ploidy)
-
 print("mean roughness by ploidy (rounded to nearest integer)")
 aggregate(list(roughness=df$roughness),by=list(ploidy=df$ploidyround),mean)
 
 p <- ggplot(df,aes(x=ploidy,y=roughness))+
   geom_point()
 p
+
+
+
+dfa <- roughness_meas(hTERTa,only_fq = F)
+dfb <- roughness_meas(hTERTb,only_fq = F)
+
+df <- rbind(cbind(dfa,cellLine="hTERTa"),
+           cbind(dfb,cellLine="hTERTb"))
+
+df$ploidyround <- round(df$ploidy)
+
+print("mean roughness by ploidy (rounded to nearest integer)")
+aggregate(list(roughness=df$roughness),by=list(ploidy=df$ploidyround),mean)
+
+p <- ggplot(df,aes(x=ploidy,y=roughness,color=cellLine))+
+  geom_point()
+p
+
 ```
 
 Moran metric characterization:
@@ -171,14 +234,71 @@ moran_freq <- function(karyotypes,fit,m=2){
   data.frame(Ii,ploidy)
 }
 
-x <- readRDS("example_data/hTERTcomb_fit.Rds")
+moran_df <- function(x,id=""){
+  karyotypes <- rownames(x$xo)
+  df <- moran_freq(karyotypes,x$fit)
+  df$id <- id
+  df
+}
 
-karyotypes <- unique(unlist(lapply(x$xo,rownames)))
-fit <- x$fit
-df <- moran_freq(karyotypes,fit)
-p <- ggplot(df,aes(x=ploidy,y=Ii))+
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+hTERTa <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))
+hTERTb <- get_best(readRDS(paste0(dir,"p53--b_X55.Rds")))
+  
+df <- rbind(moran_df(hTERTa,"hTERTa"),moran_df(hTERTb,"hTERTb"))
+p <- ggplot(df,aes(x=ploidy,y=Ii,color=id))+
   geom_point()+
   scale_x_continuous("ploidy")+
   scale_y_continuous("Morans' I")
 p
+```
+
+Number of evolutionary paths. THis can be quantified if we adopt the slow mutation approximation.
+
+```{r}
+
+dir <- "data/salehi/alfak_fits_minobs_adaptive/"
+x <- get_best(readRDS(paste0(dir,"p53--a_X57.Rds")))
+
+xx <- rbind(do.call(rbind,lapply(rownames(x$xo), function(xi) s2v(xi))),
+            gen_all_neighbours(rownames(x$xo)))
+
+xs <- apply(xx,1,paste,collapse="")
+
+f <- predict(x$fit,xx)
+
+library(parallel)
+cl <- makeCluster(getOption("cl.cores", 3))
+clusterExport(cl, c("f","xx"))
+
+cmap <- parLapplyLB(cl=cl,X = 1:nrow(xx), fun = function(i){
+  nn <- which(apply(xx,1,function(xi) mean(xi==(2*xx[i,])==1) | sum(abs(xi-xx[i,]))==1))
+  #if(length(nn)==0) return(NULL)
+  list(up=nn[f[i]<f[nn]],down=nn[f[i]>=f[nn]])
+})
+
+pathData <- list(cmap=cmap,xx=xx,f=f)
+saveRDS(pathData,file="figures/landscape_characterization/hTERTaPaths.Rds")
+```
+OK so I wanted to try and characterize the number of paths but its computationally a but tough (possible, but annoying). 
+```{r}
+pathData <- readRDS("figures/landscape_characterization/cmaps/p53--a_X57.Rds")
+x0 <- rep(2,22)
+
+cmap <- pathData$cmap
+
+i <- which(apply(pathData$xx,1,function(xi) mean(xi==x0)==1))
+names(i) <- i
+i[1] <- 1
+nterminated <- c()
+while(length(i)>0){
+  nterminated <- c(nterminated,sum(i*(sapply(cmap[as.numeric(names(i))],length)==0)))
+  print(tail(nterminated,1))
+  ii <- cmap[as.numeric(names(i))]
+  ii <- lapply(1:length(ii), function(k) rep(ii[[k]],i[k]))
+  i <- table(unlist(ii))
+}
+
+
+
 ```

@@ -1,4 +1,7 @@
 melt_for_plotting <- function(data_obj, nclones=5, fit_obj=NULL){
+  if(!is.null(fit_obj)){
+    nclones <- min(nclones,sum(fit_obj$xo$id=="fq"))
+  }
   dt <- data_obj$dt
   x <- data_obj$x[order(rowSums(data_obj$x),decreasing=T),]
   x <- head(x,nclones)
