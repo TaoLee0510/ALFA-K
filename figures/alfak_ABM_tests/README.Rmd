@@ -13,6 +13,7 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 
 ```{r}
 library(ggplot2)
+source("utils/comparison_functions.R")
 ```
 
 INCLUDE DETAILS ABOUT HOW ABM OUTPUT WAS GENERATED
@@ -30,273 +31,17 @@ ids <- data.frame(do.call(rbind,lapply(x$cond_id, function(i) unlist(strsplit(i,
 colnames(ids) <- c("wavelength","misrate","rep")
 x <- cbind(x,ids)
 x <- x[x$misrate=="0.00005",]
-p <- ggplot(x,aes(x=time,y=fitness,group=interaction(rep_id,cond_id)))+
-  facet_grid(cols=vars(wavelength))+
-  geom_line(alpha=0.1)
+p <- ggplot(x,aes(x=time/10,y=fitness,group=interaction(rep_id,cond_id)))+
+  facet_grid(cols=vars(paste0("lambda==",gsub("p",".",wavelength))),labeller = label_parsed)+
+  geom_line(alpha=0.1)+
+  scale_x_continuous("days")+
+  scale_y_continuous("mean fitness")+
+  geom_vline(xintercept=200,color="red",linetype=2)
 p
 
-```
-
-
-```{r}
-
-x <- readRDS("figures/alfak_ABM_tests/fit_summary_info.Rds")
-ids <- data.frame(do.call(rbind,lapply(x$id1, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-colnames(ids) <- c("wavelength","misrate","rep")
-x <- cbind(x,ids)
-x <- x[x$misrate=="0.00005",]
-
-ids <- data.frame(do.call(rbind,lapply(x$id2, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
-colnames(ids) <- c("min_obs","ntp")
-x <- cbind(x,ids)                   
-x$ntp <- paste(x$ntp,"samples")
-x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
-x <- x[,!colnames(x)%in%c("id1","id2")]
-
-p <- ggplot(x,aes(x=wavelength,y=cor,color=id))+
-  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
-  geom_jitter(height=0,width=0.2,alpha=0.5)
-p
-```
-
-```{r}
-
-x <- readRDS("figures/alfak_ABM_tests/fit_summaries.Rds")
-x <- x[!sapply(x,is.null)]
-x <- x[sapply(x,ncol)==6]
-x <- do.call(rbind,x)
-ids <- data.frame(do.call(rbind,lapply(x$cond_id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-colnames(ids) <- c("wavelength","misrate","rep")
-x <- cbind(x,ids)
-x <- x[x$misrate=="0.00005",]
-x$ntp <- paste(x$ntp,"samples")
-x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
-
-p <- ggplot(x,aes(x=wavelength,y=r2,color=id))+
-  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
-  geom_jitter(height=0,width=0.2,alpha=0.5)
-p
+ggsave("figures/alfak_ABM_tests/figs/simulation_fitness.png",width=7,height=2,units="in")
 
 ```
-
-```{r}
-
-s <- readRDS("figures/alfak_ABM_tests/sim_summary_info.Rds")
-#s <- s[grepl("N_22_w_0p8",s$cond_id),]
-s <- s[s$time>2000&s$time<2200,]
-s <- split(s,f=interaction(s$cond_id,s$rep_id))
-
-ss <- do.call(rbind,lapply(s,function(si){
-  if(nrow(si)<2) return(data.frame(cond_id=si$cond_id[1],rep_id=si$rep_id[1],delta_f=NaN))
-  delta_f <- lm(fitness~time,si)$coefficients[2]
-  data.frame(cond_id=si$cond_id[1],rep_id=si$rep_id[1],delta_f)
-}))
-
-ss <- ss[grepl("0.00005",ss$cond_id),]
-rownames(ss) <- interaction(ss$rep_id,ss$cond_id)
-```
-
-```{r}
-
-fs <- readRDS("figures/alfak_ABM_tests/fit_summary_info.Rds")
-fs <- fs[fs$id=="n2",]
-fs$id2 <- gsub(".Rds","",fs$id2)
-rownames(fs)<- interaction(fs$id1,fs$id2)
-```
-
-```{r}
-
-xv <- readRDS("figures/alfak_ABM_tests/loo_summaries.Rds")
-#ids <- data.frame(do.call(rbind,lapply(xv$rep, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-#colnames(ids) <- c("wavelength","misrate","rep")
-#xv <- cbind(xv,ids)
-xv <- split(xv,f=interaction(xv$ntp,xv$minobs,xv$rep))
-xv <- do.call(rbind,lapply(xv,function(xi){
-  
-  dfi <- xi[1,c("rep","ntp","minobs")]
-  
-dfi$cor <- tryCatch(R2(xi$pred[!is.na(xi$pred)],xi$f_est[!is.na(xi$pred)]),
-                    error=function(e) return(NaN))
-return(dfi)
-}))
-xv$cor[xv$cor<(-1)]<- -1
-xv$cor[!is.finite(xv$cor)] <- -1
-xv$condition <- paste0("minobs_",xv$minobs,"_ntp_",xv$ntp,"_00000")
-rownames(xv) <- interaction(xv$condition,xv$rep)
-
-```
-
-```{r}
-wavelength <- "1p6"
-predictor <- "XV score"
-#predictor <- "charted size"
-#predictor <- "fitness change"
-
-x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
-ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-colnames(ids) <- c("wavelength","misrate","rep2")
-x <- cbind(x,ids)
-ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
-colnames(ids) <- c("min_obs","ntp")
-x <- cbind(x,ids)
-x$ntp <- paste(x$ntp,"samples")
-x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
-
-y <- x[x$wavelength==wavelength,]
-
-y$predictor <- NaN
-
-if(predictor=="charted size") y$predictor <- fs$n[interaction(y$id,y$condition)]
-if(predictor=="XV score") y$predictor <- xv$cor[interaction(y$condition,y$id)]
-if(predictor=="fitness change") y$predictor <- ss$delta_f[interaction(y$rep,y$id)]
-
-
-y <- split(y,f=interaction(y$min_obs,y$ntp))
-y <- do.call(rbind,lapply(y,function(yi){
-  pp <- rep("low",nrow(yi))
-  
-  if(predictor=="XV score"){
-    pp[yi$predictor>0.45] <- "high"
-  }else{
-    pp[yi$predictor>quantile(yi$predictor,p=0.5)] <- "high"
-  }
-  yi$predictor <- pp
-  return(yi)
-}))
-
-
-plookup <- seq(2100,2900,100)
-names(plookup) <- paste0("t",seq(2100,2900,100))
-y <- reshape2::melt(y,measure.vars=paste0("t",seq(2100,2900,100)))
-z <- aggregate(list(mn=y$value),by=list(variable=y$variable,
-                                        min_obs=y$min_obs,
-                                        ntp=y$ntp,
-                                        predictor=y$predictor),
-               mean)
-
-z2 <- aggregate(list(sd=y$value),by=list(variable=y$variable,
-                                        min_obs=y$min_obs,
-                                        ntp=y$ntp,
-                                        predictor=y$predictor),
-               sd)
-
-z$sd <- z2$sd
-
-p <- ggplot(z,aes(x=(plookup[variable]-2000)/10,y=mn,color=predictor))+
-  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
-  geom_point()+
-  scale_color_discrete(predictor)+
-  geom_errorbar(aes(ymin=mn-sd,ymax=mn+sd))+
-  scale_x_continuous("time into future (days)")+
-  scale_y_continuous("angle metric")+
-  ggtitle(paste("wavelength:",wavelength))
-p
-
-```
-
-```{r}
-wavelength <- "0p8"
-predictor <- "XV score"
-#predictor <- "charted size"
-#predictor <- "fitness change"
-
-x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
-ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-colnames(ids) <- c("wavelength","misrate","rep2")
-x <- cbind(x,ids)
-ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
-colnames(ids) <- c("min_obs","ntp")
-x <- cbind(x,ids)
-x$ntp <- paste(x$ntp,"samples")
-x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
-
-y <- x[x$wavelength==wavelength,]
-y <- x
-y$predictor <- NaN
-
-if(predictor=="charted size") y$predictor <- fs$n[interaction(y$id,y$condition)]
-if(predictor=="XV score") y$predictor <- xv$cor[interaction(y$condition,y$id)]
-if(predictor=="fitness change") y$predictor <- ss$delta_f[interaction(y$rep,y$id)]
-
-
-y <- split(y,f=interaction(y$min_obs,y$ntp))
-y <- do.call(rbind,lapply(y,function(yi){
-  pp <- rep("low",nrow(yi))
-  
-  if(predictor=="XV score"){
-    pp[yi$predictor>0.45] <- "high"
-  }else{
-    pp[yi$predictor>quantile(yi$predictor,p=0.5,na.rm=T)] <- "high"
-  }
-  yi$predictor <- pp
-  return(yi)
-}))
-
-
-plookup <- seq(2100,2900,100)
-names(plookup) <- paste0("t",seq(2100,2900,100))
-y <- reshape2::melt(y,measure.vars=paste0("t",seq(2100,2900,100)))
-z <- aggregate(list(mn=y$value),by=list(variable=y$variable,
-                                        min_obs=y$min_obs,
-                                        ntp=y$ntp,
-                                        predictor=y$predictor),
-               mean)
-
-z2 <- aggregate(list(sd=y$value),by=list(variable=y$variable,
-                                        min_obs=y$min_obs,
-                                        ntp=y$ntp,
-                                        predictor=y$predictor),
-               sd)
-
-z$sd <- z2$sd
-
-p <- ggplot(z,aes(x=(plookup[variable]-2000)/10,y=mn,color=predictor))+
-  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
-  geom_point()+
-  scale_color_discrete(predictor)+
-  geom_errorbar(aes(ymin=mn-sd,ymax=mn+sd))+
-  scale_x_continuous("time into future (days)")+
-  scale_y_continuous("angle metric")
-  #ggtitle(paste("wavelength:",wavelength))
-p
-
-```
-
-```{r}
-
-x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
-ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
-colnames(ids) <- c("wavelength","misrate","rep2")
-x <- cbind(x,ids)
-ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
-colnames(ids) <- c("min_obs","ntp")
-x <- cbind(x,ids)
-x$ntp <- paste(x$ntp,"samples")
-x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
-
-z <- reshape2::melt(x,measure.vars=paste0("p",1:5))
-z <- z[z$min_obs == "min.samples=10", ]
-
-
-
-p3 <- ggplot(x,aes(x=wavelength,y=p3))+
-  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
-  geom_violin()+
-  geom_jitter(height=0,width=0.3,alpha=0.2)+
-  geom_hline(yintercept=90,color="red")
-p3
-
-pt <- ggplot(z,aes(x=variable,y=value))+
-  facet_grid(rows=vars(wavelength),cols=vars(ntp))+
-  geom_violin()+
-  #geom_jitter(height=0,width=0.3,alpha=0.2)+
-  geom_hline(yintercept=90,color="red")+
-  scale_x_discrete("passage number")
-pt
-
-
-```
-
 
 ```{r}
 x <- readRDS("figures/alfak_ABM_tests/loo_summaries.Rds")
@@ -315,102 +60,141 @@ dfi$cor <- tryCatch(R2(xi$pred[!is.na(xi$pred)],xi$f_est[!is.na(xi$pred)]),
 return(dfi)
 }))
 df$cor[df$cor<(-1)]<- -1
-p <- ggplot(df,aes(x=wavelength,y=cor))+
-  facet_grid(rows=vars(minobs),cols=vars(ntp))+
+p <- ggplot(df,aes(x=gsub("p",".",wavelength),y=cor))+
+  facet_grid(rows=vars(paste0("N=",stringr::str_pad(minobs,width = 2))),cols=vars(paste0(ntp," sampled timepoints")))+
   geom_violin()+
-  geom_jitter(height=0,width=0.3,alpha=0.1)+
-  scale_y_continuous(expression(R^2))
+  #geom_jitter(height=0,width=0.3,alpha=0.1)+
+  scale_y_continuous(expression(cross~validation~R^2))+
+  scale_x_discrete(expression(GRF~wavelength~(lambda)))
 p
 
+ggsave("figures/alfak_ABM_tests/figs/validation_r2.png",width=6,height=4,units="in")
+
 ```
 
 
-I think reason that the model doesn't predict very well for just 2 samples is that it becomes really hard to constrain the fit. Note that in the following, the fits and Pearson correlation values are pretty good even when the relative fitness estimates are way off. 
 ```{r}
-set.seed(42)
-run_model <- function(x0,g,tt){
-  u <- exp(g%*%t(tt))
-  for(i in 1:nrow(u)) u[i,] <- u[i,]*exp(x0[i])
-  x <- data.frame(t(apply(u,2,function(ui) ui/sum(ui))))
-  x$time <- tt
-  x <- reshape2::melt(x,id.vars="time")
-  x <- x[order(x$time,x$variable),] 
-  return(x)
-}
 
-optimr <- function(pars,y){
-  npars <- length(pars)/2
-  x0 <- pars[1:npars]
-  g <- pars[(npars+1):length(pars)]
-  tt <- unique(y$time)
-  x <- run_model(x0,g,tt)
-  y <- y[order(y$time,y$variable),]
-  
-  sqrt(mean((x$value-y$value)^2))
-  
-}
+x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep2")
+x <- cbind(x,ids)
+ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
+colnames(ids) <- c("min_obs","ntp")
+x <- cbind(x,ids)
+x$ntp <- paste(x$ntp,"sampled timepoints")
+x$min_obs <- paste0("N=",stringr::str_pad(x$min_obs,width = 2))
 
-x0 <- c(-20,-10,-5)
-g <- c(.8,0.65,.5)
-tt <- 0:100
-
-u <- exp(g%*%t(tt))
-for(i in 1:nrow(u)) u[i,] <- u[i,]*exp(x0[i])
-
-x <- run_model(x0,g,tt)
-y <- x[x$time%in%c(80,20),]
+z <- reshape2::melt(x,measure.vars=paste0("t",seq(2100,2900,100)))
+#z <- z[z$min_obs == "min.samples=10", ]
 
 
-p1 <- ggplot(x,aes(x=time,y=value,color=variable))+
-  geom_line()+
-  geom_point(data=y,size=3)+
-  ggtitle("input data + perfect samples")+
-  scale_color_discrete("karyotype")
-p1
 
-z <- pbapply::pblapply(1:50, function(i){
-  pars <- c(runif(length(x0),-20,0),runif(length(g),0,1))
-  opt <- optim(pars,fn = optimr,y=y)
-  pars <- opt$par
-  npars <- length(pars)/2
-  x0 <- pars[1:npars]
-  g <- pars[(npars+1):length(pars)]
-  zi <- run_model(x0,g,tt)
-  zi$id <- i
-  zi$err <- opt$value
-  
-  zopt <- data.frame(g=tail(opt$par,npars),id=c("X1","X2","X3"),rep=i,err=opt$value)
-  zopt$g <- zopt$g-min(zopt$g)
-  return(list(z=zi,zopt=zopt))
-})
-zopt <- do.call(rbind,lapply(z,function(zi) zi$zopt))
-z <- do.call(rbind,lapply(z,function(zi) zi$z))
-z[,] <- lapply(z, function(x) type.convert(as.character(x), as.is = TRUE))
-#zplt <- z[z$]
-p2 <- ggplot(z[z$err<0.05,],aes(x=time,y=value,color=variable))+
-  geom_line(aes(group=interaction(variable,id)))+
-  geom_point(data=y,size=3)+
-  ggtitle("fits to samples")+
-  scale_color_discrete("karyotype")
-p2
-
-p3 <- ggplot(zopt[zopt$err<0.05,],aes(x=id,y=g,group=rep))+
-  geom_point()+
-  geom_line()+
-  scale_y_continuous("estimated growth rate")+
-  scale_x_discrete("")
+p3 <- ggplot(z,aes(x=as.character(as.numeric(gsub("t","",variable))/10),
+                   y=value,fill=gsub("p",".",wavelength)))+
+  facet_grid(rows=vars(min_obs),cols=vars(ntp))+
+  geom_violin()+
+  geom_hline(yintercept=90,color="red")+
+  scale_fill_discrete(expression(lambda))+
+  scale_y_continuous("angle metric")+
+  scale_x_discrete("time (days)")
 p3
 
-tmp <- split(zopt[zopt$err<0.05,],f=zopt[zopt$err<0.05,]$rep)
-df <- do.call(rbind,lapply(tmp, function(ti) {
-  data.frame(r2=cor(ti$g,g)*abs(cor(ti$g,g)),R2=R2(ti$g,g-min(g)),rep=ti$rep[1])
-  }))
-df$R2[df$R2<(-1)]<-(-1)
 
-df <- reshape2::melt(df,id.vars=c("rep"))
-
-p4 <- ggplot(df,aes(x=value,fill=variable))+
-  geom_histogram(binwidth=0.1,position="dodge")
-p4
+ggsave("figures/alfak_ABM_tests/figs/validation_angles.png",width=12,height=4.5,units="in")
+```
+Agreement between R^2 and angle metric scores.
+```{r}
+xv <- readRDS("figures/alfak_ABM_tests/loo_summaries.Rds")
+xv <- split(xv,f=interaction(xv$ntp,xv$minobs,xv$rep))
+xv <- do.call(rbind,lapply(xv,function(xi){
+  dfi <- xi[1,c("rep","ntp","minobs")]
+dfi$cor <- tryCatch(R2(xi$pred[!is.na(xi$pred)],xi$f_est[!is.na(xi$pred)]),
+                   error=function(e) return(NaN))
+return(dfi)
+}))
+xv$cor[xv$cor<(-1)]<- -1
+xv$cor[!is.finite(xv$cor)] <- -1
+xv$condition <- paste0("minobs_",xv$minobs,"_ntp_",xv$ntp,"_00000")
+rownames(xv) <- interaction(xv$condition,xv$rep)
 
 ```
+
+```{r}
+x <- readRDS("figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
+ids <- data.frame(do.call(rbind,lapply(x$id, function(i) unlist(strsplit(i,split="_"))[c(4,6,8)])))
+colnames(ids) <- c("wavelength","misrate","rep2")
+x <- cbind(x,ids)
+ids <- data.frame(do.call(rbind,lapply(x$condition, function(i) unlist(strsplit(i,split="_"))[c(2,4)])))
+colnames(ids) <- c("min_obs","ntp")
+x <- cbind(x,ids)
+x$ntp <- paste(x$ntp,"samples")
+x$min_obs <- paste0("min.samples=",stringr::str_pad(x$min_obs,width = 2))
+
+x$predictor <- xv$cor[interaction(x$condition,x$id)]
+
+x <- split(x,f=interaction(x$min_obs,x$ntp))
+x <- do.call(rbind,lapply(x,function(yi){
+  pp <- rep("low",nrow(yi))
+  pp[yi$predictor>0] <- "high"
+  yi$predictor <- pp
+  return(yi)
+}))
+
+
+plookup <- seq(2100,2900,100)
+names(plookup) <- paste0("t",seq(2100,2900,100))
+x <- reshape2::melt(x,measure.vars=paste0("t",seq(2100,2900,100)))
+
+
+p <- ggplot(x,aes(x=as.character(as.numeric(gsub("t","",variable))/10),y=value,fill=predictor))+
+  geom_violin()+
+  scale_fill_discrete(expression(R^2))+
+  scale_x_discrete("time (days)")+
+  scale_y_continuous("angle metric",breaks=seq(0,180,45))
+p
+
+ggsave("figures/alfak_ABM_tests/figs/r2_angles.png",width=4,height=2,units="in")
+```
+
+
+Test how missegregation rate affects fitted results:
+
+Input data for this sweep was generated using the following command:
+Rscript generate_ABM_sweep.R -n data/misrate -r 100 -w 0.8 -m 0.00001,0.00003,0.0001,0.0003,0.001 
+Rscript process_abm_sweep.R -n data/misrate 
+Rscript sweep_summary_stats -n data/misrate -o data/misrate_stats.Rds
+
+```{r}
+x <- readRDS("data/misrate_stats.Rds")
+x$ll_fq <- -x$ll_fq
+x$ll_nn <- -x$ll_nn
+df <- reshape2::melt(x[,c("m","nfq","r_fq","r_nn","r_d2n")],id.vars=c("m","nfq"))
+ids <- c(" frequent","d1","d2")
+names(ids)<-c("r_fq","r_nn","r_d2n")
+df$variable <- ids[df$variable]
+df$value[df$value<(-1)] <- -1
+p0 <- ggplot(df,aes(x=factor(m),y=value))+
+  facet_grid(rows=vars(variable))+
+  geom_violin()+
+  geom_jitter(height=0,width=0.2)+
+  scale_y_continuous(expression(predicted~fitness~R^2))+
+  scale_x_discrete("missegregation rate")
+p0
+
+df <- reshape2::melt(x[,c("m","r_fq","nfq","nnn","nd2n")],id.vars=c("m","r_fq"))
+ids <- c(" frequent","d1","d2")
+names(ids)<-c("nfq","nnn","nd2n")
+df$variable <- ids[df$variable]
+df$r_fq[df$r_fq<(-1)] <- -1
+p1 <- ggplot(df,aes(x=factor(m),y=value,color=r_fq))+
+  facet_grid(rows=vars(gsub("d","distance ",variable)),scales="free")+
+  geom_violin()+
+  geom_jitter(height=0,width=0.2)+
+  scale_y_log10("number of karyotypes")+
+  scale_x_discrete("missegregation rate")+
+  scale_color_viridis_c(expression(R^2))
+p1
+ggsave("figures/alfak_ABM_tests/figs/misseg_sweep.png",width=5,height=3,units="in")
+```
+

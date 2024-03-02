@@ -13,7 +13,58 @@ Fitting ALFA-K model to Salehi data
 knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
+First we will pull all the lineages from the metadata. A lineage is defined as any sequence of two or more consecutive samples. 
 ```{r}
+
+m <- read.csv("data/salehi/metadata.csv")
+
+lineage_wrapper <- function(ids){
+  list(ids=ids)
+}
+
+lineage_generator <- function(uid){
+  ids <- c()
+  lineages <- list()
+  while(!is.na(uid)){
+    ids <- c(uid,ids)
+    uid <- m$parent[m$uid==uid]
+    if(length(ids)>1) lineages <- c(lineages,lineage_wrapper(ids))
+  }
+  return(lineages)
+}
+
+descendent_checker <- function(ids){
+  dec1 <- m$uid[m$parent==tail(ids,1)&!is.na(m$parent)]
+  dec2 <- m$uid[m$parent%in%dec1]
+  list(ids=ids,dec1=dec1,dec2=dec2)
+}
+
+lineage_namer <- function(lineage){
+  suffix <- paste0("_l_",length(lineage$ids),"_d1_",length(lineage$dec1),
+                   "_d2_",length(lineage$dec2))
+  id <- tail(lineage$ids,1)
+  sid <- paste(gsub(" ", "", m$datasetname[id==m$uid],fixed = TRUE),m$timepoint[id==m$uid],sep = "_")
+  sid <- gsub("/", "", sid,fixed = TRUE)
+  paste0(sid,suffix)
+}
+
+lineages <- do.call(c,lapply(m$uid,lineage_generator))
+lineages <- lapply(lineages, descendent_checker)
+
+lnames <- sapply(lineages,lineage_namer)
+names(lineages) <- lnames
+saveRDS(lineages,"figures/salehi_data_fitting/lineages.Rds")
+
+```
+
+Run the following scripts (in order) to preprocess & fit the Salehi data.The third script will take several hours on a regular PC. 
+```{r,eval=F}
+source("figures/salehi_data_fitting/extract_cn_profiles.R")
+source("figures/salehi_data_fitting/extract_lineage_v2.R") 
+source("figures/salehi_data_fitting/fit_alfak_v2.R")
+```
+
+```{r,message=F,warning=F}
 library(gtable)
 library(ape)
 library(ggtree)
@@ -22,6 +73,7 @@ library(ggplot2)
 library(xlsx)
 source("utils/ALFA-K.R")
 source("utils/comparison_functions.R")
+
 lineage_info <- function(ln){
   treat_numeric <- c(n=0,y=1)
   has_descendents <- length(ln$dec1)>0
@@ -38,21 +90,7 @@ lineage_info <- function(ln){
   data.frame(id=sid,cellLine,has_descendents,has_parents,nChanges,treatment_status)
   
 }
-getBest <- function(xi){
-  xi <- xi[!sapply(xi,is.null)]
-  if(length(xi)==0) return(NULL)
-  cor<-sapply(xi, function(xij) xij$vx_cor)
-  Rsq<-sapply(xi, function(xij) {
-    xij$xv_res <- xij$xv_res[!is.na(xij$xv_res$f_xv),]
-    if(nrow(xij$xv_res)<2) return(-Inf)
-    R2(xij$xv_res$f_est,xij$xv_res$f_xv)
-  })
-  n <-sapply(xi, function(xij) nrow(xij$xv_res))
-  goodness <- Rsq*n
-  j <- which.max(goodness)
-  xi[[j]]
-  
-}
+
 longest_cons <- function(ff,longest=T){
   ids <- sapply(ff, function(fi){
     paste(head(unlist(strsplit(fi,split="_")),2),collapse="_")
@@ -67,20 +105,11 @@ longest_cons <- function(ff,longest=T){
   as.character(ff)
 }
 ```
-First source the following to prepare the sample data (the third one takes a few hours)
-```{r,eval=F}
-
-source("figures/salehi_data_fitting/extract_cn_profiles.R")
-source("figures/salehi_data_fitting/extract_lineage.R") ## v2
-source("figures/salehi_data_fitting/fit_alfak.R")
-```
 
 
+Results of ALFA-K across all possible lineages
 
-
-NEW: Results of ALFA-K across all possible lineages
-
-NOTE: NaN values in the cross validation represent instances where the neighbour fitness estimation step cannot be correctly performed.
+NOTE: NaN values in the cross validation represent instances where the neighbour fitness estimation step cannot be correctly performed (due to not enough karyotypes in the input).
 
 ```{r}
 source("utils/comparison_functions.R")
@@ -149,14 +178,25 @@ x <- x[order(x$r2,decreasing=T),]
 
 saveRDS(x,"figures/salehi_data_fitting/fit_summaries.Rds")
 
-p <- ggplot(x,aes(x=r2))+
-  facet_grid(rows=vars(stringr::str_pad(min_obs,width = 2)),cols=vars(stringr::str_pad(samples,width = 2)))+
-  geom_histogram(binwidth = 0.2)
+```
+
+
+```{r}
+x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+x <- x[x$min_obs==5,]
+p <- ggplot(x,aes(x=stringr::str_pad(samples,width = 2),y=r2))+
+  #facet_grid(rows=vars(stringr::str_pad(min_obs,width = 2)))+
+  geom_violin()+
+  coord_flip()+
+  scale_y_continuous(expression(cross~val.~R^2))+
+  scale_x_discrete("samples in fit")
 p
+ggsave("figures/salehi_data_fitting/figures/xval_scores.png",width=3,height=3,units="in")
 ```
 
 ```{r}
 x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+
 #x <- x[x$declevel==1,]
 
 ## untreated samples worked well - perhaps due to longer lineages?
@@ -213,37 +253,22 @@ y <- do.call(rbind,pbapply::pblapply(ff,function(fi){
   return(r)
 }))
 
-p <- ggplot(y,aes(x=ploidy))+
-  facet_wrap(~id)+
-  geom_histogram()
-p
-
-pr <- ggplot(y,aes(x=ploidy,y=roughness))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-pr
-
-p <- ggplot(y,aes(x=ploidy,y=f_est))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-p
-
-pfr <- ggplot(y,aes(x=roughness,y=f_est))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-pfr
-
-q <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  r <- nviable_meas(xi,only_fq=T)
-  r$id <- x$id[x$filenames==fi][1]
-  return(r)
+ys <- split(y,f=y$id)
+dfcor <- do.call(rbind,lapply(ys, function(yi){
+  res <- cor.test(yi$ploidy,yi$roughness,method = "pearson")
+  data.frame(pval=res$p.value,pearson = res$estimate)
 }))
-
-p <- ggplot(q,aes(x=ploidy,y=fviable))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
+dfcor$id <- rownames(dfcor)
+p <- ggplot(dfcor,aes(x=id,y=pearson,fill=pval))+
+  geom_col()+
+  coord_flip()+
+  scale_fill_viridis_c("p value",trans="log",direction = -1)+
+  scale_x_discrete("")+
+  scale_y_continuous("pearson correlation coefficient")
 p
+ggsave("figures/salehi_data_fitting/figures/rougness_metric_correlation.png",width=6,height=5,units="in")
+
+
 
 ```
 Moran metric as a function of ploidy.
@@ -256,7 +281,6 @@ x <- x[x$r2>0.2,]
 ff <- x$filenames
 dir <- "data/salehi/alfak_fits/minobs_5/"
 
-#stop("comment me out to assess roughness")
 y <- do.call(rbind,pbapply::pblapply(ff,function(fi){
   xi <- readRDS(paste0(dir,fi))$xo
   m <- moran_freq(rownames(xi),fitness = xi$f_est)
@@ -265,43 +289,32 @@ y <- do.call(rbind,pbapply::pblapply(ff,function(fi){
 }))
 
 
-pm <- ggplot(y,aes(x=ploidy,y=Ii))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-pm
-
-```
-
-Is ploidy increasing over time?
-```{r}
-
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-#x <- x[x$filenames%in%longest_cons(x$filenames),]
-x <- x[x$r2>0.2,]
-
-dir <- "data/salehi/alfak_inputs_v2/"
-z <- do.call(rbind,pbapply::pblapply(1:nrow(x),function(i){
-  fi <- x$filenames[i]
-  
-  xs <- readRDS(paste0(dir,fi))$x
-  vs <- do.call(rbind,lapply(rownames(xs),s2v))
-  
-  ## sim output population vectors
-  csx <- colSums(xs)
-  xs <- t(xs)%*%vs
-  for(k in 1:nrow(xs)) xs[k,] <- xs[k,]/csx[k]
-  xs <- rowMeans(xs)
-  tt <- as.numeric(names(xs))
-  data.frame(ploidy=as.numeric(xs),time=tt/max(tt),id=x$id[i])
+ys <- split(y,f=y$id)
+dfcor <- do.call(rbind,lapply(ys, function(yi){
+  res <- cor.test(yi$ploidy,yi$Ii,method = "pearson")
+  data.frame(pval=res$p.value,pearson = res$estimate)
 }))
+dfcor$id <- rownames(dfcor)
+p <- ggplot(dfcor,aes(x=id,y=pearson,fill=pval))+
+  geom_col()+
+  coord_flip()+
+  scale_fill_viridis_c("p value",trans="log",direction = -1)+
+  scale_x_discrete("")+
+  scale_y_continuous("pearson correlation coefficient")
+p
+ggsave("figures/salehi_data_fitting/figures/moran_metric_correlation.png",width=6,height=5,units="in")
 
-pp <- ggplot(z,aes(x=time,y=ploidy))+
-  facet_wrap(~id,scales="free")+
-  geom_point()
-pp
+p <- ggplot(y,aes(x=id,y=ploidy))+
+  geom_violin()+
+  coord_flip()+
+    scale_x_discrete("")+
+  scale_y_continuous("ploidy")
+p
+
+ggsave("figures/salehi_data_fitting/figures/ploidy_dist.png",width=4,height=5,units="in")
 
 ```
+
 
 Correlation between fitnesses on different landscapes:
 
@@ -341,9 +354,10 @@ p <- ggplot(combns,aes(x=a,y=b,fill=cc))+
   geom_raster()+
   scale_x_discrete("")+
   scale_y_discrete("")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  scale_fill_viridis_c("pearson\ncoefficient")
 p
-
+ggsave("figures/salehi_data_fitting/figures/inter_lineage_correlations.png",width=7,height=6,units="in")
 ```
 
 
@@ -434,173 +448,68 @@ wrap_res <- function(df){
 }
 
 df <- wrap_res(readRDS("figures/salehi_data_fitting/validation_summaries.Rds"))
+df$lab1 <- "R^2<0"
+df$lab1[df$pos_r2] <- "R^2>0"
+df$lab2 <- paste0("passage~",df$declevel)
 p <- ggplot(df,aes(x=samples,y=angle))+
-  facet_grid(cols=vars(pos_r2),rows=vars(declevel))+
-  geom_violin()
+  facet_grid(cols=vars(lab1),rows=vars(lab2),labeller = label_parsed)+
+  geom_violin()+
+  scale_x_discrete("sampled timepoints in fit")+
+  scale_y_continuous("angle metric")
 p
-
+ggsave("figures/salehi_data_fitting/figures/forward_predictions.png",width=5,height=4,units="in")
 ```
 
 
 
+Test ability to identify clones that have not yet emerged
 
 ```{r}
-source("utils/comparison_functions.R")
-source("utils/visualisation_functions.R")
-
-proc_input <- function(fi){
-  id <- head(unlist(strsplit(fi,split=".Rds")),1)
-  uid <- tail(l[[id]]$ids,1)
-  id2 <- paste(m$label[m$uid==uid],m$timepoint[m$uid==uid],sep="_")
-  id2 <- gsub(" ","",id2)
-  x <- readRDS(paste0(fit_dir,fi))
-  corc <- cor(x$xv$f_est,x$xv$f_xv,use = "complete")
-  r2 <- R2(x$xv_res$f_est[!is.na(x$xv_res$f_xv)],x$xv_res$f_xv[!is.na(x$xv_res$f_xv)])
-  data.frame(id=id,id2=id2,R2=r2,cor=corc)
-}
-
-get_xv_df <- function(fi){
-  x <- readRDS(paste0(fit_dir,fi))
-  x$xv_res
-}
-
-gen_plot <- function(fi,nclones=8){
-  x <- readRDS(paste0(fit_dir,fi))
-  d <- readRDS(paste0(data_dir,fi))
-  x2 <- melt_for_plotting(d,nclones=nclones,x)
-
-  p <- ggplot(x2$data,aes(x=time,y=frequency,color=karyotype))+
-    facet_wrap(~karyotype)+
-    geom_point(size=2)+
-    geom_line(data=x2$fit)+
-    theme_classic(base_size=12)
-  p
-}
-
 m <- read.csv("data/salehi/metadata.csv")
-l <- readRDS("figures/salehi_data_fitting/lineages.Rds")
-fit_dir <- "data/salehi/alfak_fits/minobs_5/"
-data_dir <-  "data/salehi/alfak_inputs_v2/"
-ff <- list.files(fit_dir)
+lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+cnmat <- readRDS("data/salehi/chrom_level_cn.Rds")
+x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+xl <- x[x$has_descendents&x$min_obs==5,]
+xl <- xl[xl$filenames%in%longest_cons(xl$filenames),]
 
-df <- do.call(rbind,lapply(ff,proc_input))
-gen_plot("SA000_X7_l_4_d1_0_d2_0.Rds")
-gen_plot("SA609R1_X6_l_3_d1_0_d2_0.Rds")
-gen_plot("SA609R1_X7_l_4_d1_0_d2_0.Rds")
+ff <- xl$filenames
 
-gen_plot("SA1035T_X8_l_4_d1_0_d2_0.Rds")
-xv <- get_xv_df("SA1035T_X8_l_4_d1_0_d2_0.Rds")
-v <- do.call(rbind,lapply(rownames(xv), s2v))
-h <- hclust(dist(v,method = "manhattan"))
-h$labels <- round(xv$f_est,digits=3)
-plot(h)
+pvals <- do.call(rbind,pbapply::pblapply(ff, function(fi){
+  
+  id <- head(unlist(strsplit(fi,split=".Rds")),1)
+  l <- lineages[[id]]
 
-gen_plot("SA609U1_X8_l_8_d1_0_d2_0.Rds")
-xv <- get_xv_df("SA609U1_X8_l_8_d1_0_d2_0.Rds")
-v <- do.call(rbind,lapply(rownames(xv), s2v))
-h <- hclust(dist(v,method = "manhattan"))
-h$labels <- round(xv$f_est,digits=3)
-plot(h)
+  target_library_ids <- m$library_ids[m$uid%in%l$dec1]
+  target_library_ids <- unlist(strsplit(target_library_ids,split=";"))
+  x0 <- do.call(rbind,lapply(target_library_ids,function(tli) cnmat[[tli]]))
+  x0 <- apply(x0,1,paste,collapse=".")
+  x0 <- unique(x0)
+  
+  pop <- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))$x
+fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))$fit
+candidates <- gen_all_neighbours(rownames(pop)[pop[,ncol(pop)]>0])
+f <- c(predict(fit,candidates))
+candidates <- apply(candidates,1,paste,collapse=".")
+names(f) <- candidates
 
-gen_plot("SA535_CISPLATIN_CombinedT_X9_l_4_d1_0_d2_0.Rds")
-get_xv_df("SA535_CISPLATIN_CombinedT_X9_l_4_d1_0_d2_0.Rds")
-```
+emerged <- x0[!x0%in%rownames(pop)]
 
-Fit alfa-k and test performance across all lineages. It turned out that for these cell lines the results of the cross validation procedure could be quite sensitive to the value of min_obs. Therefore alfa-k was fit using all possible values for min_obs>5 on each cell line and the "best" value of min_obs was used. The criterion for best was the value that maximised the product of $r^2$ with the number of unique karyotypes considered as frequent clones. This was done instead of simply taking the highest $r^2$ value, to prevent choosing values for min_obs that would result in high $r^2$ values across only a couple of karyotypes.
+f_emerged <- f[names(f)%in%emerged]
+if(length(f_emerged)<2) return(data.frame(pval=NaN,delta_fitness=NaN))
+f_unemerged <- f[!names(f)%in%emerged]
 
-One thing we will have to explain is why we get such a good result for the Her2+ cell line when Salehi et al didn't. One possibilitiy is that the more detailed resolution CNA info they used to cluster cells was a red herring. 
-
-
-
-```{r}
-
-dir <- "data/salehi/alfak_fits_minobs_adaptive/"
-ff <- list.files(dir)
-x <- do.call(rbind,lapply(ff, function(fi) {
-  print(fi)
-  xi <- readRDS(paste0(dir,fi))
-  xi <- xi[!sapply(xi,is.null)]
-  if(length(xi)==0) return(NULL)
-  cor<-sapply(xi, function(xij) xij$vx_cor)
-  Rsq<-sapply(xi, function(xij) {
-      xij$xv_res <- xij$xv_res[!is.na(xij$xv_res$f_xv),]
-    if(nrow(xij$xv_res)<2) return(-Inf)
-    R2(xij$xv_res$f_est,xij$xv_res$f_xv)
-  })
-  min_obs <- sapply(xi, function(xij) xij$min_obs)
-  n <-sapply(xi, function(xij) nrow(xij$xv_res))
-  df <- data.frame(id=unlist(strsplit(fi,split=".Rds"))[1],
-                   Rsq=Rsq,n=n,min_obs=min_obs)
-  df$Rsq <- pmax(df$Rsq,-1)
-  return(df)
+res <- t.test(f_unemerged,f_emerged)
+data.frame(pval=res$p.value,delta_fitness=diff(res$estimate),row.names = NULL)
 }))
 
-p <- ggplot(x,aes(x=n,y=Rsq))+
-  facet_wrap(~id)+
-  geom_point()
-p
+pvals$r2 <- xl$r2
 
-p <- ggplot(x,aes(x=min_obs,y=Rsq))+
-  facet_wrap(~id)+
+p <- ggplot(pvals,aes(x=r2,y=delta_fitness))+
   geom_point()+
-  scale_x_log10()
+  scale_x_continuous(expression(R^2~cross~validation))+
+  scale_y_continuous(expression(Delta~fitness))
 p
-
-```
-
-```{r}
-
-
-dir <- "data/salehi/alfak_fits_minobs_adaptive_exclude_final/"
-ff <- list.files(dir)
-
-x <- do.call(rbind,lapply(ff, function(fi) {
-  print(fi)
-xi <- readRDS(paste0(dir,fi))
-xi <- xi[!sapply(xi,is.null)]
-if(length(xi)==0) return(NULL)
-cor<-sapply(xi, function(xij) xij$vx_cor)
-Rsq<-sapply(xi, function(xij) {
-  xij$xv_res <- xij$xv_res[!is.na(xij$xv_res$f_xv),]
-  if(nrow(xij$xv_res)<2) return(-Inf)
-  R2(xij$xv_res$f_est,xij$xv_res$f_xv)
-})
-n <-sapply(xi, function(xij) nrow(xij$xv_res))
-
-goodness <- Rsq*n
-
-j <- which.max(goodness)
-
-df <- data.frame(cor=cor[j],
-                 R2 = Rsq[j],
-                 n=n[j],
-                 id=unlist(strsplit(fi,split=".Rds"))[1])
-}))
-
-x$R2 <- pmax(-1,x$R2)
-
-p0 <- ggplot(x,aes(x=id,y=R2))+
-  geom_col()+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous(expression(R^2))
-p0
-
-p1 <- ggplot(x,aes(x=id,y=cor))+
-  geom_col()+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous("spearman correlation")
-p1
-
-p2 <- ggplot(x,aes(x=id,y=n))+
-  geom_col()+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous("number of frequent karyotypes")
-p2
-
-
+ggsave("figures/salehi_data_fitting/figures/emerging_karyotype_prediction.png",width=3,height=3,units="in")
 
 ```
 
@@ -654,141 +563,12 @@ p
 
 aggregate(l$angles,by=list(l$cond_match),mean)
 ```
-```{r}
-source("utils/comparison_functions.R")
-x <- readRDS("data/salehi/chrom_level_cn.Rds")
-m <- read.csv("data/salehi/metadata.csv")
-#m <- m[m$PDX_id=="SA609",]
 
-nm <- table(m$parent)
-nm <- names(nm)[nm>1]
-
-l <- do.call(rbind,lapply(nm, function(ni) {
-  children <- m$uid[m$parent==ni & !is.na(m$parent)]
-  combos <- combn(1:length(children),2)
-  cond_match <- apply(combos,2,function(ci){
-    m$on_treatment[m$uid==children[ci[1]]]==m$on_treatment[m$uid==children[ci[2]]]
-  })
-  data.frame(parent=ni,child1=children[combos[1,]],
-             child2=children[combos[2,]],cond_match)
-}))
-
-l <- cbind(l,data.frame(t(apply(l[,1:3],1,function(li){
-  sapply(li, function(lij) m$library_ids[m$uid==lij])
-}))))
-colnames(l)[1:3] <- paste0("uid_",colnames(l)[1:3])
-
-
-
-l$w <- sapply(1:nrow(l), function(i){
-  idpar <- unlist(strsplit(l$parent[i],split=";"))
-  idc1 <- unlist(strsplit(l$child1[i],split=";"))
-  idc2 <- unlist(strsplit(l$child2[i],split=";"))
-  
-  x0 <- do.call(rbind,lapply(idpar,function(id) x[[id]]))
-  x1 <- do.call(rbind,lapply(idc1,function(id) x[[id]]))
-  x2 <- do.call(rbind,lapply(idc2,function(id) x[[id]]))
-  
-  x0 <- transport::wpp(x0,mass=rep(1/nrow(x0),nrow(x0)))
-  x1 <- transport::wpp(x1,mass=rep(1/nrow(x1),nrow(x1)))
-  x2 <- transport::wpp(x2,mass=rep(1/nrow(x2),nrow(x2))) 
-  
-  d01 <- transport::wasserstein(x0,x1)
-  d02 <- transport::wasserstein(x0,x2)
-  d12 <- transport::wasserstein(x1,x2)
-  d12/(d01+d02)
-})
-
-
-p <- ggplot(l,aes(x=w))+
-  facet_wrap(~cond_match)+
-  geom_histogram()
-p
-
-aggregate(l$w,by=list(l$cond_match),mean)
-```
-
-```{r}
-
-f0 <- list.files("data/salehi/forward_sims/")
-
-df <- do.call(rbind,lapply(f0,function(fi){
-x <- readRDS(paste0("data/salehi/alfak_inputs/",fi,".Rds"))$x
-k <- do.call(rbind,lapply(rownames(x),s2v))
-
-x0 <- colSums(x[,ncol(x)-1]*k)/sum(x[,ncol(x)-1])
-x1 <- colSums(x[,ncol(x)]*k)/sum(x[,ncol(x)])-x0
-
-dir <- paste0("data/salehi/forward_sims/",fi,"/output/00000/")
-ff <- list.files(dir)
-ff <- ff[!ff%in%c("log.txt","summary.txt")]
-tt <- as.numeric(sapply(ff, function(fi) unlist(strsplit(fi,split=".csv"))[1]))
-xtst <- proc_sim(dir,times=tt)$x
-
-k <- do.call(rbind,lapply(rownames(xtst),s2v))
-
-angles <- sapply(1:ncol(xtst), function(i){
-  xni <- colSums(xtst[,i]*k)/sum(xtst[,i])-x0
-  getangle(xni,x1)
-})
-tt <- colnames(xtst)  
-data.frame(id=fi,angles,time=as.numeric(tt))
-}))
-
-p <- ggplot(df,aes(x=time,y=angles))+
-  facet_wrap(~id)+
-  geom_point()
-p
-
-
-
-```
 
 Below is stuff for plotting the lineages
 
 NEW (more lineages)
-```{r}
-## some lineages have a parent and a child per passage. Must be careful to collapse these. 
-m <- read.csv("data/salehi/metadata.csv")
 
-lineage_wrapper <- function(ids){
-  list(ids=ids)
-}
-
-lineage_generator <- function(uid){
-  ids <- c()
-  lineages <- list()
-  while(!is.na(uid)){
-    ids <- c(uid,ids)
-    uid <- m$parent[m$uid==uid]
-    if(length(ids)>1) lineages <- c(lineages,lineage_wrapper(ids))
-  }
-  return(lineages)
-}
-
-descendent_checker <- function(ids){
-  dec1 <- m$uid[m$parent==tail(ids,1)&!is.na(m$parent)]
-  dec2 <- m$uid[m$parent%in%dec1]
-  list(ids=ids,dec1=dec1,dec2=dec2)
-}
-
-lineage_namer <- function(lineage){
-  suffix <- paste0("_l_",length(lineage$ids),"_d1_",length(lineage$dec1),
-                   "_d2_",length(lineage$dec2))
-  id <- tail(lineage$ids,1)
-  sid <- paste(gsub(" ", "", m$datasetname[id==m$uid],fixed = TRUE),m$timepoint[id==m$uid],sep = "_")
-  sid <- gsub("/", "", sid,fixed = TRUE)
-  paste0(sid,suffix)
-}
-
-lineages <- do.call(c,lapply(m$uid,lineage_generator))
-lineages <- lapply(lineages, descendent_checker)
-
-lnames <- sapply(lineages,lineage_namer)
-names(lineages) <- lnames
-saveRDS(lineages,"figures/salehi_data_fitting/lineages.Rds")
-
-```
 OLD
 ```{r}
 

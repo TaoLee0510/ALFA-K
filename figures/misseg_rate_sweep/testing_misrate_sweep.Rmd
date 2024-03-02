@@ -24,38 +24,7 @@ library(parallel)
 ```
 Check performance vs misseg rate and look for summary statistics that explain good performance
 
-```{r}
-x <- readRDS("data/misrate_stats.Rds")
-x$ll_fq <- -x$ll_fq
-x$ll_nn <- -x$ll_nn
-df <- reshape2::melt(x[,c("m","nfq","r_fq","r_nn","r_d2n")],id.vars=c("m","nfq"))
-ids <- c(" frequent","d1","d2")
-names(ids)<-c("r_fq","r_nn","r_d2n")
-df$variable <- ids[df$variable]
-df$value[df$value<(-1)] <- -1
-p0 <- ggplot(df,aes(x=factor(m),y=value))+
-  facet_grid(rows=vars(variable))+
-  geom_violin()+
-  geom_jitter(height=0,width=0.2)+
-  scale_y_continuous(expression(predicted~fitness~R^2))+
-  scale_x_discrete("missegregation rate")
-p0
 
-df <- reshape2::melt(x[,c("m","r_fq","nfq","nnn","nd2n")],id.vars=c("m","r_fq"))
-ids <- c(" frequent","d1","d2")
-names(ids)<-c("nfq","nnn","nd2n")
-df$variable <- ids[df$variable]
-df$r_fq[df$r_fq<(-1)] <- -1
-p1 <- ggplot(df,aes(x=factor(m),y=value,color=r_fq))+
-  facet_grid(rows=vars(variable),scales="free")+
-  geom_violin()+
-  geom_jitter(height=0,width=0.2)+
-  scale_y_log10("number of karyotypes")+
-  scale_x_discrete("missegregation rate")+
-  scale_color_viridis_c(expression(frequent~clone~R^2))
-p1
-
-```
 ```{r}
 R2 <- function(obs,pred){
   1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
