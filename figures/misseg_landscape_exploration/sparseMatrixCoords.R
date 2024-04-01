@@ -58,7 +58,7 @@ xl <- xl[xl$filenames%in%longest_cons(xl$filenames),]
 
 lapply(xl$filenames,function(fi){
   coords <- gen_coords(fi)
-  saveRDS(coords,paste0("figures/ode_analysis/coords/",fi))
+  saveRDS(coords,paste0("figures/misseg_landscape_exploration/coords/",fi))
 })
 
 

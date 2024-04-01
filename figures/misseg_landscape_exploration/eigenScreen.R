@@ -53,7 +53,7 @@ screenR <- function(fi){
   winhi <- rownames(df)[which.max(n3)]
   
   winners <- list(winhi=winhi,winlo=winlo)
-  saveRDS(winners,paste0("figures/ode_analysis/screen_winners/",fi))
+  saveRDS(winners,paste0("figures/misseg_landscape_exploration/screen_winners/",fi))
   
   z1 <- reshape2::melt(df,measure.vars=c("n0","n1","n2","n3"))
   
@@ -70,8 +70,8 @@ screenR <- function(fi){
   
   p <- cowplot::plot_grid(p1,p2,nrow=2)
   imname <- head(unlist(strsplit(fi,split=".Rds")),1)
-  ggsave(paste0("figures/ode_analysis/screen_ims/",imname,".png"),plot=p,width=6,height=9,units="in")
+  ggsave(paste0("figures/misseg_landscape_exploration/screen_ims/",imname,".png"),plot=p,width=6,height=9,units="in")
 }
 
-ff <- list.files("figures/ode_analysis/coords/")
+ff <- list.files("figures/misseg_landscape_exploration/coords/")
 lapply(ff,screenR)

@@ -14,6 +14,7 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 
 ```{r}
 source("utils/ALFA-K.R")
+source("utils/ode_functions.R")
 library(ggplot2)
 library(deSolve)
 library(rootSolve)
@@ -154,335 +155,97 @@ ggsave("figures/misseg_landscape_exploration/figures/example.png",width = 4,heig
 
 We will restrict our analysis to fitted lineages with no parents or descendents, and that had a cross validation score r^2 above 0.3. 
 
-```{r}
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-xcore <- x[!x$has_descendents&!x$has_parents&x$min_obs==5,]
+```{r,eval=FALSE}
+## first generate the nonzero elements of the sparse transition matrices:
+source("figures/misseg_landscape_exploration/sparseMatrixCoords.R")
+## then find dominant eigenvalues at various missegregation rates:
+source("figures/misseg_landscape_exploration/eigenScreen.R")
+
 ```
 
-Our approach to determining peaks was to find all karyotypes that had fitness greater than any of their 1MS neighbours. These peaks were subsquently merged if they shared any distance 1 neighbours. 
 
+![Example of karyotype distribution affected by mis-segregation rate.](~/projects/008_birthrateLandscape/ALFA-K/figures/misseg_landscape_exploration/screen_ims/SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.png)
+![Example of karyotype distribution unaffected by mis-segregation rate.](~/projects/008_birthrateLandscape/ALFA-K/figures/misseg_landscape_exploration/screen_ims/SA609UnBU_X7_l_6_d1_0_d2_0.png)
+
+Most fitted landscapes did not show any evidence of peak-selection via missegregation rate changes. However, a small number did and we ran these with the ABM to validate the eigenvector-based predictions:
+
+```{r,eval=F}
+source("figures/misseg_landscape_exploration/sweep_abm_with_fits2.R")
+```
 
 ```{r,eval=FALSE}
-## this chunk takes about 1 hour to run
-get_A <- function(x,beta){
-  Ndim <- ncol(x)
-  Nstates <- nrow(x)
-  A<- matrix(0,nrow=Nstates,ncol=Nstates)
-  for(i in 1:nrow(A)){
-    state_i <- x[i,]
-    for(j in 1:nrow(A)){
-      state_j <- x[j,]
-      qij <- sapply(1:Ndim, function(k) pij(state_i[k], state_j[k], beta))
-      ## joint probability (i1,i2,...)->(j1,j2,...)
-      qij <- prod(qij)
-      A[i,j] <- 2*qij
+
+proc_res <- function(fi){
+  print(fi)
+  df <- screenR(paste0(fi,".Rds"))
+  
+  mr <- list.files(paste0(dir,fi))
+  z <- do.call(rbind,lapply(mr,function(mri){
+    reps <- list.files(paste0(dir,fi,"/",mri,"/output/"))
+   # print(reps)
+    do.call(rbind,lapply(reps,function(ri){
+      x <- proc_sim(paste0(dir,fi,"/",mri,"/output/",ri,"/"),times=c(seq(0,10000,500)))
+      x <- x$x
+      x <- x[order(rowSums(x),decreasing=T),]
+      x <- data.frame(x,check.names = F)
       
-      # ## case when there is no mis-segregation:
-      if(i==j) A[i,j] <- (2*qij-1)
+      id <- rep("none",nrow(x))
+      id[rownames(x)%in%rownames(df[df$id,])] <- "winlo"
+      id[rownames(x)%in%rownames(df[!df$id,])] <- "winhi"
       
-    }
-  }
-  A
-}
-
-
-peak_growth <- function(pm,pk,fit){
-  n <- do.call(rbind,lapply(pk,gen_all_neighbours))
-  n <- n[duplicated(n),]
-  n <- rbind(do.call(rbind,lapply(pk,s2v)),n)
-  n <- unique(n)
-  f <- predict(fit,n)
-
-  A <- get_A(n,pm)*c(f)
-  xinf <- abs(eigen(A)$vectors[,1])
-  xinf <- xinf/sum(xinf)
-  g <- sum(c(xinf%*%A))
-  return(g)
-}
-
-
-id_peaks <- function(ff){
-  x <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",ff))
-  
-  
-  is_peak <- pbapply::pbsapply(1:nrow(x$xo), function(i){
-    nn <- gen_all_neighbours(rownames(x$xo)[i])
-    fn <- c(predict(x$fit,nn))
-    x$xo$f_est[i]>max(fn)
-  })
-  
-  xpk <- x$xo[is_peak,]
-  xpk <- xpk[order(xpk$f_est,decreasing=T),]
-  
-  v <- do.call(rbind,lapply(rownames(xpk),s2v))
-  
-  d <- as.matrix(dist(v,method="manhattan"))
-  
-  
-  
-  pks <- lapply(1:nrow(d), function(i){
-    grp <- c(i)
-    which(d[i,]<3)
-  })
-  
-  lpks <- 1
-  lpks2 <- 2
-  
-  while(mean(lpks==lpks2)<1){
-    lpks <- sapply(pks,length)
-    pks <- lapply(pks, function(pki){
-      pki <- unique(unlist(lapply(pki,function(i){
-        which(d[i,]<3)
-      })))
-      pki <- pki[order(pki)]
-    })
-    lpks2 <- sapply(pks,length)
-  }
-  
-  pks <- unique(pks)
-  pks <- lapply(pks,function(pki){
-    k <- rownames(xpk)[pki]
-    f <- xpk$f_est[pki]
-    names(f) <- k
-    f
-  })
-}
-
-id_candidate <- function(ff){
-  pks <- id_peaks(ff)
-  is_candidate <- which.max(sapply(pks,max))!=which.max(sapply(pks,length))
-  if(is_candidate) print(ff)
-  return(is_candidate)
-}
-
-ff <- xcore$filenames[xcore$r2>0.3]
-
-pks <- lapply(ff,id_peaks)
-names(pks) <- ff
-saveRDS(pks,file="figures/misseg_landscape_exploration/peaks.Rds")
-
-bounds <- c(0.00001,0.005)
-lb <- log(bounds)
-lseq <- seq(lb[1],lb[2],length.out=10)
-pm <- exp(lseq)
-gpks <- lapply(1:length(ff), function(i){
-  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",ff[i]))$fit
-  pki <- pks[[i]]
-  lapply(pki,function(pk){
-    pbapply::pbsapply(pm, peak_growth,pk=names(pk),fit=fit)
-  })
-})
-names(gpks) <- ff
-saveRDS(gpks,file="figures/misseg_landscape_exploration/gpeaks.Rds")
-
-```
-
-The following shows the net growth rate of populations on the previously identified peaks as a function of mis-segregation rate. 
-```{r}
-pks <- readRDS("figures/misseg_landscape_exploration/peaks.Rds")
-gpks <- readRDS("figures/misseg_landscape_exploration/gpeaks.Rds")
-bounds <- c(0.00001,0.005)
-lb <- log(bounds)
-lseq <- seq(lb[1],lb[2],length.out=10)
-pm <- exp(lseq)
-df <- do.call(rbind,lapply(1:length(pks), function(i){
-  id <- names(pks)[i]
-  df <- data.frame(do.call(cbind,gpks[[i]]))
-  df <- df[,unique(apply(df,1,order,decreasing=T)[1:2,])]
-  df$pm <- pm
-  df <- reshape2::melt(df,id.vars="pm")
-  df$id <- id
-  return(df)
-}))
-
-df$id2 <- sapply(df$id, function(i){
-  i <- unlist(strsplit(i,split="_"))
-  i <- paste(i[1:(length(i)-6)],collapse="_")
-  i
-})
-df$id2 <- gsub("CISPLATIN_","",df$id2)
-p <- ggplot(df,aes(x=pm,y=value,group=variable))+
-  facet_wrap(~id2,scales="free",ncol=4)+
-  geom_line()+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_x_continuous("missegregation rate")+
-  scale_y_continuous("relative fitness")
-p
-ggsave("figures/misseg_landscape_exploration/figures/sweep.png",width=6,height=7.5,units="in")
-
-```
-
-Only one peak showed a significant shift in relative fitness. It is explored here:
-```{r}
-pks <- readRDS("figures/misseg_landscape_exploration/peaks.Rds")
-dir <- "data/salehi/misseg_landscape_exploration/minobs_5/SA906a_X57_l_7_d1_0_d2_0/"
-fit <- readRDS("data/salehi/alfak_fits/minobs_5/SA906a_X57_l_7_d1_0_d2_0.Rds")$fit
-ff <- list.files(dir)
-ff <- ff[!ff%in%c("log.txt","summary.txt")]
-
-pk1 <- names(pks[[6]][[1]])
-pk1 <- unique(c(pk1,apply(gen_all_neighbours(pk1),1,paste,collapse=".")))
-
-pk2 <- names(pks[[6]][[6]])
-pk2 <- unique(c(pk2,apply(gen_all_neighbours(pk2),1,paste,collapse=".")))
-
-v1 <- do.call(rbind,lapply(pk1,s2v))
-f1 <- c(predict(fit,v1))
-df1 <- data.frame(fitness=f1,ploidy=rowMeans(v1),id="~4N")
-v2 <- do.call(rbind,lapply(pk2,s2v))
-f2 <- c(predict(fit,v2))
-df2 <- data.frame(fitness=f2,ploidy=rowMeans(v2),id="~2N")
-
-df12 <- rbind(df1,df2)
-
-p <- ggplot(df12,aes(x=ploidy,group=id,fill=id))+
-  geom_histogram()+
-  scale_fill_manual("peak",labels=c("~2N","~4N"),values = c(2,1))+
-  scale_y_continuous("number of karyotypes")
-p
-ggsave("figures/misseg_landscape_exploration/figures/peak_ploidy.png",width=3,height=2,units="in")
-p <- ggplot(df12,aes(x=fitness,group=id,fill=id))+
-  geom_histogram(position="dodge")+
-  scale_fill_manual("peak",labels=c("~2N","~4N"),values = c(2,1))+
-  scale_y_continuous("number of karyotypes")
-p
-ggsave("figures/misseg_landscape_exploration/figures/peak_fitness.png",width=3,height=2,units="in")
-pm <- list.files(dir)[1:3]
-
-df <- do.call(rbind,lapply(pm, function(pmi){
-  dd <- paste0(dir,pmi,"/output/")
-  fo <- list.files(dd)
-  do.call(rbind,lapply(fo, function(foi){
-    ff <- list.files(paste0(dd,foi))
-    ff <- ff[!ff%in%c("log.txt","summary.txt")]
-    membership <- do.call(rbind,lapply(ff, function(fi){
-      xi <- read.table(paste0(dd,foi,"/",fi),sep=",")
-      n <- xi$V23
-      k <- apply(xi[,1:22],1,paste,collapse=".")
-      n1 <- sum(n[k%in%pk1])#/sum(n)
-      n2 <- sum(n[k%in%pk2])#/sum(n)
-      s12 <- 1#n1+n2
-      k <- apply(xi[,1:22],2,function(i) i*n)
-      ploidy <- sum(k)/sum(n)/22
-      tt <- head(unlist(strsplit(fi,split=".csv")),1)
-      data.frame(time=tt,n1=n1/s12,n2=n2/s12,ploidy=ploidy)
+      z <- split(x,f=id)
+      z <- do.call(rbind,lapply(z,colSums))
+      z <- reshape2::melt(z)
+      colnames(z) <- c("id","time","n")
+      z$rep <- ri
+      z$misrate <- mri
+      z
     }))
-    membership$rep <- foi
-    membership$pm <- pmi
-    membership
   }))
-}))
+  z$cellLine <- fi
+  return(z)
+}
 
-df <- reshape2::melt(df,measure.vars=c("n1","n2"))
+dir <- "data/salehi/misseg_landscape_exploration/minobs_5/"
+ff <- list.files(dir)
 
+z <- do.call(rbind,lapply(ff,proc_res))
 
-p <- ggplot(df,aes(x=as.numeric(time)/10,y=value,color=variable))+
-  facet_grid(rows=vars(paste0("misrate: ",gsub("p",".",pm))))+
-  geom_smooth()+
-  scale_color_manual("peak",labels=c("~4N","~2N"),values = c(1,2))+
-  scale_x_continuous("time (days)")+
-  scale_y_continuous("sampled cells")
-p
+saveRDS(z,file = "figures/misseg_landscape_exploration/screen_validation.Rds")
 
-ggsave("figures/misseg_landscape_exploration/figures/validation.png",width=3,height=4,units="in")
 ```
-
-Could this be a potential strategy for adaptive therapy? IDK.Maybe. Would involve some work. 
 
 ```{r}
-## ODE Model equation
-chrmod2 <- function(time,state,parms){
-  with(as.list(parms),{
-    ds <- state%*%A
-    return(list(ds))
-  })
-}
-sim_kary <- function(pm,pk1,pk2,y0,deathrate){
-  A <- get_A(maxchrom=c(8,8),beta=pm)
-  state_ids <- do.call(rbind,lapply(1:nrow(A), reverse_state_index,maxchrom=c(8,8),ndim=2))
-  f <- apply(state_ids,1,get_fitness,pk1=pk1,pk2=pk2)-deathrate
-  #f <- f/max(f)
-  A <- A*f
-  parms <- list(A=A)
-  if(length(y0)==1) y0 <- rep(y0,length(f))
-  out <- ode(y=y0,times=0:10,func=chrmod2,parms=parms)
-  df <- data.frame(state_ids)
-  colnames(df) <- c("c1","c2")
-  df$x <- out[nrow(out),-1]
-  return(df)
-  #data.frame(cn=1:8,f=f,pm=pm,deltaf=deltaf,x=out[nrow(out),-1])
-}
+options(scipen=999)
+z <- readRDS("figures/misseg_landscape_exploration/screen_validation.Rds")
+cellLines <- c("SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0",
+               "SA906a_X57_l_7_d1_0_d2_0")
+z2 <- z[!z$id=="none"&z$cellLine%in%cellLines,]
 
+transp <- function(p) as.numeric(gsub("p",".",p))
 
-pk1 <- list(centre=c(6,6),rad=1,fitness=0.1)
-pk2 <- list(centre=c(3,3),rad=1,fitness=0.09)
-pm <- c(0.0001,0.0001)#c(0.1,0.0001)
-y0 <- 1
-deathrate=0
-df <- sim_kary(pm[2],pk1,pk2,y0,deathrate)
-df$t <- 1
-y0 <- df$x
-for(i in 2:10){
-  dfi <- sim_kary(pm=pm[1+i%%2],pk1,pk2,y0,deathrate)
-  dfi$t <- i
-  y0 <- dfi$x
-  df <- rbind(df,dfi)
-}
+m <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
 
-aggregate(df$x,by=list(df$t),sum)
+uids <- sapply(cellLines, function(ci) xx$uid[xx$filenames==paste0(ci,".Rds")][1])
+linlabs <- sapply(uids, function(ui){
+  paste(m$PDX_id,m$timepoint,m$linlab)[m$uid==ui]
+})
+names(linlabs) <- cellLines
 
-```
-A new method for defining peaks? THis method defines peaks as connected karyotypes all above a threshold (mountain flooding analogy). Often higher peaks are correlated with number of members, but not the case in this example below:
+z3 <- aggregate(list(n=z2$n),by=list(id=z2$id,
+                                     time=z2$time,
+                                     misrate=z2$misrate,
+                                     cellLine=z2$cellLine),
+                mean)
 
-```{r}
-
-find_peaks <- function(f,k,fitness){
-  ki <- k[f>fitness,]
-  fi <- f[f>fitness]
-
-dm <- as.matrix(dist(ki,method="manhattan"))
-
-pks <- list()
-while(length(unlist(pks))<nrow(dm)){
-  lpk <- 0
-  pki <- min(which(!(1:nrow(dm))%in%unlist(pks)))
-
-  while(length(pki)!=lpk){
-    lpk <- length(pki)
-    pki <- unique(c(pki,unlist(lapply(pki,function(j) which(dm[j,]<2)))))
-  }
-  pks <- c(pks,list(pki))
-}
-fpeak <- lapply(pks, function(pki) fi[pki])
-data.frame(threshold=fitness,size=sapply(pks,length),
-           fmax=sapply(fpeak,max),fmean=sapply(fpeak,mean))
-
-}
-
-x <- readRDS("data/salehi/alfak_fits/minobs_20/SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
-
-k <- rbind(gen_all_neighbours(rownames(x$xo)),
-           do.call(rbind,lapply(rownames(x$xo),s2v)))
-
-f <- predict(x$fit,k)
-f <- c(f)
-
-qf <- quantile(f,probs=c(0.5,0.9,0.95,0.99))
-
-df <- do.call(rbind,lapply(qf,function(qfi){
-  find_peaks(f=f,k=k,fitness=qfi)
-}))
-
-p <- ggplot(df,aes(x=size,y=fmax))+
-  facet_wrap(~round(threshold,digits=4),scales="free")+
-  geom_point()
+p <- ggplot(z3,aes(x=time/10,y=n,color=id))+
+  facet_grid(cols=vars(paste0("p=",transp(misrate))),rows=vars(linlabs[cellLine]))+
+  geom_point()+
+  scale_y_log10("num. cells")+
+  scale_x_continuous("days")+
+  scale_color_discrete("favored\nwhen p is:",labels=c("high","low"))
 p
 
-p <- ggplot(df,aes(x=size,y=fmean))+
-  facet_wrap(~round(threshold,digits=4),scales="free")+
-  geom_point()
-p
-
-
-
 ```
+
