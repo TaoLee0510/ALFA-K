@@ -164,8 +164,8 @@ source("figures/misseg_landscape_exploration/eigenScreen.R")
 ```
 
 
-![Example of karyotype distribution affected by mis-segregation rate.](~/projects/008_birthrateLandscape/ALFA-K/figures/misseg_landscape_exploration/screen_ims/SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.png)
-![Example of karyotype distribution unaffected by mis-segregation rate.](~/projects/008_birthrateLandscape/ALFA-K/figures/misseg_landscape_exploration/screen_ims/SA609UnBU_X7_l_6_d1_0_d2_0.png)
+![Example of karyotype distribution affected by mis-segregation rate.](screen_ims/SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.png)
+![Example of karyotype distribution unaffected by mis-segregation rate.](screen_ims/SA609UnBU_X7_l_6_d1_0_d2_0.png)
 
 Most fitted landscapes did not show any evidence of peak-selection via missegregation rate changes. However, a small number did and we ran these with the ABM to validate the eigenvector-based predictions:
 
