@@ -20,8 +20,7 @@ library(deSolve)
 library(rootSolve)
 ```
 
-Example of the principles of how mis-segregation rate can shape landscape exploration:
-
+In most circumstances the fittest karyotype is expected to eventually become dominant within a population. We asked whether this status quo could be altered simply by changing the missegregation rate. We envisage two ways this could occur: 1) karyotypes with more high-fitness neighbors should have an advantage when missegregation rate is high, since their numbers are bolstered by a continuous (albeit small) influx from their neighbors. 2) Low ploidy cells should have an advantange when missegregation rate is high, since their reduced total number of chromosomes mean a reduced per-cell risk of missegregation, so their populations should be more stable. Overall if the fittest karyotype has few neighbors or has high ploidy, it may not be dominant when the missegregation rate is high.  
 ```{r}
 
 ## ODE Model equation
@@ -151,7 +150,7 @@ ggsave("figures/misseg_landscape_exploration/figures/example.png",width = 4,heig
 ```
 
 
-
+To identify possible missegregation dependendent switches in karyotype distribution, we generated approximate transisition matrices connecting all karyotypes in the charted region of each ALFA-K fitted landscape. We then determined the dominant eigenvectors of these transition matrices at varying missegregation rates to find the steady state karyotype distributions. For a subset of fitted landscapes we indeed found a missegregation rate dependentent switch in karyotype distribution. 
 
 We will restrict our analysis to fitted lineages with no parents or descendents, and that had a cross validation score r^2 above 0.3. 
 
@@ -167,7 +166,6 @@ source("figures/misseg_landscape_exploration/eigenScreen.R")
 ![Example of karyotype distribution affected by mis-segregation rate.](screen_ims/SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.png)
 ![Example of karyotype distribution unaffected by mis-segregation rate.](screen_ims/SA609UnBU_X7_l_6_d1_0_d2_0.png)
 
-Most fitted landscapes did not show any evidence of peak-selection via missegregation rate changes. However, a small number did and we ran these with the ABM to validate the eigenvector-based predictions:
 
 ```{r,eval=F}
 source("figures/misseg_landscape_exploration/sweep_abm_with_fits2.R")
@@ -218,7 +216,7 @@ saveRDS(z,file = "figures/misseg_landscape_exploration/screen_validation.Rds")
 ```{r}
 options(scipen=999)
 z <- readRDS("figures/misseg_landscape_exploration/screen_validation.Rds")
-cellLines <- c("SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0",
+cellLines <- c("SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0",
                "SA906a_X57_l_7_d1_0_d2_0")
 z2 <- z[!z$id=="none"&z$cellLine%in%cellLines,]
 
@@ -239,13 +237,188 @@ z3 <- aggregate(list(n=z2$n),by=list(id=z2$id,
                                      cellLine=z2$cellLine),
                 mean)
 
+#lut <- c(winhi=)
+
 p <- ggplot(z3,aes(x=time/10,y=n,color=id))+
   facet_grid(cols=vars(paste0("p=",transp(misrate))),rows=vars(linlabs[cellLine]))+
   geom_point()+
   scale_y_log10("num. cells")+
-  scale_x_continuous("days")+
-  scale_color_discrete("favored\nwhen p is:",labels=c("high","low"))
+  scale_x_continuous("days",breaks=c(0,500,1000))+
+  scale_color_discrete("group",labels=c("A","B"))
 p
+
+ggsave("figures/misseg_landscape_exploration/figures/abm_test.png",width=5,height=3,units="in")
 
 ```
 
+```{r}
+options(scipen=0)
+fi <- "SA906a_X57_l_7_d1_0_d2_0.Rds"
+ y <- readRDS(paste0("figures/misseg_landscape_exploration/coords/",fi))
+  
+  dims <- rep(length(y$kary),2)
+  
+  p <- c(0.0001,0.001,0.003,0.005)
+  res <- do.call(cbind,lapply(p,function(p0){
+    tm <- tmbuild(p0,y$coords,dims)
+    func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+    res <- tryCatch(expr = {
+      res <- arpack(func, options=list(n=dims[1], nev=1, ncv=3, which="LM",maxiter=5000), 
+                    sym=FALSE, complex = FALSE)
+      res <- abs(res$vectors)
+    },error=function(e) return(rep(0,nrow(tm))))
+    
+    names(res) <- y$kary
+    res
+  }))
+  
+  res <- res[order(rowSums(res),decreasing=T),]
+  z <- res[apply(res,1,max)>0.02,]
+  n0 <- z[,1]
+  n1 <- z[,4]
+  
+  
+  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))$fit
+  pts <- do.call(rbind,lapply(rownames(z),s2v))
+  f <- predict(fit,pts)
+  ump <- umap::umap(pts)
+  
+  df <- data.frame(n0,n1,f)
+  df <- cbind(ump$layout,df)
+  colnames(df)[1:2] <- c("u1","u2")
+  
+  df$ploidy <- sapply(rownames(df), function(k) mean(s2v(k)))
+  df$id <- df$n0>df$n1
+  
+  relablr <- c(n0='p=0.0001',n1='p=0.005')
+  
+  z1 <- reshape2::melt(df,measure.vars=c("n0","n1"))
+  
+  p1 <- ggplot(z1,aes(x=u1,y=u2,color=value,shape=id))+
+    facet_wrap(~relablr[variable],nrow=2)+
+    geom_point(size=0.4)+
+    scale_color_viridis_c("steady-state\nfrequency",trans="log",breaks=c(1e-1,1e-5,1e-9,1e-13,1e-17))+
+    scale_x_continuous("umap1")+
+    scale_y_continuous("umap2")+
+    scale_shape_discrete("group",labels=c("A","B"))+
+    theme(legend.key.size = unit(0.1,"in"))
+  p1
+  
+  p2 <- ggplot(df,aes(x=u1,y=u2,color=f,shape=id))+
+    geom_point(size=0.4)+
+    scale_color_viridis_c("fitness")+
+    scale_x_continuous("umap1")+
+    scale_y_continuous("umap2")+
+    scale_shape_discrete("group",labels=c("A","B"))+
+    theme(legend.key.size = unit(0.1,"in"))
+  p2
+  p3 <- ggplot(df,aes(x=ploidy,fill=id))+
+    geom_histogram(position="dodge")+
+    scale_fill_discrete("group",labels=c("A","B"))+
+    scale_x_continuous("ploidy")+
+    theme(legend.key.size = unit(0.1,"in"))
+  p3
+  
+  p4 <- ggplot(df,aes(x=f,fill=id))+
+    geom_histogram(position="dodge")+
+    scale_fill_discrete("group",labels=c("A","B"))+
+    scale_x_continuous("fitness")+
+    theme(legend.key.size = unit(0.1,"in"))
+  p4
+  
+ggsave("figures/misseg_landscape_exploration/figures/SA609_distr_umap.png",plot=p1,width=2.5,height=2.5,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA609_f_umap.png",plot=p2,width=2.5,height=2,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA609_f_hist.png",plot=p4,width=2.5,height=2,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA609_ploidy_hist.png",plot=p3,width=2.5,height=2,units="in")
+```
+
+
+```{r}
+options(scipen=0)
+fi <- "SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds"
+#fi <- "SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.Rds"
+ y <- readRDS(paste0("figures/misseg_landscape_exploration/coords/",fi))
+  
+  dims <- rep(length(y$kary),2)
+  
+  p <- c(0.0001,0.001,0.003,0.005)
+  res <- do.call(cbind,lapply(p,function(p0){
+    tm <- tmbuild(p0,y$coords,dims)
+    func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+    res <- tryCatch(expr = {
+      res <- arpack(func, options=list(n=dims[1], nev=1, ncv=3, which="LM",maxiter=5000), 
+                    sym=FALSE, complex = FALSE)
+      res <- abs(res$vectors)
+    },error=function(e) return(rep(0,nrow(tm))))
+    
+    names(res) <- y$kary
+    res
+  }))
+  
+  res <- res[order(rowSums(res),decreasing=T),]
+  z <- res[apply(res,1,max)>0.02,]
+  n0 <- z[,1]
+  n1 <- z[,4]
+  
+  
+  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))$fit
+  pts <- do.call(rbind,lapply(rownames(z),s2v))
+  f <- predict(fit,pts)
+  ump <- umap::umap(pts)
+  
+  df <- data.frame(n0,n1,f)
+  df <- cbind(ump$layout,df)
+  colnames(df)[1:2] <- c("u1","u2")
+  
+  df$ploidy <- sapply(rownames(df), function(k) mean(s2v(k)))
+  df$id <- df$n0>df$n1
+  
+  relablr <- c(n0='p=0.001',n1='p=0.003')
+  
+  z1 <- reshape2::melt(df,measure.vars=c("n0","n1"))
+  
+  p1 <- ggplot(z1,aes(x=u1,y=u2,color=value,shape=id))+
+    facet_wrap(~relablr[variable],nrow=2)+
+    geom_point(size=0.4)+
+    scale_color_viridis_c("steady-state\nfrequency",trans="log",breaks=c(1e-1,1e-5,1e-9,1e-13,1e-17))+
+    scale_x_continuous("umap1")+
+    scale_y_continuous("umap2")+
+    scale_shape_discrete("group",labels=c("A","B"))+
+    theme(legend.key.size = unit(0.1,"in"))
+  p1
+  
+  p2 <- ggplot(df,aes(x=u1,y=u2,color=f,shape=id))+
+    geom_point(size=0.4)+
+    scale_color_viridis_c("fitness")+
+    scale_x_continuous("umap1")+
+    scale_y_continuous("umap2")+
+    scale_shape_discrete("group",labels=c("A","B"))+
+    theme(legend.key.size = unit(0.1,"in"))
+  p2
+  p3 <- ggplot(df,aes(x=ploidy,fill=id))+
+    geom_histogram(position="dodge")+
+    scale_fill_discrete("group",labels=c("A","B"))+
+    scale_x_continuous("ploidy")+
+    theme(legend.key.size = unit(0.1,"in"))
+  p3
+  
+  p4 <- ggplot(df,aes(x=f,fill=id))+
+    geom_histogram(position="dodge")+
+    scale_fill_discrete("group",labels=c("A","B"))+
+    scale_x_continuous("fitness")+
+    theme(legend.key.size = unit(0.1,"in"))
+  p4
+  
+ggsave("figures/misseg_landscape_exploration/figures/SA535_distr_umap.png",plot=p1,width=2.5,height=2.5,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA535_f_umap.png",plot=p2,width=2.5,height=2,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA535_f_hist.png",plot=p4,width=2.5,height=2,units="in")
+
+ggsave("figures/misseg_landscape_exploration/figures/SA535_ploidy_hist.png",plot=p3,width=2.5,height=2,units="in")
+
+head(df[order(df$f,decreasing=T),])
+```

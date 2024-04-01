@@ -15,7 +15,7 @@ tmbuild <- function(p0,coords,dims){
 }
 
 screenR <- function(fi){
-  y <- readRDS(paste0("figures/ode_analysis/coords/",fi))
+  y <- readRDS(paste0("figures/misseg_landscape_exploration/coords/",fi))
   
   dims <- rep(length(y$kary),2)
   
