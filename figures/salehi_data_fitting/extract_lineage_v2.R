@@ -20,6 +20,8 @@ for(i in 1:length(lineages)){
     data.frame(timepoint=msel$timepoint[i],library_id=lid,row.names = NULL)
   }))
   
+  if(mean(msel$library_id%in%names(cnmat))<1) next
+  
   msel <- msel[msel$library_id%in%names(cnmat),]
   x <- cnmat[msel$library_id]
   ids <- unlist(lapply(1:nrow(msel), function(i) rep(msel$timepoint[i],nrow(x[[i]]))))

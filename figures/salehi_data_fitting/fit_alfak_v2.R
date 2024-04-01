@@ -12,7 +12,7 @@ lineage_info <- function(ln){
   id <- tail(ln$ids,1)
   sid <- paste(gsub(" ","", m$label[id==m$uid],fixed = TRUE),
                m$timepoint[id==m$uid],sep = "_")
-  data.frame(id=sid,has_descendents,has_parents,nChanges,treatment_status)
+  data.frame(id=sid,uid=id,has_descendents,has_parents,nChanges,treatment_status)
   
 }
 
@@ -39,14 +39,23 @@ linfo2 <- linfo[linfo$nChanges==0&!linfo$has_descendents&linfo$treatment_status=
 linfo <- rbind(linfo1,linfo2)
 library(parallel)
 cl <- makeCluster(getOption("cl.cores", 8))
-min_obs <- c(5,10,20)
+min_obs <- c(20,10,5)#,10,20)
 outdirs <- paste0("data/salehi/alfak_fits/minobs_",min_obs,"/")
 sapply(outdirs,dir.create,recursive=T)
 
 ff <- list.files("data/salehi/alfak_inputs_v2/")
+#favorites <- readRDS("data/salehi/favorites.Rds")
+
+#ff <- ff[!ff%in%favorites]
+
+
+#already_fitted <- list.files("data/salehi/alfak_fits/minobs_5/")
+#ff <- ff[!ff%in%already_fitted]
+#ff <- ff[grepl("SA535",ff)]
 #ff <- ff[ff%in%longest_cons(linfo$filenames)]
+
 parLapplyLB(cl=cl,X=ff, function(fi){
-  min_obs <- c(5,10,20)
+  min_obs <- c(20,10,5)#,10,20)
   outdirs <- paste0("data/salehi/alfak_fits/minobs_",min_obs,"/")
   source("utils/ALFA-K.R")
   print(fi)

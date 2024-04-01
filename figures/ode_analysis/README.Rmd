@@ -1,0 +1,469 @@
+---
+title: "README"
+author: "Richard J Beck"
+date: "`r Sys.Date()`"
+output:
+  md_document:
+    variant: markdown_github
+---
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+There are two reasons we want to solve evolution on the landscape analytically. One is our study on the effect of missegregation rate on karyotype. For this we probably want steady state karyotype distributions, so finding the dominant eigenvalue makes most sense. The other usecase is predicting which karyotypes might arise short distances into the future. For this instance, we probably gotta solve the ODE but likely only for very short timescales... 
+
+
+```{r}
+library(deSolve)
+library(rootSolve)
+library(ggplot2)
+library(spam)
+library(Matrix)
+library(igraph)
+```
+
+The key to all our efforts is setting up the ODE transition matrix as quickly and usefully as possible. Below is an example of how it is done. 
+
+```{r}
+source("utils/ALFA-K.R")
+
+
+x <- readRDS("data/salehi/alfak_fits/minobs_5/SA000_X4_l_4_d1_3_d2_5.Rds")
+
+u <- rownames(x$xo)
+
+v <- rbind(do.call(rbind,lapply(u,s2v)),
+           gen_all_neighbours(u))
+
+
+f <- c(predict(x$fit,v))
+v <- apply(v,1,paste,collapse=".")
+p0 <- 0.1
+indices <- unlist(lapply(1:22,rep,2))
+
+coords <- do.call(rbind,pbapply::pblapply(1:length(v),function(i){
+  v0 <- s2v(v[i])
+  
+  nn <- apply(gen_all_neighbours(v[i]),1,paste,collapse=".")
+  nc <- v0[indices]
+  names(nc) <- nn
+  ii <- which(v%in%nn)
+  nc <- as.numeric(nc[v[ii]])
+  
+  ii <- c(i,ii)
+  nc <- c(sum(v0),nc)
+  
+  jj <- rep(i,length(ii))
+  ff <- rep(f[i],length(ii))
+  cbind(ii,jj,ff,nc)
+}))
+
+tmbuild <- function(p0,coords){
+  xx <- coords[,"ff"]*coords[,"nc"]*p0/2
+  sources <- coords[,"ii"]==coords[,"jj"] 
+  xx[sources] <-  coords[sources,"ff"]*(1-coords[sources,"nc"]*p0)
+  N <- max(coords[,"jj"])
+  sparseMatrix(i = coords[,"ii"], 
+                  j = coords[,"jj"], 
+                  x = xx,
+                  dims=c(length(v),length(v)))
+}
+
+
+p <- c(0.00001,0.0001,0.001,0.01)
+res <- do.call(rbind,lapply(p,function(p0){
+  tm <- tmbuild(p0,coords)
+
+  func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+  res <- arpack(func, options=list(n=length(v), nev=1, ncv=3, which="LM"), 
+             sym=FALSE, complex = FALSE)
+  fqids <- which(x$xo$id=="fq")
+  df <- data.frame(i=fqids,freq=abs(res$vectors)[fqids],p0=p0)
+}))
+
+p <- ggplot(res,aes(x=i,y=freq))+
+  facet_wrap(~p0)+
+  geom_point()
+p
+
+
+```
+
+Screen to find changes in steady state:
+```{r}
+source("figures/ode_analysis/eigenScreen.R")
+```
+
+Showcase screen results here:
+
+
+```{r}
+tmbuild <- function(p0,coords,dims){
+  xx <- coords[,"ff"]*coords[,"nc"]*p0/2
+  sources <- coords[,"ii"]==coords[,"jj"] 
+  xx[sources] <-  coords[sources,"ff"]*(1-coords[sources,"nc"]*p0)
+  N <- max(coords[,"jj"])
+  sparseMatrix(i = coords[,"ii"], 
+               j = coords[,"jj"], 
+               x = xx,
+               dims=dims)
+}
+screenR <- function(fi,p=c(0.001,0.005)){
+  y <- readRDS(paste0("figures/ode_analysis/coords/",fi))
+  
+  dims <- rep(length(y$kary),2)
+  
+  
+  res <- do.call(cbind,lapply(p,function(p0){
+    tm <- tmbuild(p0,y$coords,dims)
+    
+    func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+    res <- arpack(func, options=list(n=dims[1], nev=1, ncv=3, which="LM",maxiter=5000), 
+                  sym=FALSE, complex = FALSE)
+    res <- abs(res$vectors)
+    res <- res/sum(res)
+    names(res) <- y$kary
+    res
+  }))
+  
+  
+  res <- res[order(rowSums(res),decreasing=T),]
+  z <- res[apply(res,1,max)>0.001,]
+  n0 <- z[,1]
+  ni <- z[,2]
+  n1 <- z[,ncol(z)]
+  id <- n0>n1
+  
+  
+  
+  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))$fit
+  pts <- do.call(rbind,lapply(rownames(z),s2v))
+  f <- predict(fit,pts)
+ # ump <- umap::umap(pts)
+  
+  df <- data.frame(n0,ni,n1,id,f)
+  #df <- cbind(ump$layout,df)
+  #colnames(df)[1:2] <- c("u1","u2")
+  
+  return(df)
+}
+```
+
+```{r}
+
+proc_res <- function(fi){
+  print(fi)
+  df <- screenR(paste0(fi,".Rds"))
+  
+  mr <- list.files(paste0(dir,fi))
+  z <- do.call(rbind,lapply(mr,function(mri){
+    reps <- list.files(paste0(dir,fi,"/",mri,"/output/"))
+   # print(reps)
+    do.call(rbind,lapply(reps,function(ri){
+      x <- proc_sim(paste0(dir,fi,"/",mri,"/output/",ri,"/"),times=c(seq(0,10000,500)))
+      x <- x$x
+      x <- x[order(rowSums(x),decreasing=T),]
+      x <- data.frame(x,check.names = F)
+      
+      id <- rep("none",nrow(x))
+      id[rownames(x)%in%rownames(df[df$id,])] <- "winlo"
+      id[rownames(x)%in%rownames(df[!df$id,])] <- "winhi"
+      
+      z <- split(x,f=id)
+      z <- do.call(rbind,lapply(z,colSums))
+      z <- reshape2::melt(z)
+      colnames(z) <- c("id","time","n")
+      z$rep <- ri
+      z$misrate <- mri
+      z
+    }))
+  }))
+  z$cellLine <- fi
+  return(z)
+}
+
+dir <- "data/salehi/misseg_landscape_exploration/minobs_5/"
+ff <- list.files(dir)
+
+z <- do.call(rbind,lapply(ff,proc_res))
+
+saveRDS(z,file = "figures/ode_analysis/screen_validation.Rds")
+
+```
+
+```{r}
+options(scipen=999)
+z <- readRDS("figures/ode_analysis/screen_validation.Rds")
+cellLines <- c("SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0",
+               "SA906a_X57_l_7_d1_0_d2_0")
+z2 <- z[!z$id=="none"&z$cellLine%in%cellLines,]
+
+transp <- function(p) as.numeric(gsub("p",".",p))
+
+m <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+
+uids <- sapply(cellLines, function(ci) xx$uid[xx$filenames==paste0(ci,".Rds")][1])
+linlabs <- sapply(uids, function(ui){
+  paste(m$PDX_id,m$timepoint,m$linlab)[m$uid==ui]
+})
+names(linlabs) <- cellLines
+
+z3 <- aggregate(list(n=z2$n),by=list(id=z2$id,
+                                     time=z2$time,
+                                     misrate=z2$misrate,
+                                     cellLine=z2$cellLine),
+                mean)
+
+p <- ggplot(z3,aes(x=time/10,y=n,color=id))+
+  facet_grid(cols=vars(paste0("p=",transp(misrate))),rows=vars(linlabs[cellLine]))+
+  geom_point()+
+  scale_y_log10("num. cells")+
+  scale_x_continuous("days")+
+  scale_color_discrete("favored\nwhen p is:",labels=c("high","low"))
+p
+
+```
+
+
+
+```{r}
+
+fi <- "SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds"
+fit <- readRDS("data/salehi/alfak_fits/minobs_5/SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds")$fit
+y <- readRDS(paste0("figures/ode_analysis/coords/",fi))
+  
+  dims <- rep(length(y$kary),2)
+  
+  p <- c(0.001,0.003)
+  res <- do.call(cbind,lapply(p,function(p0){
+    tm <- tmbuild(p0,y$coords,dims)
+    
+    func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+    res <- arpack(func, options=list(n=dims[1], nev=1, ncv=3, which="LM",maxiter=5000), 
+                  sym=FALSE, complex = FALSE)
+    res <- abs(res$vectors)
+    res <- res/sum(res)
+    names(res) <- y$kary
+    res
+  }))
+  
+maxx <- apply(res,1,max)
+
+x <- res[maxx>0.001,]
+maxx <- apply(x,1,max)
+x <- x[order(maxx,decreasing=T),]
+
+v <- do.call(rbind,lapply(rownames(x),s2v))
+ump <- data.frame(umap::umap(v)$layout)
+colnames(ump) <- c("u1","u2")
+id <- x[,1]>x[,2]
+f <- predict(fit,v)
+nchr <- apply(v,1,sum)
+
+df <- data.frame(id,f,nchr,nlo=x[,1],nhi=x[,2])
+df <- cbind(df,ump)
+df <- reshape2::melt(df,measure.vars=c("nhi","nlo"))
+
+p <- ggplot(df,aes(x=f,y=value))+
+  facet_grid(cols=vars(variable))+
+  scale_y_log10()+
+  geom_point()
+p
+
+p <- ggplot(df,aes(x=u1,y=u2,color=value))+
+  facet_grid(cols=vars(variable))+
+  geom_point()+
+  scale_color_viridis_c(trans="log")
+p
+
+p <- ggplot(df,aes(x=u1,y=u2,color=f))+
+  geom_point()+
+  scale_color_viridis_c(trans="log")
+p
+
+p <- ggplot(df,aes(x=u1,y=u2,color=nchr))+
+  geom_point()+
+  scale_color_viridis_c(trans="log")
+p
+
+head(cbind(x[!id,],f[!id]))
+head(cbind(x[id,],f[id]))
+```
+
+
+
+```{r}
+
+tmbuild <- function(p0,coords,dims){
+  xx <- coords[,"ff"]*coords[,"nc"]*p0/2
+  sources <- coords[,"ii"]==coords[,"jj"] 
+  xx[sources] <-  coords[sources,"ff"]*(1-coords[sources,"nc"]*p0)
+  N <- max(coords[,"jj"])
+  sparseMatrix(i = coords[,"ii"], 
+                  j = coords[,"jj"], 
+                  x = xx,
+                  dims=dims)
+}
+ff <- list.files("figures/ode_analysis/coords/")
+fi <- ff[3]
+x <- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))$x
+x <- x[,1]
+x <- x/sum(x)
+y <- readRDS(paste0("figures/ode_analysis/coords/",fi))
+coords <- y$coords
+kary <- y$kary
+
+x0 <- rep(0,length(kary))
+names(x0) <- kary
+x0[names(x)] <- x
+
+m <- tmbuild(p0=0.00005,coords = coords,dims=rep(length(x0),2))
+
+eulerSolve <- function(y,dt) y + dt*(x0 %*% m)
+
+dt <- 0.1
+times <- seq(dt,5,dt)
+
+y <- x0
+Y <- x0
+
+for(tt in times){
+    y <- eulerSolve(y,dt)
+    Y <- rbind(Y,y)
+}
+
+Y <- apply(Y,1,function(yi) yi/sum(yi))
+colnames(Y) <- c(0,times)
+Y <- Y[order(rowSums(Y),decreasing=T),]
+
+for(i in 1:10) plot(Y[i,])
+
+```
+
+```{r}
+
+rbind(c(1,1,0),
+      c(1,1,1),
+      c(0,0,1))
+
+
+```
+
+Easiest way to do this is below. Time complexity should be something like N^2 (looks even somewhat worse,IDK why). If it takes 30 secs to do 1000 karyotypes then expect 30*20^2=3hrs20mins to do 20,000 karyotypes. Setting Jactype to sparse shaves some off this. Not as bad as I feared, but not great either. 
+
+```{r}
+
+naive_model<-function(t, y,pars) {
+with (as.list(c(y,pars)),{
+
+  r1 <- pars$f*y
+  r2 <- (pars$f*y*pars$p)%*%pars$tm
+  dm <- sum(r1)+sum(r2)
+  m <- sum(y)
+  d <- dm/m
+  r3 <- -d*y
+  list(c(r1+r2+r3))
+})
+}
+
+
+
+N <- seq(200,1000,200)
+tt <- lapply(N, function(N){
+  pars=list(tm=matrix(as.numeric(runif(N*N)<1/N),nrow=N),
+            f=runif(N), p=0.01)
+  state <- runif(N)
+  
+  system.time(runsteady(y = state, func = naive_model, 
+                        parms = pars, times = c(0, 1000),
+                        jactype = "sparse",lrw=10^9))
+})
+
+
+tt <- data.frame(do.call(rbind,tt))
+tt$N <- N
+
+p <- ggplot(tt,aes(x=N,y=elapsed))+
+  geom_point()+
+  geom_line()+
+  scale_y_sqrt()
+p
+
+
+
+```
+If we only want steady state solutions then we could find eigenvalues of the transition matrix. This is substantially faster and may actually be usable. However I don't think R is gonna be able to hold a full size matrix.
+
+```{r}
+
+N <- seq(200,2000,200)
+tt <- lapply(N, function(N){
+  tm=matrix(as.numeric(runif(N*N)<1/N),nrow=N)
+  system.time(eigen(tm))
+})
+
+tt <- data.frame(do.call(rbind,tt))
+tt$N <- N
+
+p <- ggplot(tt,aes(x=N,y=elapsed))+
+  geom_point()+
+  geom_line()+
+  scale_y_sqrt()
+p
+```
+
+arpack appears blazing fast but it's a bit tricky to figure out the results it is providing
+```{r}
+
+
+
+N <- 1000
+tm=sparseMatrix(i = sample(1:N,N,replace=T), 
+                  j = sample(1:N,N,replace=T), 
+                  x = runif(N),
+                  dims=c(N,N))
+
+
+func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+ev1 <- arpack(func, options=list(n=N, nev=1, ncv=3, which="LM"), 
+             sym=FALSE, complex = FALSE)
+ev2 <- eigen(tm)
+
+max(Re(ev1$vectors))
+max(Re(ev2$vectors[,1]))
+
+```
+Overall, Eigen approach seems promising after some kinks are worked out.
+
+```{r}
+source("utils/ALFA-K.R")
+x <- readRDS("data/salehi/alfak_fits/minobs_5/SA000_X4_l_3_d1_3_d2_5.Rds")
+
+u <- rownames(x$xo)
+
+v <- rbind(do.call(rbind,lapply(u,s2v)),
+           gen_all_neighbours(u))
+
+f <- c(predict(x$fit,v))
+v <- apply(v,1,paste,collapse=".")
+p <- 0.01
+
+coords <- do.call(rbind,lapply(1:length(v),function(i){
+  ii <- c(i,which(v%in%apply(gen_all_neighbours(v[i]),1,paste,collapse=".")))
+  jj <- rep(i,length(ii))
+  ff <- rep(f[i],length(ii))*p
+  ff[1] <- f[i]
+  cbind(ii,jj,ff)
+}))
+
+tm=sparseMatrix(i = coords[,"ii"], 
+                  j = coords[,"jj"], 
+                  x = coords[,"ff"],
+                  dims=c(length(v),length(v)))
+
+func <- function(x, extra=NULL) { as.vector(tm %*% x) } 
+res <- arpack(func, options=list(n=length(v), nev=1, ncv=3, which="LM"), 
+             sym=TRUE, complex = FALSE)
+
+```

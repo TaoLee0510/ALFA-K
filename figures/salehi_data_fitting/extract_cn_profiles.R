@@ -1,4 +1,4 @@
-setwd("~/projects/008_birthrateLandscape/ALFA-K/data/salehi/raw/")
+setwd("~/projects/008_birthrateLandscape/ALFA-K/data/salehi/raw_post_jump/")
 Mode <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
@@ -44,23 +44,34 @@ call_cn <- function(x,arms,level="chrom"){
 arms <- readRDS("../arm_loci.Rds")
 
 ff <- list.files()
+#bins <- lapply(ff, function(fi){
+ # if(!file.exists(paste0(fi,"/named_mat.csv"))) return(NULL)
+  #x <- data.frame(data.table::fread(paste0(fi,"/named_mat.csv")))
+  #x$bin_name
+#})
+
+#bins <- do.call(cbind,bins)
 
 ## for some reason at least one file (SA1035H) has incompletely named bin_names, 
 ## so i took the approach of using the bin names from the first files (which are OK)
 ## this works for all except SA004 which has 6206 bins for some reason.
 ##OK turns out SA004 is very different from the rest (what is it!?) so lets exclude that
-f0 <- ff[1]
-bn <- data.frame(data.table::fread(paste0(f0,"/named_mat.csv")))$bin_name
+#f0 <- ff[1]
+#bn <- data.frame(data.table::fread(paste0(f0,"/named_mat.csv")))$bin_name
 
-nbins <- sapply(ff, function(fi) nrow(data.table::fread(paste0(fi,"/named_mat.csv"))))
+#nbins <- sapply(ff, function(fi) nrow(data.table::fread(paste0(fi,"/named_mat.csv"))))
 ff <- ff[!ff=="SA004"]
+
+##IF USING POST JUMP DATA UNCOMMENT ABOVE THEN FOLLOW CAPS COMMENTS BELOW
 
 x <- do.call(rbind,lapply(ff, function(fi){
   print(fi)
   if(!file.exists(paste0(fi,"/named_mat.csv"))) return(NULL)
   x <- data.frame(data.table::fread(paste0(fi,"/named_mat.csv")))
-  rownames(x) <- bn
-  x <- x[,!colnames(x)=="bin_name"]
+  binformat <- unlist(strsplit(as.character(x$bin_name[1]),split="_"))
+  if(length(binformat)<3) return(NULL)
+  rownames(x) <- x$bin_name ##REPLACE WITH rownames(x) <- bn 
+  x <- x[,!colnames(x)=="bin_name"] 
   call_cn(x,arms)
 }))
 
@@ -77,8 +88,10 @@ x <- do.call(rbind,lapply(ff, function(fi){
   print(fi)
   if(!file.exists(paste0(fi,"/named_mat.csv"))) return(NULL)
   x <- data.frame(data.table::fread(paste0(fi,"/named_mat.csv")))
-  rownames(x) <- bn
-  x <- x[,!colnames(x)=="bin_name"]
+  binformat <- unlist(strsplit(as.character(x$bin_name[1]),split="_"))
+  if(length(binformat)<3) return(NULL)
+  rownames(x) <- x$bin_name ##REPLACE WITH rownames(x) <- bn 
+  x <- x[,!colnames(x)=="bin_name"] 
   call_cn(x,arms,level = "arm")
 }))
 

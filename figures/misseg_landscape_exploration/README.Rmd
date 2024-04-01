@@ -110,6 +110,10 @@ mean_kary <- function(pm,pk1,pk2,return_df=FALSE){
   return(df)
   #data.frame(cn=1:8,f=f,pm=pm,deltaf=deltaf,x=out[nrow(out),-1])
 }
+
+```
+
+```{r}
 pk1 <- list(centre=c(6,6),rad=1,fitness=1)
 pk2 <- list(centre=c(3,3),rad=1,fitness=0.9)
 
@@ -144,6 +148,9 @@ ggsave("figures/misseg_landscape_exploration/figures/example.png",width = 4,heig
 
 
 ```
+
+
+
 
 We will restrict our analysis to fitted lineages with no parents or descendents, and that had a cross validation score r^2 above 0.3. 
 
@@ -380,4 +387,102 @@ p
 ggsave("figures/misseg_landscape_exploration/figures/validation.png",width=3,height=4,units="in")
 ```
 
+Could this be a potential strategy for adaptive therapy? IDK.Maybe. Would involve some work. 
 
+```{r}
+## ODE Model equation
+chrmod2 <- function(time,state,parms){
+  with(as.list(parms),{
+    ds <- state%*%A
+    return(list(ds))
+  })
+}
+sim_kary <- function(pm,pk1,pk2,y0,deathrate){
+  A <- get_A(maxchrom=c(8,8),beta=pm)
+  state_ids <- do.call(rbind,lapply(1:nrow(A), reverse_state_index,maxchrom=c(8,8),ndim=2))
+  f <- apply(state_ids,1,get_fitness,pk1=pk1,pk2=pk2)-deathrate
+  #f <- f/max(f)
+  A <- A*f
+  parms <- list(A=A)
+  if(length(y0)==1) y0 <- rep(y0,length(f))
+  out <- ode(y=y0,times=0:10,func=chrmod2,parms=parms)
+  df <- data.frame(state_ids)
+  colnames(df) <- c("c1","c2")
+  df$x <- out[nrow(out),-1]
+  return(df)
+  #data.frame(cn=1:8,f=f,pm=pm,deltaf=deltaf,x=out[nrow(out),-1])
+}
+
+
+pk1 <- list(centre=c(6,6),rad=1,fitness=0.1)
+pk2 <- list(centre=c(3,3),rad=1,fitness=0.09)
+pm <- c(0.0001,0.0001)#c(0.1,0.0001)
+y0 <- 1
+deathrate=0
+df <- sim_kary(pm[2],pk1,pk2,y0,deathrate)
+df$t <- 1
+y0 <- df$x
+for(i in 2:10){
+  dfi <- sim_kary(pm=pm[1+i%%2],pk1,pk2,y0,deathrate)
+  dfi$t <- i
+  y0 <- dfi$x
+  df <- rbind(df,dfi)
+}
+
+aggregate(df$x,by=list(df$t),sum)
+
+```
+A new method for defining peaks? THis method defines peaks as connected karyotypes all above a threshold (mountain flooding analogy). Often higher peaks are correlated with number of members, but not the case in this example below:
+
+```{r}
+
+find_peaks <- function(f,k,fitness){
+  ki <- k[f>fitness,]
+  fi <- f[f>fitness]
+
+dm <- as.matrix(dist(ki,method="manhattan"))
+
+pks <- list()
+while(length(unlist(pks))<nrow(dm)){
+  lpk <- 0
+  pki <- min(which(!(1:nrow(dm))%in%unlist(pks)))
+
+  while(length(pki)!=lpk){
+    lpk <- length(pki)
+    pki <- unique(c(pki,unlist(lapply(pki,function(j) which(dm[j,]<2)))))
+  }
+  pks <- c(pks,list(pki))
+}
+fpeak <- lapply(pks, function(pki) fi[pki])
+data.frame(threshold=fitness,size=sapply(pks,length),
+           fmax=sapply(fpeak,max),fmean=sapply(fpeak,mean))
+
+}
+
+x <- readRDS("data/salehi/alfak_fits/minobs_20/SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
+
+k <- rbind(gen_all_neighbours(rownames(x$xo)),
+           do.call(rbind,lapply(rownames(x$xo),s2v)))
+
+f <- predict(x$fit,k)
+f <- c(f)
+
+qf <- quantile(f,probs=c(0.5,0.9,0.95,0.99))
+
+df <- do.call(rbind,lapply(qf,function(qfi){
+  find_peaks(f=f,k=k,fitness=qfi)
+}))
+
+p <- ggplot(df,aes(x=size,y=fmax))+
+  facet_wrap(~round(threshold,digits=4),scales="free")+
+  geom_point()
+p
+
+p <- ggplot(df,aes(x=size,y=fmean))+
+  facet_wrap(~round(threshold,digits=4),scales="free")+
+  geom_point()
+p
+
+
+
+```

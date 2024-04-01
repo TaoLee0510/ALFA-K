@@ -12,13 +12,16 @@ gen_abm_landscape <- function(fit){
 source("utils/sim_setup_functions.R")
 source("utils/ALFA-K.R")
 options(scipen=999)
-dir <- "data/salehi/alfak_fits/minobs_10/"
-out_dir <- "data/salehi/forward_sims_v2/minobs_10/"
+dir <- "data/salehi/alfak_fits/minobs_5/"
+out_dir <- "data/salehi/forward_sims_v2/minobs_5/"
 dir.create(out_dir,recursive = T)
 
 cfig_template <- readLines("data/salehi/config_template.txt")
 conditions <- list.files(dir)
 
+ff <- list.files(out_dir)
+ff <- paste0(ff,".Rds")
+conditions <- conditions[!conditions%in%ff]
 
 lapply(conditions, function(fi){
   xi <- readRDS(paste0(dir,fi))
