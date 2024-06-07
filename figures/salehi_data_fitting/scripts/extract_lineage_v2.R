@@ -1,6 +1,6 @@
 setwd("~/projects/008_birthrateLandscape/ALFA-K/")
 outdir <- "data/salehi/alfak_inputs_v2/"
-lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+lineages <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
 m <- read.csv("data/salehi/metadata.csv")
 cnmat <- readRDS("data/salehi/chrom_level_cn.Rds")
 for(i in 1:length(lineages)){

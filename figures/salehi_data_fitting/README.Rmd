@@ -1,71 +1,42 @@
 ---
 title: "Fitting ALFA-K model to passaging data"
-output:
-  pdf_document:
-header-includes:
-- \usepackage{caption}
-- \captionsetup[figure]{labelformat=empty}
+output: github_document
 ---
 
 
+
+Experimental data is available here https://osf.io/tvzw9/?view_only=0c216deb154b4625a3bbb7db280882ca
+
+Code chunks are not shown in this version of the README. See README.Rmd for more detail. 
+
+Code in this folder covers
+
+1) Processing experimental data
+2) Training ALFA-K on experimental data
+3) Predicting karyotype evolution with experimental data
+4) Generating the following figures:
 
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```
 
-ALFA-K was fit to all lineages of data from passaging experiments by Salehi et al. A lineage was defined as two or more successive samples from the same cell line. Thus e.g. for SA532 there are 7 2-sample lineages, 6 3-sample lineages etc. Fig. A shows the relationship between samples for all 5 cell lines. Points are colored according to the $R^2$ metric score obtained after fitting ALFA-K to the longest lineage terminating at that point. We were not able to obtain good fits to SA532 or SA906 lineage B. Examining $R^2$ metric scores for all lineages obtained from the data,  we found in agreement with our ABM results that longer lineages result in better fits. We next applied ALFA-K to lineages with descendants, simulated population evolution, then compared the simulated populations to the withheld samples from subsequent passages using the angle metric. We were able to obtain good predictions for the next passage, with the quality of the predictions improved when there was a larger number of samples used to train ALFA-K or when ALFA-K cross validation had a positive R^2 score. 
-
 ![Figure 3. Fits to cell passaging data A) Maps showing the relationship cell passages that were sequenced and used as inputs to ALFA-K. Each filled circle represents a sequenced sample. Lines connect parental passages to children, with line type indicating the presence or absence of cisplatin treatment in the intervening period. Circles are colored according to the $R^2$ metric value for fitted landscapes including that sample and all its ancestors.  B) $R^2$ metric scores for all sublineages in the dataset, grouped according to the number of samples used in the fitting. C) Angle metric scores for all lineages with at least one descendent, grouped according to the number of samples used in the fitting and the $R^2$ metric score. Red horizontal line indicates the expected value of the angle under the null hypothesis (i.e. that the fitted and true landscape are different).](figures/figure.png)
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
 #First we will pull all the lineages from the metadata. A lineage is defined as any sequence of two or more consecutive samples. 
+source("figures/salehi_data_fitting/scripts/lineage_processing.R")
+
 m <- read.csv("data/salehi/metadata.csv")
-
-lineage_wrapper <- function(ids){
-  list(ids=ids)
-}
-
-lineage_generator <- function(uid){
-  ids <- c()
-  lineages <- list()
-  while(!is.na(uid)){
-    ids <- c(uid,ids)
-    uid <- m$parent[m$uid==uid]
-    if(length(ids)>1) lineages <- c(lineages,lineage_wrapper(ids))
-  }
-  return(lineages)
-}
-
-descendent_checker <- function(ids){
-  dec1 <- m$uid[m$parent==tail(ids,1)&!is.na(m$parent)]
-  dec2 <- m$uid[m$parent%in%dec1]
-  list(ids=ids,dec1=dec1,dec2=dec2)
-}
-
-lineage_namer <- function(lineage){
-  suffix <- paste0("_l_",length(lineage$ids),"_d1_",length(lineage$dec1),
-                   "_d2_",length(lineage$dec2))
-  id <- tail(lineage$ids,1)
-  sid <- paste(gsub(" ", "", m$datasetname[id==m$uid],fixed = TRUE),m$timepoint[id==m$uid],sep = "_")
-  sid <- gsub("/", "", sid,fixed = TRUE)
-  paste0(sid,suffix)
-}
-
-lineages <- do.call(c,lapply(m$uid,lineage_generator))
-lineages <- lapply(lineages, descendent_checker)
-
-lnames <- sapply(lineages,lineage_namer)
-names(lineages) <- lnames
-saveRDS(lineages,"figures/salehi_data_fitting/lineages.Rds")
+saveRDS(lineages,"figures/salehi_data_fitting/data/lineages.Rds")
 
 ```
 
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
 #Run the following scripts (in order) to preprocess & fit the Salehi data.The third script will take several hours on a regular PC. 
-source("figures/salehi_data_fitting/extract_cn_profiles.R")
-source("figures/salehi_data_fitting/extract_lineage_v2.R") 
-source("figures/salehi_data_fitting/fit_alfak_v2.R")
+source("figures/salehi_data_fitting/scripts/extract_cn_profiles.R")
+source("figures/salehi_data_fitting/scripts/extract_lineage_v2.R") 
+source("figures/salehi_data_fitting/scripts/fit_alfak_v2.R")
 ```
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
@@ -77,170 +48,28 @@ library(ggplot2)
 library(xlsx)
 source("utils/ALFA-K.R")
 source("utils/comparison_functions.R")
-signr <- function(pval){
-  if(pval<0.001) return("***")
-  if(pval<0.01) return("**")
-  if(pval<0.05) return("*")
-  return("")
-}
-lineage_info <- function(ln){
-  treat_numeric <- c(n=0,y=1)
-  has_descendents <- length(ln$dec1)>0
-  has_parents <- sum(is.na(m$parent[m$uid%in%ln$ids]))==0
-  treatments <- m$on_treatment[m$uid%in%ln$ids]
-  nChanges <- sum(abs(diff(treat_numeric[treatments])))
-  treatment_status <- "mixed"
-  if(mean(treatments=="n")==1) treatment_status <- "off"
-  if(mean(treatments=="y")==1) treatment_status <- "on"
-  id <- tail(ln$ids,1)
-  cellLine <- m$PDX_id[m$uid==id]
-  sid <- paste(gsub(" ","", m$label[id==m$uid],fixed = TRUE),
-               m$timepoint[id==m$uid],sep = "_")
-  data.frame(id=sid,uid=id,cellLine,has_descendents,has_parents,nChanges,treatment_status)
-  
-}
 
-longest_cons <- function(ff,longest=T){
-  ids <- sapply(ff, function(fi){
-    fsplit <- unlist(strsplit(fi,split="_"))
-    lsplit <- length(fsplit)
-    fsplit <- fsplit[1:(lsplit-6)]
-    paste(fsplit,collapse="_")
-  })
-  ff <- split(ff,f=ids)
-  
-  ff <- sapply(ff, function(fi){
-    fi <- fi[order(fi)]
-    if(longest) return(tail(fi,1))
-    return(head(fi,1))
-  })
-  as.character(ff)
-}
 ```
 
 
+
+
+
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
-library(ggplot2)
-longest_cons <- function(ff,longest=T){
-  ids <- sapply(ff, function(fi){
-    fsplit <- unlist(strsplit(fi,split="_"))
-    lsplit <- length(fsplit)
-    fsplit <- fsplit[1:(lsplit-6)]
-    paste(fsplit,collapse="_")
-  })
-  ff <- split(ff,f=ids)
-  
-  ff <- sapply(ff, function(fi){
-    fi <- fi[order(fi)]
-    if(longest) return(tail(fi,1))
-    return(head(fi,1))
-  })
-  as.character(ff)
-}
-wrap_tree <- function(pdx_id,m){
-  x <- m[m$PDX_id==pdx_id,]
-  x$x <- as.numeric(gsub("X","",x$x))
 
-  xseg <- x[!is.na(x$parent),]
+source("figures/salehi_data_fitting/scripts/extract_fit_summaries.R")
+source("figures/salehi_data_fitting/scripts/extract_validation_summaries.R")
 
-  xseg <- cbind(xseg,do.call(rbind,lapply(xseg$parent, function(i){
-    tmp <- x[x$uid==i,c("x","y")]
-    colnames(tmp) <- paste0(colnames(tmp),"start")
-    tmp
-  })))
-  list(x=x,xseg=xseg)
-}
+
 
 ```
 
 
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Lineage nomenclature
-m <- read.csv("data/salehi/metadata.csv")
-m <- m[m$PDX_id=="SA609",]
-if(FALSE){
-root <- m$uid[is.na(m$parent)]
-lineages <- list(list(id="",uids=root))
-new_lineages <- list()
-finished_lineages <- list()
-
-
-while(length(lineages)>0){
-  for(li in lineages){
-  descendents <- m$uid[!is.na(m$parent)&m$parent==tail(li$uids,1)]
-  if(length(descendents)==0) finished_lineages <- c(finished_lineages,li)
-  new_lineages <- c(new_lineages,lapply(descendents, function(di) {
-    lij <- li
-    lij$uids <- c(lij$uids,di)
-    if(length(descendents)>1) lij$id <- paste0(lij$id,letters[which(descendents==di)])
-    return(lij)
-    }))
-}
-lineages <- new_lineages
-new_lineages <- list()
-#print(lineages)
-}
-}
-assign_labels <- function(m){
-  root <- m$uid[is.na(m$parent)]
-lineages <- list(c(x=root))
-new_lineages <- list()
-finished_lineages <- list()
-
-
-while(length(lineages)>0){
-  for(li in lineages){
-  descendents <- m$uid[!is.na(m$parent)&m$parent==tail(li,1)]
-  if(length(descendents)==0) finished_lineages <- c(finished_lineages,list(li))
-  new_lineages <- c(new_lineages,lapply(descendents, function(di) {
-    lij <- c(li,di)
-    names(lij)[length(lij)] <- tail(names(li),1)
-    if(length(descendents)>1){
-      names(lij)[length(lij)] <- paste0(tail(names(li),1),letters[which(descendents==di)])
-    }
-    return(lij)
-    }))
-  }
-lineages <- new_lineages
-new_lineages <- list()
-
-}
-
-ids <- unlist(finished_lineages)
-ids <- ids[!duplicated(ids)]
-m <- m[order(m$uid),]
-ids <- ids[order(ids)]
-m$linlab <- names(ids)
-m$linlab <- gsub("x","",m$linlab)
-return(m)
-}
-
-adder <- function(xx,dx,dy){
-  xx$x$x <- xx$x$x + dx
-  xx$xseg$x <- xx$xseg$x + dx
-  xx$xseg$xstart <- xx$xseg$xstart + dx
-  xx$x$y <- xx$x$y + dy
-  xx$xseg$y <- xx$xseg$y + dy
-  xx$xseg$ystart <- xx$xseg$ystart + dy
-  return(xx)
-}
-
-wrap_assign_labels <- function(m){
-  m <- split(m,f=m$PDX_id)
-  do.call(rbind,lapply(m,assign_labels))
-}
-
-```
-
-
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-
-
 
 m <- read.csv("data/salehi/metadata.csv")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+x <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 x <- x[!x$has_parents&x$min_obs==5,]
 
 m$r2 <- sapply(m$uid, function(i){
@@ -275,82 +104,11 @@ pa <- ggplot(x,aes(x=x,y=y))+
   theme(axis.text = element_blank(),axis.title = element_blank(),
         axis.line = element_blank(),axis.ticks = element_blank(),legend.position = c(0.95,0.7),legend.key.size = unit(0.2,"in"))
 
-ggsave("figures/salehi_data_fitting/figures/lineage_maps.png",width=9,height=7,units="in")
 rownames(x) <- NULL
-saveRDS(x,"figures/salehi_data_fitting/labelled_metadata.Rds")
+saveRDS(x,"figures/salehi_data_fitting/data/labelled_metadata.Rds")
 ```
 
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Results of ALFA-K across all possible lineages
 
-#NOTE: NaN values in the cross validation represent instances where the neighbour fitness estimation step cannot be correctly performed (due to not enough karyotypes in the input).
-source("utils/comparison_functions.R")
-
-lineage_info <- function(ln){
-  treat_numeric <- c(n=0,y=1)
-  has_descendents <- length(ln$dec1)>0
-  has_parents <- sum(is.na(m$parent[m$uid%in%ln$ids]))==0
-  treatments <- (m$on_treatment[m$uid%in%ln$ids])[-1]
-  nChanges <- sum(abs(diff(treat_numeric[treatments])))
-  treatment_status <- "mixed"
-  if(mean(treatments=="n")==1) treatment_status <- "off"
-  if(mean(treatments=="y")==1) treatment_status <- "on"
-  id <- tail(ln$ids,1)
-  sid <- paste(gsub(" ","", m$label[id==m$uid],fixed = TRUE),
-               m$timepoint[id==m$uid],sep = "_")
-  data.frame(id=sid,uid=id,has_descendents,has_parents,nChanges,treatment_status)
-  
-}
-
-
-get_r2 <- function(id,mo){
-  x <- readRDS(paste0(dir,mo,"/",id,"."))
-  xvr <- x$xv_res
-  maxf <- max(xvr$f_est)
-  xvr <- xvr[!is.na(xvr$f_xv),]
-  r2 <- R2(obs = xvr$f_est,pred=xvr$f_xv)
-  id <- unlist(strsplit(id,split=".Rds"))[1]
-  id <- unlist(strsplit(id,split="_"))
-  if(length(id)>8){
-    idt <- tail(id,7)
-    idh <- head(id,length(id)-7)
-    idh <- paste(idh,collapse="_")
-    id <- c(idh,idt)
-  }
-  mo <- tail(unlist(strsplit(mo,split="_")),1)
-  res <- c(id[c(1,2,4,6,8)],mo,maxf,r2)
-  names(res) <- c("datasetname","timepoint","samples","dec1","dec2","min_obs","maxf","r2")
-  return(res)
-}
-
-m <- read.csv("data/salehi/metadata.csv")
-lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
-linfo <- do.call(rbind,lapply(lineages,lineage_info))
-linfo$filenames <- paste0(rownames(linfo),".Rds")
-rownames(linfo) <- linfo$filenames
-dir <- "data/salehi/alfak_fits/"
-min_obs <- list.files(dir)
-
-x <- pbapply::pblapply(min_obs, function(mo){
-  ff <- list.files(paste0(dir,mo))
-  ff <- ff[ff%in%linfo$filenames]
-  res <- data.frame(do.call(rbind,lapply(ff,get_r2,mo=mo)))
-  res <- cbind(res,linfo[ff,])
-  
-})
-
-x <- data.frame(do.call(rbind,x))
-rownames(x) <- NULL
-x <- x[,!colnames(x)%in%c("datasetname","timepoint")]
-x$r2 <- as.numeric(x$r2)
-x$maxf <- as.numeric(x$maxf)
-
-x$r2[x$r2<(-1)] <- -1
-x <- x[order(x$r2,decreasing=T),]
-
-saveRDS(x,"figures/salehi_data_fitting/fit_summaries.Rds")
-
-```
 
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
@@ -373,7 +131,7 @@ get_pdx_id <- function(id){
 
 
 m <- read.csv("data/salehi/metadata.csv")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+x <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 x <- x[x$min_obs==5,]
 x$pdx_id <- as.character(sapply(x$id,get_pdx_id))
 
@@ -385,11 +143,6 @@ pb <- ggplot(x,aes(x=stringr::str_pad(samples,width = 2),y=r2))+
   scale_y_continuous(expression(cross~val.~R^2))+
   scale_x_discrete("samples in fit")
 
-pb2 <- ggplot(x,aes(x=interaction(nChanges>0,samples>3),y=r2))+
-  geom_violin()+
-  #coord_flip()+
-  theme_bw(base_size=8)
-#ggsave("figures/salehi_data_fitting/figures/xval_scores.png",width=3,height=3,units="in")
 
 p <- ggplot(x,aes(x=stringr::str_pad(samples,width = 2),y=r2))+
   facet_wrap(~pdx_id)+
@@ -427,12 +180,12 @@ wrap_res <- function(df){
 }
 
  
-df <- wrap_res(readRDS("figures/salehi_data_fitting/validation_summaries.Rds"))
+df <- wrap_res(readRDS("figures/salehi_data_fitting/data/validation_summaries.Rds"))
 df$lab1 <- "R^2<0"
 df$lab1[df$pos_r2] <- "R^2>0"
 df$lab2 <- paste0("passage~",df$declevel)
 
-m <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+m <- readRDS("figures/salehi_data_fitting/data/labelled_metadata.Rds")
 lut <- m$on_treatment
 names(lut) <- paste0("u",m$uid)
 
@@ -469,31 +222,7 @@ pc <- ggplot(dfagg[dfagg$declevel==1&dfagg$pos_r2,],aes(x=angle))+
   theme_classic(base_size=8)+
   theme(legend.position = c(0.8,0.3))+
   theme(legend.key.size = unit(0.1,"in"))
-pc1 <- ggplot(df[df$declevel==1&df$pos_r2,],aes(x=angle))+
-  stat_ecdf(aes(color=Tvar=="switch"))+
-  scale_color_viridis_d("treatment\nswitch",
-                        end=0.8,option="A")+
-  scale_y_continuous("ecdf")+
-  scale_x_continuous("angle metric",breaks=seq(0,180,45),limits=c(0,180))+      labs(tag="C")+
-  theme_classic(base_size=8)+
-  theme(legend.position = c(0.8,0.3))+
-  theme(legend.key.size = unit(0.1,"in"))
-pc
 
-
-
-pc_old <- ggplot(df[!is.na(df$Tvar),],aes(x=interaction(lab1,Tvar),y=angle))+
-  #facet_grid(cols=vars(lab1),rows=vars(Tvar),labeller = label_parsed)+
-  geom_violin()+
-  geom_jitter(height=0,width=0.2)+
-  theme_classic(base_size = 8)+
-  labs(tag="C")+
-  geom_hline(yintercept = 90,color="red")+
-  scale_x_discrete("longitudinal samples")+
-  scale_y_continuous("angle metric")
-
-
-#ggsave("figures/salehi_data_fitting/figures/forward_predictions.png",width=5,height=4,units="in")
 ```
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
@@ -562,694 +291,6 @@ bot <- grid.arrange(pb,pc,pd,nrow=1)
 plt <- grid.arrange(pa,bot,heights=c(2,1))
 ggsave("figures/salehi_data_fitting/figures/figure.png",plot=plt,width=5,height=5,units="in")
 ```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Testing forward prediction accuracy
-m <- read.csv("data/salehi/metadata.csv")
-lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
-cnmat <- readRDS("data/salehi/chrom_level_cn.Rds")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-xf <- x[x$has_descendents&x$min_obs==5,]
-ids <- as.character(sapply(xf$filenames,function(fi){head(unlist(strsplit(fi,split=".Rds")),1)}))
-simdir <- "data/salehi/forward_sims_v2/minobs_5/"
-
-tst <- which(ids%in%list.files(simdir))
-
-df <- do.call(rbind,pbapply::pblapply(tst, function(i){
-  #print(i)
-  #si <- paste0(simdir,ids[i],"/output/00000/")
-  odir <- paste0(simdir,ids[i],"/output/")
-  s <- paste0(odir,list.files(odir),"/")
- # xs <- proc_sim(si,times=seq(0,500,100))$x
-  xs <- lapply(s,function(si) proc_sim(si,times=seq(0,500,100))$x)
-  
-  xs <- do.call(rbind,xs)
-  
-  r <- unique(rownames(xs))
-  
-  xs <- do.call(rbind,lapply(r, function(ri) colSums(xs[rownames(xs)==ri,,drop=F])))
-  
-  xs <- data.frame(xs,check.names = F,row.names = r)
-  
-  vs <- do.call(rbind,lapply(rownames(xs),s2v))
-  #vs <- lapply(xs, function(xsi) do.call(rbind,lapply(rownames(xsi),s2v)))
-  li <- lineages[[ids[i]]]
-  
-  ## sim output population vectors
-  
-  #xs <- lapply(1:length(xs),function(z){
-   # csx <- colSums(xs[[z]])
-    #xs[[z]] <- t(xs[[z]])%*%vs[[z]]
-    #for(k in 1:nrow(xs[[z]])) xs[[z]][k,] <- xs[[z]][k,]/csx[k] 
-    #return(xs[[z]])
-  #})
-  
-  csx <- colSums(xs)
-  xs <- t(xs)%*%vs
-  for(k in 1:nrow(xs)) xs[k,] <- xs[k,]/csx[k]
-  target_library_ids <- m$library_ids[m$uid==tail(li$ids,1)]
-  target_library_ids <- unlist(strsplit(target_library_ids,split=";"))
-  x0 <- colMeans(do.call(rbind,lapply(target_library_ids,function(tli) cnmat[[tli]])))
-  
-  libid_exists <- sapply(li$dec1,function(idi){
-    lidi <- m$library_ids[m$uid==idi]
-    lidi%in%names(cnmat)
-  })
-  if(sum(libid_exists)==0) return(NULL)
-  li$dec1 <- li$dec1[libid_exists]
-  
-  dfi <- do.call(rbind,lapply(1:length(li$dec1), function(j){
-    target_library_ids <- m$library_ids[m$uid==li$dec1[j]]
-    target_library_ids <- unlist(strsplit(target_library_ids,split=";"))
-    xd <- colMeans(do.call(rbind,lapply(target_library_ids,function(tli) cnmat[[tli]])))
-    
-    #df <- do.call(rbind,lapply(1:length(xs),function(z){
-    #  angles <- apply(xs[[z]],1,function(xsi){
-     #   a <- xsi-x0
-      #  b <- xd-x0
-       # ai <- getangle(a,b)
-      #})
-      #names(angles) <- paste0("a",names(angles))
-      #angles <- cbind(xf[i,],t(angles))
-      #angles
-    #}))
-    
-    angles <- apply(xs,1,function(xsi){
-      a <- xsi-x0
-      b <- xd-x0
-      ai <- getangle(a,b)
-    })
-    names(angles) <- paste0("a",names(angles))
-    df <- cbind(xf[i,],t(angles))
-    #df$rep <- 1:nrow(df)
-    df$descendent <- li$dec1[j]
-    df$declevel <- 1
-    return(df)
-  }))
-  libid_exists <- sapply(li$dec2,function(idi){
-    lidi <- m$library_ids[m$uid==idi]
-    lidi%in%names(cnmat)
-  })
-  if(length(libid_exists)>0) li$dec2 <- li$dec2[libid_exists]
-  if(length(li$dec2)>0){
-    dfii <- do.call(rbind,lapply(1:length(li$dec2), function(j){
-      target_library_ids <- m$library_ids[m$uid==li$dec2[j]]
-      target_library_ids <- unlist(strsplit(target_library_ids,split=";"))
-      xd <- colMeans(do.call(rbind,lapply(target_library_ids,function(tli) cnmat[[tli]])))
-      
-      angles <- apply(xs,1,function(xsi){
-        a <- xsi-x0
-        b <- xd-x0
-        ai <- getangle(a,b)
-      })
-      names(angles) <- paste0("a",names(angles))
-      df <- cbind(xf[i,],t(angles))
-      #df <- do.call(rbind,lapply(1:length(xs),function(z){
-       # angles <- apply(xs[[z]],1,function(xsi){
-        #  a <- xsi-x0
-         # b <- xd-x0
-          #ai <- getangle(a,b)
-        #})
-        #names(angles) <- paste0("a",names(angles))
-        #angles <- cbind(xf[i,],t(angles))
-        #angles
-      #}))
-      #df$rep <- 1:nrow(df)
-      df$descendent <- li$dec2[j]
-      df$declevel <- 2
-      return(df)
-    }))
-    dfi <- rbind(dfi,dfii)
-  }
-  
-  return(dfi)
-  
-}))
-
-saveRDS(df,"figures/salehi_data_fitting/validation_summaries.Rds")
-
-```
-
-
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-
-#x <- x[x$declevel==1,]
-
-## untreated samples worked well - perhaps due to longer lineages?
-x[!x$has_parents&!x$has_descendents&x$treatment_status=="off"&x$min_obs==5,]
-
-## treated samples worked poorly - perhaps due to shorter lineages?
-x[!x$has_descendents&x$treatment_status=="on"&x$min_obs==5,]
-
-##samples amenable to forward prediction tests:
-nrow(x[x$has_descendents&x$min_obs==5,])
-
-
-
-
-
-
-##"core" samples
-xl <- x[!x$has_descendents&x$min_obs==5,]
-xl_on <- xl[xl$treatment_status=="on",]
-xl_off <- xl[xl$treatment_status!="on",]
-xl <- xl[xl$filenames%in%c(longest_cons(xl_off$filenames),longest_cons(xl_on$filenames)),]
-xl <- xl[xl$filenames%in%longest_cons(xl$filenames,longest=F),]
-
-## interestingly, I think if you look at the treated lineages you get better R^2 if you bunch treated/untreated passages than if you focus exclusively on treated passages. Apparently having more passages makes up for the change in condition. Perhaps it would be better to use these as our core samples? 
-xl <- x[!x$has_descendents&x$min_obs==5,]
-xl <- xl[xl$filenames%in%longest_cons(xl$filenames),]
-
-```
-
-
-
-Roughness met hTERT
-```{r}
-source("utils/landscape_functions.R")
-
-meta <- readRDS("data/salehi/metadata.Rds")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[x$filenames%in%c("SA906b_X50_l_5_d1_1_d2_0.Rdss",
-                        "SA906a_X57_l_7_d1_0_d2_0.Rds")&x$min_obs==5,]
-
-ff <- x$filenames
-dir <- "data/salehi/alfak_fits/minobs_5/"
-
-yr <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  r <- roughness_meas(xi,only_fq=F)
-  uid <- x$uid[x$filenames==fi][1]
-  r$id <- paste(meta$PDX_id,meta$linlab)[meta$uid==uid]
-  r$uid <- uid
-  return(r)
-}))
-t.test(yr$roughness[round(yr$ploidy)==2],yr$roughness[round(yr$ploidy)==4])
-p <- ggplot(yr,aes(x=ploidy,y=roughness))+
-  geom_point()
-p
-
-ym <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))$xo
-  m <- moran_freq(rownames(xi),fitness = xi$f_est)
-  #m <- moran_freq(rownames(xi[xi$id=="fq",]),fitness = xi$f_est[xi$id=="fq"])
-  uid <- x$uid[x$filenames==fi][1]
-  m$id <- paste(meta$PDX_id,meta$linlab)[meta$uid==uid]
-  m$uid <- uid
-  return(m)
-}))
-
-t.test(ym$Ii[round(ym$ploidy)==2],ym$Ii[round(ym$ploidy)==4])
-
-p <- ggplot(ym,aes(x=ploidy,y=Ii))+
-  geom_point()
-p
-```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Roughness metric as a function of ploidy.
-source("utils/landscape_functions.R")
-meta <- readRDS("data/salehi/metadata.Rds")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries_post_jump.Rds")
-x <- x[x$r2>0.2&x$min_obs==5,]
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-
-#x <- x[x$filenames%in%longest_cons(x$filenames),]
-
-ff <- x$filenames
-dir <- "data/salehi/alfak_fits/minobs_5/"
-z <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  data.frame(id=fi,mean_f=mean(xi$xo$f_est),sd_f=sd(xi$xo$f_est))
-}))
-z$treatment_status <- x$treatment_status
-z$id <- x$id
-p <- ggplot(z,aes(x=id,y=sd_f,fill=treatment_status))+
-  geom_col()+
-  coord_flip()
-p
-#stop("comment me out to assess roughness")
-y <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  r <- roughness_meas(xi,only_fq=T)
-  uid <- x$uid[x$filenames==fi][1]
-  r$id <- paste(meta$PDX_id,meta$linlab)[meta$uid==uid]
-  r$uid <- uid
-  return(r)
-}))
-
-ys <- split(y,f=y$id)
-dfcor <- do.call(rbind,lapply(ys, function(yi){
-  res <- cor.test(yi$ploidy,yi$roughness,method = "pearson")
-  delta_ploidy <- max(yi$ploidy)-min(yi$ploidy)
-  data.frame(pval=res$p.value,pearson = res$estimate,delta_ploidy,
-             uid=yi$uid[1])
-}))
-dfcor$id <- rownames(dfcor)
-dfcor$sig <- sapply(dfcor$pval,signr)
-dfcor$id <- factor(dfcor$id,levels=dfcor$id[order(dfcor$delta_ploidy)])
-dfcor$r2 <- sapply(dfcor$uid,function(i){
-  x$r2[x$uid==i]
-})
-p <- ggplot(dfcor,aes(x=id,y=pearson,fill=sig))+
-  geom_col()+
-  coord_flip()+
-  scale_fill_viridis_d("significance")+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/ploidysort_rougness_metric_correlation.png",width=6,height=5,units="in")
-
-dfcor$id <- factor(dfcor$id,levels=dfcor$id[order(dfcor$r2)])
-p <- ggplot(dfcor,aes(x=id,y=pearson,fill=sig))+
-  geom_col()+
-  coord_flip()+
-  scale_fill_viridis_d("significance")+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/r2sort_rougness_metric_correlation.png",width=6,height=5,units="in")
-
-
-```
-
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Moran metric as a function of ploidy.
-source("utils/landscape_functions.R")
-meta <- readRDS("data/salehi/metadata.Rds")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-x <- x[x$r2>0.2,]
-ff <- x$filenames
-dir <- "data/salehi/alfak_fits/minobs_5/"
-
-y <- do.call(rbind,pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))$xo
-  m <- moran_freq(rownames(xi[xi$id=="fq",]),fitness = xi$f_est[xi$id=="fq"])
-  uid <- x$uid[x$filenames==fi][1]
-  m$id <- paste(meta$PDX_id,meta$linlab)[meta$uid==uid]
-  m$uid <- uid
-  return(m)
-}))
-
-
-ys <- split(y,f=y$id)
-dfcor <- do.call(rbind,lapply(ys, function(yi){
-  res <- cor.test(yi$ploidy,yi$Ii,method = "pearson")
-  delta_ploidy <- max(yi$ploidy)-min(yi$ploidy)
-  data.frame(pval=res$p.value,pearson = res$estimate,delta_ploidy,
-             uid=yi$uid[1])
-}))
-dfcor$id <- rownames(dfcor)
-dfcor$sig <- sapply(dfcor$pval,signr)
-dfcor$id <- factor(dfcor$id,levels=dfcor$id[order(dfcor$delta_ploidy)])
-dfcor$r2 <- sapply(dfcor$uid,function(i){
-  x$r2[x$uid==i]
-})
-p <- ggplot(dfcor,aes(x=id,y=pearson,fill=sig))+
-  geom_col()+
-  coord_flip()+
-  scale_fill_viridis_d("significance")+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/ploidysort_moran_metric_correlation.png",width=6,height=5,units="in")
-
-
-dfcor$r2 <- sapply(dfcor$uid,function(i){
-  x$r2[x$uid==i]
-})
-dfcor$id <- factor(dfcor$id,levels=dfcor$id[order(dfcor$r2)])
-p <- ggplot(dfcor,aes(x=id,y=pearson,fill=sig))+
-  geom_col()+
-  coord_flip()+
-  scale_fill_viridis_d("significance")+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/r2sort_moran_metric_correlation.png",width=6,height=5,units="in")
-
-y <- do.call(rbind,lapply(ys,function(yi){
-  yi$delta_ploidy <- max(yi$ploidy)-min(yi$ploidy)
-  yi
-}))
-y$id <- factor(y$id,levels=unique(y$id[order(y$delta_ploidy)]))
-p <- ggplot(y,aes(x=id,y=ploidy))+
-  geom_violin()+
-  coord_flip()+
-    scale_x_discrete("")+
-  scale_y_continuous("ploidy")
-p
-ggsave("figures/salehi_data_fitting/figures/ploidysort_ploidy_dist.png",width=4,height=5,units="in")
-
-y$r2 <- sapply(y$uid,function(i){
-  x$r2[x$uid==i]
-})
-y$id <- factor(y$id,levels=unique(y$id[order(y$r2)]))
-p <- ggplot(y,aes(x=id,y=ploidy))+
-  geom_violin()+
-  coord_flip()+
-    scale_x_discrete("")+
-  scale_y_continuous("ploidy")
-p
-ggsave("figures/salehi_data_fitting/figures/r2sort_ploidy_dist.png",width=4,height=5,units="in")
-
-```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-
-check_npaths <- function(ff){
-  uid <- x$uid[x$filenames==ff][1]
-  id <- paste(meta$PDX_id,meta$linlab)[meta$uid==uid]
-  x <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",ff))
-  
-  xo <- x$xo[x$xo$id=="fq",]
-  
-  y <- do.call(rbind,lapply(rownames(xo),function(ri){
-    nn <- gen_all_neighbours(ri)
-    f <- c(predict(x$fit,nn))
-    f0 <- xo[ri,"f_est"]
-    ploidy <- mean(s2v(ri))
-    npaths <- sum(f0<f)
-    data.frame(f0,ploidy,npaths)
-  }))
-  y$id <- id
-  y$uid <- uid
-  return(y)
-}
-meta <- readRDS("data/salehi/metadata.Rds")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-x <- x[x$r2>0.2,]
-#x <- x[grepl("SA609",x$id),]
-ff <- x$filenames
-
-y <- do.call(rbind,lapply(ff,check_npaths))
-y <- split(y,f=y$id)
-cdf <- do.call(rbind,lapply(y,function(yi){
-  cc <- cor.test(yi$ploidy,yi$npaths)
-  delta_ploidy <- max(yi$ploidy)-min(yi$ploidy)
-  data.frame(pval=cc$p.value,cor=cc$estimate,id=yi$id[1],delta_ploidy,
-             uid=yi$uid[1])
-}))
-
-
-
-cdf$sig <- sapply(cdf$pval,signr)
-cdf$id <- factor(cdf$id,levels=unique(cdf$id[order(cdf$delta_ploidy)]))
-p <- ggplot(cdf,aes(x=id,y=cor,fill=sig))+
-  geom_col()+
-  scale_fill_viridis_d("significance")+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-
-ggsave("figures/salehi_data_fitting/figures/ploidysort_npaths_correlation.png",width=6,height=5,units="in")
-cdf$r2 <- sapply(cdf$uid,function(i){
-  x$r2[x$uid==i]
-})
-cdf$id <- factor(cdf$id,levels=cdf$id[order(cdf$r2)])
-p <- ggplot(cdf,aes(x=id,y=cor,fill=sig))+
-  geom_col()+
-  scale_fill_viridis_d("significance")+
-  coord_flip()+
-  scale_x_discrete("")+
-  scale_y_continuous("pearson correlation coefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/r2sort_npaths_correlation.png",width=6,height=5,units="in")
-```
-
-
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Correlation between fitnesses on different landscapes:
-
-#First make a UMAP to show distance between all fitted landscapes:
-library(umap)
-
-make_umap <- function(x){
-  ff <- x$filenames
-
-z <- pbapply::pblapply(ff,function(fi){
- readRDS(paste0(dir,fi))$xo
-})
-
-k <- do.call(rbind,lapply(z,function(zi) do.call(rbind,lapply(rownames(zi)[zi$id=="fq"],s2v))))
-k <- unique(k)
-k.umap = umap(k)
-return(k.umap)
-
-}
-
-proj_umap <- function(x,u){
-  ff <- x$filenames
-
-  z <- pbapply::pblapply(ff,function(fi){
-    readRDS(paste0(dir,fi))$xo
-  })
-  k.df <- data.frame(u$layout)
-
-  y <- do.call(rbind,lapply(z, function(zi) do.call(rbind,lapply(rownames(zi),s2v)) ))
-
-  df <- predict(k.umap, y) ## 30 secs
-  df <- data.frame(df)
-  ids <- unlist(lapply(1:length(z), function(i){
-    rep(x$uid[i],nrow(z[[i]]))
-  }))
-  df$uid <- ids
-  return(df)
-}
-
-m <- read.csv("data/salehi/metadata.csv")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-x <- x[x$r2>0.2,]
-x <- x[x$filenames%in%longest_cons(x$filenames),]
-
-u <- make_umap(x)
-saveRDS(u,"figures/salehi_data_fitting/umap.Rds")
-df <- proj_umap(x,u)
-saveRDS(df,"figures/salehi_data_fitting/umap_df.Rds")
-
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-ff <- c( "SA609_X10_l_8_d1_0_d2_0.Rds",
-"SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
-"SA609R2_X7_l_4_d1_0_d2_0.Rds",
-"SA000_X7_l_3_d1_0_d2_0.Rds",
-"SA535_CISPLATIN_CombinedT_X10_l_4_d1_0_d2_0.Rds",
-"SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds")
-x <- x[x$filenames%in%ff,]
-df <- proj_umap(x,u)
-saveRDS(df,"figures/salehi_data_fitting/umap_sel_df.Rds")
-
-```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-
-df <- readRDS("figures/salehi_data_fitting/umap_df.Rds")
-m <- readRDS("data/salehi/metadata.Rds")
-
-df$pdx_id <- sapply(df$uid, function(i) {
-  m$PDX_id[m$uid==i]
-  })
-
-df <- df[sample(1:nrow(df)),]
-
-p <- ggplot(df,aes(x=X1,y=X2,color=pdx_id))+
-  geom_point()+
-  coord_equal()+
-  scale_x_continuous("UMAP1")+
-  scale_y_continuous("UMAP2")+
-  theme_classic()+
-  scale_color_discrete("")
-p
-
-ggsave("figures/salehi_data_fitting/figures/umap_core.png",width=4,height=4,units="in")
-
-
-df <- readRDS("figures/salehi_data_fitting/umap_sel_df.Rds")
-
-df$linlab <- sapply(df$uid, function(i) {
-  paste(m$PDX_id,m$linlab)[m$uid==i]
-  })
-
-
-df <- df[sample(1:nrow(df)),]
-
-p <- ggplot(df,aes(x=X1,y=X2,color=linlab))+
-  geom_point()+
-  coord_equal()+
-  scale_x_continuous("UMAP1")+
-  scale_y_continuous("UMAP2")+
-  theme_classic()+
-  scale_color_discrete("")
-p
-
-ggsave("figures/salehi_data_fitting/figures/umap_sel.png",width=4,height=4,units="in")
-
-
-
-```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-
-source("utils/landscape_functions.R")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[x$r2>0,]
-x <- x[!x$has_parents&!x$has_descendents&x$min_obs==5,]
-
-x <- x[x$filenames%in%longest_cons(x$filenames),]
-ff <- x$filenames
-dir <- "data/salehi/alfak_fits/minobs_5/"
-z <- pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  xii <- gen_all_neighbours(rownames(xi$xo))
-  fii <- predict(xi$fit,xii)
-  names(fii) <- apply(fii,1,paste,collapse=".")
-  fi0 <- xi$xo$f_est
-  names(fi0) <- rownames(xi$xo)
-  c(fi0,fii)
-})
-
-combns <- expand.grid(a=1:length(z),b=1:length(z))
-
-combns$cc <- sapply(1:nrow(combns), function(i){
-  za <- z[[combns$a[i]]]
-  zb <- z[[combns$b[i]]]
-  za <- za[names(za)%in%names(zb)]
-  if(length(za)==0) return(NaN)
-  zb <- zb[names(za)]
-  cc <- cor(za,zb)
-  return(cc)
-})
-
-combns$n_overlap <- sapply(1:nrow(combns), function(i){
-  za <- z[[combns$a[i]]]
-  zb <- z[[combns$b[i]]]
-  za <- za[names(za)%in%names(zb)]
-  return(length(za))
-})
-
-combns$a_uid <- x$uid[combns$a]
-combns$b_uid <- x$uid[combns$b]
-combns$a_id <- sapply(combns$a_uid, function(i) {
-  paste(m$PDX_id,m$linlab)[m$uid==i]
-  })
-combns$b_id <- sapply(combns$b_uid, function(i) {
-  paste(m$PDX_id,m$linlab)[m$uid==i]
-  })
-
-p <- ggplot(combns,aes(x=a_id,y=b_id,fill=cc))+
-  geom_raster()+
-  scale_x_discrete("")+
-  scale_y_discrete("")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_fill_gradient2("pearson\ncoefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/inter_lineage_correlations.png",width=7,height=6,units="in")
-```
-
-
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Correlatioin between fitness on purely treated/untreated.
-
-#So this surprising result happens because on the critical timepoint X4 where all the treated/untreated lines diverge, only 49 cells were in the sample. Then after that, apparently all new karyotypes appear... the relevant library datapoint is TNBC-SA609 timepoint	X4	library id A95720A. 
-
-source("utils/landscape_functions.R")
-
-ff <- c( "SA609_X10_l_8_d1_0_d2_0.Rds",
-"SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
-"SA609R2_X7_l_4_d1_0_d2_0.Rds",
-"SA000_X7_l_3_d1_0_d2_0.Rds",
-"SA535_CISPLATIN_CombinedT_X10_l_4_d1_0_d2_0.Rds",
-"SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds")
-
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[x$filename%in%ff&x$min_obs==5,]
-
-ff <- x$filenames
-dir <- "data/salehi/alfak_fits/minobs_5/"
-z <- pbapply::pblapply(ff,function(fi){
-  xi <- readRDS(paste0(dir,fi))
-  xii <- gen_all_neighbours(rownames(xi$xo))
-  fii <- predict(xi$fit,xii)
-  names(fii) <- apply(fii,1,paste,collapse=".")
-  fi0 <- xi$xo$f_est
-  names(fi0) <- rownames(xi$xo)
-  c(fi0,fii)
-})
-
-combns <- expand.grid(a=1:length(z),b=1:length(z))
-
-combns$cc <- sapply(1:nrow(combns), function(i){
-  za <- z[[combns$a[i]]]
-  zb <- z[[combns$b[i]]]
-  za <- za[names(za)%in%names(zb)]
-  if(length(za)==0) return(NaN)
-  zb <- zb[names(za)]
-  cc <- cor(za,zb)
-  return(cc)
-})
-
-combns$n <- sapply(1:nrow(combns), function(i){
-  za <- z[[combns$a[i]]]
-  zb <- z[[combns$b[i]]]
-  za <- za[names(za)%in%names(zb)]
-  return(length(za))
-})
-
-combns$a <- x$uid[combns$a]
-combns$b <- x$uid[combns$b]
-combns$a_id <- sapply(combns$a, function(i) {
-  paste(m$PDX_id,m$linlab)[m$uid==i]
-  })
-combns$b_id <- sapply(combns$b, function(i) {
-  paste(m$PDX_id,m$linlab)[m$uid==i]
-  })
-
-pn <- ggplot(combns,aes(x=a_id,y=b_id,fill=n))+
-  geom_raster()+
-  scale_x_discrete("")+
-  scale_y_discrete("")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_fill_viridis_c("pearson\ncoefficient")
-pn
-
-p <- ggplot(combns,aes(x=a_id,y=b_id,fill=cc))+
-  geom_raster()+
-  scale_x_discrete("")+
-  scale_y_discrete("")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_fill_gradient2("pearson\ncoefficient")
-p
-ggsave("figures/salehi_data_fitting/figures/SA609_correlations.png",width=7,height=6,units="in")
-```
-
-```{r,echo=FALSE,eval=FALSE,include=FALSE}
-cnmat <- readRDS("data/salehi/chrom_level_cn.Rds")
-dir <- "data/salehi/alfak_inputs_v2/"
-source("utils/landscape_functions.R")
-x <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-x <- x[x$treatment_status%in%c("on","off")&x$min_obs==5&grepl("SA609",x$id)&!x$has_descendents,]
-x <- x[x$filenames%in%longest_cons(x$filenames),c("id","filenames","r2")]
-
-fi <- x$filenames[4]
-y <- readRDS(paste0(dir,fi))$x
-table(y[,1])
-print(fi)
-fi <- "SA609R2_X7_l_4_d1_0_d2_0.Rds"
-id <- "SA609R2_X7_l_4_d1_0_d2_0"
-lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
-lineage <- lineages[id]
-```
-
-
-
 
 
 
