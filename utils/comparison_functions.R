@@ -133,10 +133,23 @@ make_wass_object <- function(x,t,is.multiple.objects=F){
 
 ## gets wasserstein distance between two populations formatted as output from 
 ## proc_sim. Can use lists of populations. 
-wasserstein_distance <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F){
-  s1 <- make_wass_object(test,1200,is.multiple.objects = is.test.multiple.objects)
-  s2 <- make_wass_object(ref,1200,is.multiple.objects = is.ref.multiple.objects)
+## with ref null then function returns wasserstien distance of object with itself at first and given timepoints
+wasserstein_distance <- function(test,ref=NULL,t,is.test.multiple.objects=F,is.ref.multiple.objects=F){
+  s1 <- make_wass_object(test,t,is.multiple.objects = is.test.multiple.objects)
+  if(is.null(ref)){
+    s2 <- make_wass_object(test,0,is.multiple.objects = is.test.multiple.objects)
+    return(get_dwass(s1,s2))
+  }
+  s2 <- make_wass_object(ref,t,is.multiple.objects = is.ref.multiple.objects)
   get_dwass(s1,s2)
+}
+
+
+wasserstein_metric <- function(test,ref,t,is.test.multiple.objects=F,is.ref.multiple.objects=F){
+  d1 <- wasserstein_distance(test,t=t,is.ref.multiple.objects = is.test.multiple.objects)
+  d2 <- wasserstein_distance(ref,t=t,is.ref.multiple.objects = is.ref.multiple.objects)
+  d3 <- wasserstein_distance(test,ref,t=t,is.test.multiple.objects,is.ref.multiple.objects)
+  2*d3/(d1+d2)
 }
 
 ##function takes output of proc_sim and returns karyotype frequency vector at a certain timepoint

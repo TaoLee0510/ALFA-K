@@ -1,0 +1,312 @@
+---
+title: "Karyotypic background determines fitness effects of CNAs"
+output:
+  pdf_document:
+header-includes:
+- \usepackage{caption}
+- \captionsetup[figure]{labelformat=empty}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+source("utils/comparison_functions.R")
+source("utils/ALFA-K.R")
+library(ggtree)
+library(ape)
+library(ggplot2)
+```
+
+We should really look for differences in landscape in the WGD example and try to explain them (unbiasedly).
+
+Can also consider fitting ALFA-K to WGD+/- subpos separately?
+
+```{r,echo=FALSE,include=FALSE,eval=FALSE}
+m <- read.csv("data/salehi/metadata.csv")
+xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+```
+
+Aneuploidy scores:
+
+```{r}
+
+getAscore <- function(fi){
+  x<- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))$x
+  
+  y <- do.call(rbind,lapply(rownames(x),function(k){
+    k <- s2v(k)
+    ploidy <- round(mean(k))
+    ascore <- sum(k!=ploidy)
+    data.frame(ploidy,ascore)
+  }))
+  
+  df <- do.call(rbind,lapply(1:ncol(x),function(tt){
+    m2 <- sum(x[y$ploidy==2,tt]*y$ascore[y$ploidy==2])/sum(x[y$ploidy==2,tt])
+    m4 <- sum(x[y$ploidy==4,tt]*y$ascore[y$ploidy==4])/sum(x[y$ploidy==4,tt])
+    data.frame(m2,m4,time=colnames(x)[tt])
+  }))
+  
+  return(df)
+}
+
+
+df1 <- getAscore("SA906a_X57_l_7_d1_0_d2_0.Rds")
+df1$id <- "SA906a"
+df2 <- getAscore("SA906b_X55_l_8_d1_0_d2_0.Rds")
+df2$id <- "SA906b"
+
+df <- rbind(df1,df2)
+df <- reshape2::melt(df,id.vars=c("time","id"))
+
+wgdA <- ggplot(df,aes(x=time,y=value,color=variable))+
+  facet_grid(rows=vars(id))+
+  geom_point()+
+  scale_color_viridis_d("",end=0.7,labels=c("WGD-","WGD+"))+
+  scale_y_continuous("distance from euploid")+
+  scale_x_discrete("passage no.")+
+  theme_classic(base_size=8)+
+  labs(tag = "A")
+wgdA
+
+```
+
+```{r}
+## this function generates a matrix of fitness changes associated with each possible CNA for all (frequent) karyotypes in the input file, according to the fitted landscape. 
+cna_mat <- function(fi,remove_negs =F){
+  xi <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))
+
+  fi <- do.call(rbind,lapply(row.names(xi$xv_res), function(i){
+    yi <- gen_all_neighbours(i,remove_nullisomes = FALSE)
+    nll <- apply(yi,1,function(yij) sum(yij<1)==0)
+    #if(nrow(yi)<44) return(NULL)
+    fi <- predict(xi$fit,yi)-xi$xv_res[i,"f_est"]
+    fi <- c(fi)
+    fi[!nll] <- NaN
+    if(remove_negs) fi[fi<0] <- 0
+    chrom <- stringr::str_pad(ceiling((1:length(fi))/2),width=2)
+    mod <- rep(c("-","+"),22)
+  
+    names(fi) <- paste0(chrom,mod)
+    fi
+  }))
+  rownames(fi) <- rownames(xi$xv_res)
+  return(fi)
+}
+
+getD <- function(k){
+  d <- apply(k,1,function(ki){
+    p <- mean(ki)
+  
+    ddip <- sum(abs(ki-2))
+    dtet <- sum(abs(ki-4))
+    if(p<3) return(ddip)
+    return(dtet)
+  
+  })
+  
+  return(d)
+  
+}
+
+
+fitnessVdist <- function(fi){
+  x<- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))
+  z0 <- do.call(rbind,lapply(rownames(x$x),s2v))
+  y <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))
+
+  z <- rbind(do.call(rbind,lapply(rownames(y$xo),s2v)),
+             gen_all_neighbours(rownames(y$xo)))
+  #z <- do.call(rbind,lapply(rownames(y$xo[y$xo$id=="fq",]),s2v))
+  #z <- do.call(rbind,lapply(rownames(y$xo),s2v))
+  f <- c(predict(y$fit,z))
+  p <- round(apply(z,1,mean))
+
+  d <- getD(z)
+
+  data.frame(d=d,p=p,f_est=f)
+}
+
+
+df1 <- fitnessVdist("SA906a_X57_l_7_d1_0_d2_0.Rds")
+df1$id <- "SA906a"
+df2 <- fitnessVdist("SA906b_X55_l_8_d1_0_d2_0.Rds")
+df2$id <- "SA906b"
+
+df <- rbind(df1,df2)
+
+df$ploidyLab <- "WGD-"
+df$ploidyLab[df$p==4] <- "WGD+"
+
+wgdB <- ggplot(df,aes(x=d,y=f_est))+
+  facet_grid(cols=vars(ploidyLab),rows=vars(id))+
+  geom_jitter(height=0,width=0.2,color="grey80",alpha=0.5)+
+  stat_summary(fun=mean,
+               fun.min = function(y) mean(y)-sd(y),
+               fun.max = function(y) mean(y)+sd(y))+
+  theme_classic(base_size=8)+
+  labs(tag = "B")+
+  scale_x_continuous("distance from Euploid",breaks=0:10)+
+  scale_y_continuous("estimated fitness")
+wgdB
+
+
+
+
+```
+
+```{r}
+
+gen_random_mat <- function(p,n){
+  k <- rep(p,n*22)+sample(c(0,1,-1),n*22,replace=T,prob=c(0.9,0.05,0.05))
+  matrix(k,ncol=22)
+}
+
+gen_random_mat2 <- function(p,n){
+  k <- do.call(rbind,lapply(p,function(pp){
+    ki <- sample(c(pp,pp-1,pp+1),n*22,replace=T,prob = c(0.6,0.2,0.2))
+    matrix(ki,ncol=22)
+  }))
+  
+}
+
+gen_random_mat3 <- function(p,n,sig=0.5){
+  p_eval <- seq(min(p),max(p),length.out=n)
+  k <- do.call(rbind,lapply(p_eval,function(pp){
+    round(rnorm(22,mean=pp,sd=sig))
+  }))
+  
+}
+
+get_ascore <- function(x){
+ apply(x,1,function(xi){
+  md <-  as.numeric(names(table(xi))[which.max(table(xi))])
+  sum(xi!=md)
+ })
+}
+
+wrap_fitness_vs_ploidy <- function(fi){
+  #x <- rbind(gen_random_mat(2,1000),gen_random_mat(4,1000))
+x1 <- gen_random_mat3(p=c(2,6),n=2000,sig=10)
+x2 <- gen_random_mat3(p=c(2,6),n=2000,sig=.5)
+fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))$fit
+#ascore <- get_ascore(x) 
+f1 <- predict(fit,x1)
+p1 <- apply(x1,1,mean)
+f2 <- predict(fit,x2)
+p2 <- apply(x2,1,mean)
+
+df <- data.frame(fitness=c(f1,f2),ploidy=c(p1,p2),
+           id=c(rep("distant",nrow(x1)),rep("near",nrow(x2))))
+df$fi <- fi
+return(df)
+}
+
+ff <- c("SA906a_X57_l_7_d1_0_d2_0.Rds","SA906b_X55_l_8_d1_0_d2_0.Rds")
+df <- do.call(rbind,lapply(ff,wrap_fitness_vs_ploidy))
+
+p <- ggplot(df,aes(x=ploidy,y=fitness))+
+  facet_grid(cols=vars(id),rows=vars(fi))+
+  geom_point()+
+  geom_smooth()+
+  scale_x_continuous(limits=c(0,6))
+p
+```
+
+```{r}
+#check aneuploidy 2N v.s. 4N.
+
+aneudist <- function(fi){
+  x<- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))
+  z <- do.call(rbind,lapply(rownames(x$x),s2v))
+  p <- round(apply(z,1,mean))
+  as <- apply(z,1,function(zi){
+    mzi <- round(mean(zi))
+    sum(zi!=mzi)
+  })
+  
+  n <- apply(x$x,1,sum)
+  
+  df <- data.frame(p,as,n)
+  return(df)
+}
+
+
+df1 <- aneudist("SA906a_X57_l_7_d1_0_d2_0.Rds")
+df1$id <- "SA906a"
+df2 <- aneudist("SA906b_X55_l_8_d1_0_d2_0.Rds")
+df2$id <- "SA906b"
+
+df <- rbind(df1,df2)
+df <- df[df$p%in%c(2,4),]
+
+p <- ggplot(df,aes(x=as.character(p),y=as))+
+  facet_grid(cols=vars(id))+
+  geom_jitter(height=0,width=0.25,color="grey80")+
+  stat_summary()+
+  theme_classic()
+p
+
+```
+
+
+```{r}
+set.seed(2)
+getf <- function(xi){
+  sum(sin(apply(pts,1,function(pti){
+    sqrt(sum((pti-xi)^2))
+  })/lambda))
+}
+
+pts <- matrix(runif(20,min=0,max=10),ncol=2)
+lambda <- 1
+
+grid <- expand.grid(x=seq(0,10,0.5),y=seq(0,10,0.5))
+grid$f <- apply(grid,1,getf)
+p <- ggplot(grid,aes(x=x,y=y,fill=f))+
+  geom_raster()+
+  scale_fill_viridis_c()
+p
+```
+
+
+```{r}
+
+get_ploidy <- function(cnm){
+  sapply(rownames(cnm),function(ri){
+    round(mean(s2v(ri)))
+  })
+}
+
+ff <- c("SA906a_X57_l_7_d1_0_d2_0.Rds",
+        "SA906b_X55_l_8_d1_0_d2_0.Rds")
+
+x <- do.call(rbind,lapply(ff,function(fi){
+  xi <- data.frame(cna_mat(fi),check.names = F)
+  xi$ploidy <- get_ploidy(xi)
+  xi$id <- head(unlist(strsplit(fi,split="_")),1) 
+  xi <- reshape2::melt(xi,id.vars=c("ploidy","id"))
+}))
+
+x$ploidyLab <- "WGD-"
+x$ploidyLab[x$ploidy==4] <- "WGD+"
+
+ks.test(x$value[x$ploidy==2],x$value[x$ploidy==4])
+
+wgdC <- ggplot(x,aes(x=value,color=ploidyLab))+
+  facet_grid(rows=vars(id))+
+  stat_ecdf()+
+  scale_color_viridis_d("",end=0.7)+
+  scale_x_continuous("fitness effect")+
+  scale_y_continuous("cumulative distribution")+
+  theme_classic(base_size = 8)+
+  labs(tag = "C")
+wgdC
+```
+```{r}
+
+pwgd <- cowplot::plot_grid(wgdA,wgdB,wgdC,nrow=1)
+ggsave(filename = "figures/WGDanalysis/wgd.png",width=9,height=3,units="in")
+```

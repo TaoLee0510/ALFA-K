@@ -566,6 +566,9 @@ wrap_neighbor_fitness <- function(x,x_opt,pm0=0.00005,ntp=100,use_gdata=T){
 }
 
 R2 <- function(obs,pred){
+  navals <- is.na(obs)|is.na(pred)
+  obs <- obs[!navals]
+  pred <- pred[!navals]
   1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
 }
 RMSE <- function(obs,pred){

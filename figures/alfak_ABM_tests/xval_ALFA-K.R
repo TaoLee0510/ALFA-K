@@ -29,7 +29,7 @@ x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
   xi <- do.call(rbind,lapply(fits, function(fit_i){
     ids <- as.numeric(unlist(strsplit(fit_i,split="_"))[c(2,4)])
     fit <- readRDS(paste0(fit_dir,fit_i))
-    tt <- seq(0,2000,length.out=ids[2])
+    tt <- seq(100,2000,length.out=ids[2])
     x <- proc_sim(dir=sim_dir,times=tt)
     xfq <- fit$xo[fit$xo$id=="fq",]
     df <- do.call(rbind,lapply(1:nrow(xfq),function(i) optim_loo(i,x,xfq)))

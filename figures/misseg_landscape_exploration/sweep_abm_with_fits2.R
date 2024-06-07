@@ -1,20 +1,23 @@
-#setwd("~/projects/ALFA-K")
-setwd("~/projects/008_birthrateLandscape/ALFA-K")
+setwd("~/projects/ALFA-K")
+#setwd("~/projects/008_birthrateLandscape/ALFA-K")
 
 ff <- c("SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds",
-        "SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.Rds",
+        #"SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.Rds",
         "SA906a_X57_l_7_d1_0_d2_0.Rds")
 
 
-#library(parallel)
-#cl <- makeCluster(getOption("cl.cores", 3))
-lapply(ff, function(fi){
+library(parallel)
+cl <- makeCluster(getOption("cl.cores", 8))
+
+Nreps <- 5
+
+cmds <- lapply(ff, function(fi){
   
-  Nreps <- 3
+  
   Nsteps <- 10000
-  pop_write_freq <- 100
+  pop_write_freq <- 500
   pgd <- 0
-  max_size <- 1000000
+  max_size <- 500000
   gen_abm_landscape <- function(fit){
     knots <- fit$knots
     cc <- fit$c
@@ -26,17 +29,19 @@ lapply(ff, function(fi){
   source("utils/ALFA-K.R")
   options(scipen=999)
   dir <- "data/salehi/alfak_fits/minobs_5/"
-  out_dir <- "data/salehi/misseg_landscape_exploration/minobs_5/"
+  out_dir <- "data/salehi/misseg_landscape_exploration/trial_minobs_5/"
   dir.create(out_dir,recursive = T)
   
   cfig_template <- readLines("data/salehi/config_template.txt")  
   
-  conditions <- c(0.0001)
+  conditions <- c(0.0004,0.0006,0.0008,0.001,0.002,0.003,0.004,0.005)
+
   
   lapply(conditions, function(pmis){
     xi <- readRDS(paste0(dir,fi))
     
     cpp_cmd <- "ABM/bin/ABM.exe"
+    cpp_cmd <- "ABM/bin/ABM"
     
     od <- gsub("[.]","p",pmis)
     
@@ -50,7 +55,7 @@ lapply(ff, function(fi){
     x0 <- x$x[,1]
     x0 <- x0[x0>0]
     pop0 <- cbind(do.call(rbind,lapply(names(x0),s2v)),x0)
-    pop0 <- do.call(rbind,lapply(readRDS(paste0("figures/ode_analysis/screen_winners/",fi)),s2v))
+    pop0 <- do.call(rbind,lapply(readRDS(paste0("figures/misseg_landscape_exploration/screen_winners/",fi)),s2v))
     pop0 <- cbind(pop0,10)
     rownames(pop0) <- NULL
     colnames(pop0) <- NULL
@@ -78,12 +83,15 @@ lapply(ff, function(fi){
     
     cmd <- paste(cpp_cmd,cfig_path)
     
-    for(i in 1:Nreps) (system(cmd))
+    return(cmd)
+    #for(i in 1:Nreps) (system(cmd))
   })
   
 })
 
-
+cmds <- unlist(cmds)
+cmds <- rep(cmds,Nreps)
+parLapplyLB(cl,X=cmds,function(cmdi) system(cmdi))
 
 
 

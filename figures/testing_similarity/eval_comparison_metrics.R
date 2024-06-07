@@ -60,8 +60,10 @@ eval_metrics <- function(dirs,target_dir,t_eval=1200){
   ref <- lapply(ref_dirs,proc_sim,times=seq(0,t_eval,t_eval))
   data.frame(ll=ll_cna(test,ref,t=t_eval),
              angle=angle_metric(test,ref,t=t_eval,is.ref.multiple.objects = T),
-             dwass=wasserstein_distance(test,ref,t=t_eval,is.ref.multiple.objects = T))
-},error=function(e) return(data.frame(ll=NaN,angle=NaN,dwass=NaN)))
+             dwass=wasserstein_distance(test,ref,t=t_eval,is.ref.multiple.objects = T),
+             dwass_test=wasserstein_distance(test=test,ref=NULL,t=t_eval),
+             dwass_ref=wasserstein_distance(test=ref,ref=NULL,t=t_eval,is.test.multiple.objects = T))
+},error=function(e) return(data.frame(ll=NaN,angle=NaN,dwass=NaN,dwass_test = NaN, dwass_ref=NaN)))
 return(out)
 }
 
