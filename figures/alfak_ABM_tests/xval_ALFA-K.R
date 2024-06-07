@@ -45,4 +45,4 @@ x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
   return(xi)
 }))
 
-saveRDS(x,"figures/alfak_ABM_tests/loo_summaries.Rds")
+saveRDS(x,"figures/alfak_ABM_tests/data/loo_summaries.Rds")

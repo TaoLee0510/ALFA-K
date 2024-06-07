@@ -20,4 +20,4 @@ x <- do.call(rbind,pbapply::pblapply(conditions, function(fi){
   }))
 }))
 
-saveRDS(x,"figures/alfak_ABM_tests/sim_summary_info.Rds")
+saveRDS(x,"figures/alfak_ABM_tests/data/sim_summary_info.Rds")

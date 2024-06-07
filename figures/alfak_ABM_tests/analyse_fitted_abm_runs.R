@@ -67,4 +67,4 @@ clusterCall(cl, function() {
   source("utils/comparison_functions.R")
   })
 a <- do.call(rbind,parLapplyLB(cl=cl,X=dirs, fun=analyse_sims_in_dir))
-saveRDS(a,"figures/alfak_ABM_tests/fitted_abm_run_angles.Rds")
+saveRDS(a,"figures/alfak_ABM_tests/data/fitted_abm_run_angles.Rds")
