@@ -1,0 +1,236 @@
+---
+title: "Predicting novel karyotypes"
+output:
+  pdf_document:
+header-includes:
+- \usepackage{caption}
+- \captionsetup[figure]{labelformat=empty}
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+source("utils/ALFA-K.R")
+library(ggplot2)
+source("utils/comparison_functions.R")
+library(deSolve)
+source("utils/ode_functions.R")
+library(caret)
+```
+We asked whether ALFA-K can help predict the emergence of novel karyotypes. Denote $\Theta$ the set of karyotypes with fitness estimates from ALFA-K, $\zeta$ the subset of $\Theta$ observed in a given longitudinal sample. Then we would like to predict $\Psi$ (the subset of $\Theta$ that will be present in a future sample) (Fig. 4A). In particular we wish to predict $'\zeta \cap \Psi$, which are the *novel* karyotypes (Fig. 4B). The probability of any novel karyotype  actually emerging presumably depends both on its fitness and its number of neighbours in the preceding generation. Therefore for each member of $'\zeta$ we computed the fraction of karyotypes in $\zeta$ that were between 1-5 missegregations distant (Fig. 4C). These were used as variables which, together with the fitness estimate, were used to preduct whether the karyotype would emerge. For prediction we used binomial logistic regression, then assessed whether each predictor variable was significantly correlated with the response variable. Across 45 tests, the fraction of $\zeta$ that were distance-1 neighbours ($d_1$) was the most significant predictor of novel karyotype emergence. We found that in 39/45 tests d1 had a significant (P<0.01) positive predictor of novel karyotype emergence (Fig. 4D), and in 30/45 tests d1 was the most significant predictor (Fig. 4E). The fitness estimate was also a strong predictor, significant in 30/45 tests (Fig. 4D) and most significant in 12/45 tests (Fig. 4E). These results indicate that ALFA-K fitness estimates can help predict emergence of new karyotypes.   
+
+
+![Figure 4 Predicting novel karyotypes. A) Venn diagram representing all karyotypes in the fitted landscape ($\Theta$), the subset observed in the latest sample ($\zeta$), and the subset that will be present in a future sample ($\Psi$). B) $\Theta$ is separated into 3 disjoint subsets. C) Each karyotype is assigned a feature vector ($d_{1-5}$). $d_i$ is the fraction of karyotypes in $\zeta$ that are *i* missegregations away from the current karyotype. D) Fraction of fitted lineages in which each variable was significant (P>0.01) E) Fraction of fitted lineages in which each variable was most significant.](figure.png)
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+source("figures/salehi_predictions/multireg.R")
+
+```
+
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+library(ggforce)
+circles <- data.frame(
+  x0 = c(1,4),
+  y0 = c(0,0),
+  r = c(2,2),
+  id = c("\u03B6","\u03A8")
+)
+
+circles$id <- factor(circles$id,levels=c("\u03A8","\u03B6"))
+
+anndf <- data.frame(x=c(1,4,-1.25),y=c(-2.5,-2.5,2.5),anno=c("\u03B6","\u03A8","\u0398"))
+anndf2 <- data.frame(x=c(1,4,-1.25),y=c(-2.5,-2.5,2.5),
+                     anno=c("\u03B6","\u0060\u03B6\u2229\u03A8","\u0060\u03B6\u2229\u0060\u03A8"))
+
+noaxistheme <- theme(axis.text = element_blank(),axis.title = element_blank(),
+        axis.line = element_blank(),axis.ticks = element_blank())
+
+# Behold some circles
+pa <- ggplot() +
+  geom_rect(aes(xmin = -2, xmax = 7, ymin = -3, ymax = 3),alpha=0,color="black")+
+  geom_circle(aes(x0 = x0, y0 = y0, r = r), data = circles)+
+  geom_text(data=anndf,aes(x=x,y=y,label=anno))+
+  labs(tag="A")+
+  theme_void(base_size=8)
+pa
+
+pb <- ggplot() +
+  geom_rect(aes(xmin = -2, xmax = 7, ymin = -3, ymax = 3,fill="\u0398"),
+            color="black", show.legend = F)+
+  geom_circle(aes(x0 = x0, y0 = y0, r = r,fill=id), 
+              data = circles,show.legend = F)+
+  geom_text(data=anndf2,aes(x=x,y=y,label=anno),parse=F)+
+  labs(tag="B")+
+  theme_void(base_size=8)
+pb
+```
+
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+#perform the multiple regression:
+source("figures/salehi_predictions/multireg_landscape.R")
+
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+proc_data <- function(i,x,fit){
+  
+  nn <- rownames(fit$xv_res)
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  
+  newk <- rownames(x)[x[,i+1]>0 & x[,i]==0]
+  oldk <- rownames(x)[x[,i]>0]
+  oldv <- do.call(rbind,lapply(oldk,s2v)) 
+ 
+  vn <- do.call(rbind,lapply(nn,s2v))
+  
+  
+  df <- apply(vn,1,function(ni){
+    d <- apply(oldv,1,function(oi){
+      sum(abs(oi-ni))
+    })
+    sapply(0:5,function(di){
+      sum(x[oldk[d==di],i])
+    })
+  })
+  df <- t(df)
+  df <- df/sum(x[,i])
+  df <- data.frame(df,row.names=NULL)
+  colnames(df) <- paste0("d",0:5)
+  df$f <- predict(fit$fit,vn)
+  df$y <- nn%in%newk
+  df <- df[df[,1]==0,-1]
+  
+  return(df)
+
+}
+
+fit <- readRDS("data/salehi/alfak_fits/minobs_5/SA609_X9_l_9_d1_1_d2_0.Rds")
+x <- readRDS("data/salehi/alfak_inputs_v2/SA609_X10_l_10_d1_0_d2_0.Rds")$x
+test <- proc_data(ncol(x)-1,x=x,fit=fit)
+
+i1 <- unlist(test[which.max(test$d1),1:5])
+i2 <- unlist(test[which.min(test$d1),1:5])
+
+df <- data.frame(frac=c(i1,i2),d=c(names(i1),names(i2)),
+                 id=c(rep("1",length(i1)),rep("2",length(i2))))
+
+pc <- ggplot(df,aes(x=d,y=frac,fill=id))+
+  geom_col(position="dodge")+
+  scale_fill_discrete("karyotype")+
+  theme_classic(base_size=8)+
+  labs(tag="C")+
+  scale_x_discrete("distance")+
+  scale_y_continuous("population fraction")+
+  theme(legend.position = c(0.2,0.9),legend.key.size = unit(0.1,"in"))
+pc
+
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+df <- readRDS("figures/salehi_predictions/multireg_landscape.Rds")
+df$rep <- ceiling((1:nrow(df))/7)
+w <- split(df,f=df$rep)
+
+w <- do.call(rbind,lapply(w,function(wi){
+  wi <- wi[-1,]
+  wi <- wi[wi$Estimate>0,]
+  data.frame(rep=wi$rep[1],w=wi$ids[which.min(wi$Pr...z..)])
+}))
+z <- split(df,f=df$ids)
+
+z <- do.call(rbind,lapply(z,function(zi){
+  data.frame(var=zi$ids[1],frac=mean(zi$Estimate>0 & zi$Pr...z..<0.01))
+}))
+
+renamr <- c(d1="d[1]",d2="d[2]",d3="d[3]",d4="d[4]",d5="d[5]",f="f")
+z <- z[!z$var=="(Intercept)",]
+z$var <- renamr[z$var]
+w$w <- renamr[w$w]
+pd <- ggplot(z,aes(x=var,y=frac))+
+  geom_col()+
+  theme_classic(base_size=8)+
+  labs(tag="D")+
+  scale_x_discrete("variable",labels = scales::parse_format())+
+  scale_y_continuous("fraction significant (P<0.01)")
+pd
+
+
+pe <- ggplot(w,aes(x=w))+ 
+  stat_count(aes(y=..count../sum(..count..)))+
+  theme_classic(base_size=8)+
+  labs(tag="E")+
+  scale_x_discrete("variable",labels = scales::parse_format())+
+  scale_y_continuous("fraction most significant")
+pe
+
+
+```
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+library(gridExtra)
+
+plt <- grid.arrange(grid.arrange(pa,pb,ncol=2),
+                    grid.arrange(pc,pd,pe,ncol=3),
+                    nrow=2,heights=c(5,6))
+ggsave("figures/salehi_predictions/figure.png",plot=plt,width=7,height=5,units="in")
+```
+
+
+```{r}
+
+#l <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+#m <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+v <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+v <- v[v$has_descendents&v$r2>0.3,]
+
+ff <- "TNBC-SA609UnRxLine1_X9"
+
+fit <- readRDS("data/salehi/alfak_fits/minobs_5/SA609_X9_l_7_d1_1_d2_0.Rds")
+#coords <- gen_coords(fit)
+#saveRDS(coords,"figures/salehi_predictions/tmp/SA609_X9_l_7_d1_1_d2_0.Rds")
+coords <- readRDS("figures/salehi_predictions/tmp/SA609_X9_l_7_d1_1_d2_0.Rds")
+dims <- rep(length(coords$kary),2)
+p0 <- 0.001
+tm <- tmbuild(p0,coords$coords,dims)
+k <- rep(0,length(coords$kary))
+names(k) <- coords$kary
+
+d <- readRDS("data/salehi/alfak_inputs_v2/SA609_X9_l_7_d1_1_d2_0.Rds")$x
+
+d <- d[,ncol(d)]
+d <- d[d>0&names(d)%in%names(k)]
+
+k[names(d)] <- d/sum(d)
+
+dy <- as.numeric(tm%*%k)
+names(dy) <- names(k)
+
+nov <- dy[!names(dy)%in%names(d)]
+nov <- nov[order(nov,decreasing = T)]
+
+y <- readRDS("data/salehi/alfak_inputs_v2/SA609_X10_l_2_d1_0_d2_0.Rds")$x
+
+y <- y[,ncol(y)]
+y <- y[y>0]
+app <- names(nov)[names(nov)%in%names(y)]
+#y[app]/sum(y)
+
+mean(nov[app])
+mean(nov)
+#nov[names(nov)%in%names(y)] <- y[app]/sum(y)
+
+```
+
+
+
+

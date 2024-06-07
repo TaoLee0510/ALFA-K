@@ -1,0 +1,245 @@
+---
+title: "README"
+author: "Richard J Beck"
+date: "`r Sys.Date()`"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+Fitting ALFA-K model to Salehi data
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+```{r}
+
+source("utils/comparison_functions.R")
+source("utils/ALFA-K.R")
+library(ggplot2)
+```
+
+```{r}
+
+proc_id <- function(df){
+  ids <- do.call(rbind,strsplit(df$ids,split="[.]"))
+  ids0 <- ids
+  are_equal <- ids[,1]==ids[,2]
+ 
+angle_heatmap <- function(ids){
+  x <- lapply(ids, function(id) {
+    xi <- readRDS(paste0("data/salehi/alfak_inputs_v2/",id))$x
+    xi <- xi[order(xi[,1],xi[,2],xi[,3],decreasing=T),]
+  })
+
+na <- ncol(x[[1]])
+nb <- ncol(x[[2]])
+
+v <- lapply(x,function(xi){
+  vxi <- do.call(rbind,lapply(rownames(xi),s2v))
+  xij <- t(xi)%*%vxi
+  ni <- colSums(xi)
+  for(i in 1:length(ni)) xij[i,]<- xij[i,]/ni[i]
+  return(xij)
+})
+
+conds <- expand.grid(a=2:na,b=2:nb)
+
+v0 <- v[[1]][1,]
+
+conds$am <- sapply(1:nrow(conds), function(i){
+  va <- v[[1]][conds$a[i],]-v0
+  vb <- v[[2]][conds$b[i],]-v0
+  getangle(va,vb)
+})
+ids <- as.character(sapply(ids,function(id) head(unlist(strsplit(id,split=".Rds")),1)))
+id_lut <- c(a=ids[1],b=ids[2])
+res <- list(conds=conds,ids=id_lut)
+
+return(res)
+}
+
+wrapamap <- function(ids){
+  res <- angle_heatmap(ids)$conds
+  uids <- sapply(ids, function(i){
+   uid <- xx$uid[xx$filenames==i]
+   paste(meta[meta$uid==uid,c("PDX_id","timepoint","linlab")],collapse=" ")
+  })
+  uids[1] <- paste0("A=",uids[1])
+  uids[2] <- paste0("B=",uids[2])
+  res$uid <- paste(uids,collapse="\n")
+  res$a <- res$a-min(res$a)+1
+  res$b <- res$b-min(res$b)+1
+  return(res)
+}
+
+```
+
+```{r}
+meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+li <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+ids <- c("SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds","SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
+
+res <- wrapamap(ids[c(2,1)])
+
+p <- ggplot(res,aes(x=a,y=b,fill=am))+
+  facet_grid(cols=vars(uid))+
+  geom_raster()+
+  scale_x_continuous("A")+
+  scale_y_continuous("B")+
+  scale_fill_viridis_c()+
+  scale_fill_viridis_c("angle\nmetric",limits=c(20,120))+
+  coord_fixed()+
+  theme_classic()
+p
+ggsave("figures/salehi_data_fitting/figures_post_jump/SA535_angles.png",plot=p,width=3,height=2.5,units="in")
+
+
+```
+Notably get different aboslute values of angle metric depending on where one chooses to start from. Probably the point of divergence is most appropriate:
+```{r}
+
+xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+#xx <- xx[xx$min_obs==5&grepl("SA609",xx$id)&xx$r2>0.3,]
+
+#ff <- c("SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
+ #       "SA609R2_X7_l_7_d1_0_d2_0.Rds",
+     #   "SA609_X10_l_10_d1_0_d2_0.Rds")
+  #     "SA609_X7_l_7_d1_2_d2_1.Rds")
+
+
+ff <- c("SA609UnBU_X7_l_4_d1_0_d2_0.Rds",
+        "SA609R2_X7_l_5_d1_0_d2_0.Rds",
+       "SA609_X7_l_5_d1_2_d2_1.Rds")
+
+"data/salehi/alfak_inputs_v2/SA000_X7_l_7_d1_0_d2_0.Rds"
+
+
+res <- rbind(wrapamap(ids=c(ff[1],ff[2])),
+             wrapamap(ids=c(ff[1],ff[3])),
+             wrapamap(ids=c(ff[2],ff[3])))
+
+
+p <- ggplot(res,aes(x=a,y=b,fill=am))+
+  facet_grid(cols=vars(uid))+
+  geom_raster()+
+  scale_x_continuous("A")+
+  scale_y_continuous("B")+
+  scale_fill_viridis_c("angle\nmetric",limits=c(20,120))+
+  coord_fixed()+
+  theme_classic()
+p
+ggsave("figures/salehi_data_fitting/figures_post_jump/SA609_angles.png",plot=p,width=7,height=2.5,units="in")
+
+```
+
+```{r}
+
+fi <- "SA609U1_X8_l_5_d1_0_d2_0.Rds"
+x <- readRDS("data/salehi/alfak_inputs_v2/SA609UnBU_X7_l_6_d1_0_d2_0.Rds")$x
+```
+
+```{r}
+
+dir <- "data/salehi/raw_post_jump/"
+ff <- list.files(dir)
+
+x <- do.call(cbind,lapply(ff, function(fi){
+  print(fi)
+  if(!file.exists(paste0(dir,fi,"/named_mat.csv"))) return(NULL)
+  x <- data.frame(data.table::fread(paste0(dir,fi,"/named_mat.csv")))
+  c(nrow(x),x$bin_name[1:20])
+}))
+colnames(x) <- ff
+bindata <- t(x[1:3,])
+```
+
+```{r}
+m <- read.csv("data/salehi/metadata.csv")
+libids <- c("A110618A","A95728A","A98234A")
+labs <- do.call(rbind,lapply(libids,function(id){
+  m[m$library_ids==id,]
+}))
+
+SA609U1 <- data.frame(data.table::fread("data/salehi/raw_post_jump/SA609U1/named_mat.csv"))
+SA609 <- data.frame(data.table::fread("data/salehi/raw_post_jump/SA609/named_mat.csv"))
+SA609UnBU <- data.frame(data.table::fread("data/salehi/raw_post_jump/SA609UnBU/named_mat.csv"))
+
+rownames(SA609U1) <- SA609U1$bin_name
+SA609U1 <- SA609U1[,-ncol(SA609U1)]
+
+rownames(SA609) <- SA609$bin_name
+SA609 <- SA609[,-ncol(SA609)]
+
+rownames(SA609UnBU) <- SA609UnBU$bin_name
+SA609UnBU <- SA609UnBU[,-ncol(SA609UnBU)]
+
+x <- cbind(SA609,SA609U1,SA609UnBU)
+
+x <- lapply(libids,function(id){
+  x[,grepl(id,colnames(x))]
+})
+
+
+
+```
+
+
+```{r}
+
+x1 <- data.table::fread("data/salehi/raw_post_jump/SA609/named_mat.csv")$bin_name
+x2 <- data.table::fread("data/salehi/raw_post_jump/SA609UnBu/named_mat.csv")$bin_name
+chr1 <- as.character(sapply(x1,function(xi) unlist(strsplit(xi,split="_"))[1]))
+chr2 <- as.character(sapply(x2,function(xi) unlist(strsplit(xi,split="_"))[1]))
+
+```
+
+```{r}
+
+x <- readRDS("data/salehi/chrom_level_cn.Rds")
+m <- read.csv("data/salehi/metadata.csv")
+m <- m[m$PDX_id=="SA609",]
+
+nm <- table(m$parent)
+nm <- names(nm)[nm>1]
+
+l <- do.call(rbind,lapply(nm, function(ni) {
+  children <- m$uid[m$parent==ni & !is.na(m$parent)]
+  combos <- combn(1:length(children),2)
+  cond_match <- apply(combos,2,function(ci){
+    m$on_treatment[m$uid==children[ci[1]]]==m$on_treatment[m$uid==children[ci[2]]]
+  })
+  data.frame(parent=ni,child1=children[combos[1,]],
+             child2=children[combos[2,]],cond_match)
+}))
+
+l <- cbind(l,data.frame(t(apply(l[,1:3],1,function(li){
+  sapply(li, function(lij) m$library_ids[m$uid==lij])
+}))))
+colnames(l)[1:3] <- paste0("uid_",colnames(l)[1:3])
+
+
+
+l$angles <- sapply(1:nrow(l), function(i){
+  idpar <- unlist(strsplit(l$parent[i],split=";"))
+  idc1 <- unlist(strsplit(l$child1[i],split=";"))
+  idc2 <- unlist(strsplit(l$child2[i],split=";"))
+  
+  vpar <- colMeans(do.call(rbind,lapply(idpar,function(id) x[[id]])))
+  vc1 <- colMeans(do.call(rbind,lapply(idc1,function(id) x[[id]])))-vpar
+  vc2 <- colMeans(do.call(rbind,lapply(idc2,function(id) x[[id]])))-vpar
+  
+  getangle(vc1,vc2)
+})
+
+
+p <- ggplot(l,aes(x=angles))+
+  facet_wrap(~cond_match)+
+  geom_histogram(binwidth=10)
+p
+
+aggregate(l$angles,by=list(l$cond_match),mean)
+```
+
+
