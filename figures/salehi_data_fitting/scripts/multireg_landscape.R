@@ -3,48 +3,48 @@ source("utils/ALFA-K.R")
 
 library(ggplot2)
 
-proc_data <- function(i,x,fit,ndist=2,max_size=30000){
-  x <- x[!grepl("0",rownames(x)),]
+proc_data <- function(i,x,fit){
+  
+  nn <- rownames(fit$xv_res)
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  
   newk <- rownames(x)[x[,i+1]>0 & x[,i]==0]
   oldk <- rownames(x)[x[,i]>0]
   oldv <- do.call(rbind,lapply(oldk,s2v)) 
-  nn <- oldk
-  
-  #newv <- do.call(rbind,lapply(newk,s2v))
-  
-  
-  for(ni in ndist){
-    nn <- sample(nn,min(max_size/44,length(nn)))
-    nn <- apply(gen_all_neighbours(nn),1,paste,collapse=".")
-  }
-  
+ 
   vn <- do.call(rbind,lapply(nn,s2v))
+  
   
   df <- apply(vn,1,function(ni){
     d <- apply(oldv,1,function(oi){
       sum(abs(oi-ni))
     })
-    data.frame(keep = min(d)==ndist,
-               nd =  sum(x[oldk[d==ndist],i]))
+    sapply(0:5,function(di){
+      sum(x[oldk[d==di],i])
+    })
   })
-  
-  df <- do.call(rbind,df)
-  df$f <- predict(fit,vn)
+  df <- t(df)
+  df <- df/sum(x[,i])
+  df <- data.frame(df,row.names=NULL)
+  colnames(df) <- paste0("d",0:5)
+  df$f <- predict(fit$fit,vn)
   df$y <- nn%in%newk
-  df$n <- df$n/sum(x[,i])
-  df$f <- df$f-sum(df$f*df$n)/sum(df$n)
-  df[keep,]
+  df <- df[df[,1]==0,-1]
+  
+  return(df)
+
 }
 
 
-wrap_test <- function(ff,ndist=2,max_size=30000){
+wrap_test <- function(ff){
   x <- readRDS(paste0("data/salehi/alfak_inputs_v2/",ff$feval))$x
-  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",ff$ftrain))$fit
+  fit <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",ff$ftrain))
   
-  test <- proc_data(ncol(x)-1,x=x,fit=fit,ndist,max_size)
+  test <- proc_data(ncol(x)-1,x=x,fit=fit)
   #test$n <- scale(test$n)
   #test$f <- scale(test$f)
-  mod <- glm(y~f+n,data=test)
+  mod <- glm(y~.,data=test,family = binomial)
   res <- summary(mod)$coefficients
   ids <- rownames(res)
   res <- data.frame(res,row.names = NULL)
@@ -52,9 +52,9 @@ wrap_test <- function(ff,ndist=2,max_size=30000){
   return(res)
 }
 
-xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+xx <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 x0 <- xx[xx$r2>0.3&xx$dec1>0,]
-lins <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+lins <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
 
 ff <- lapply(x0$filenames,function(fi) {
   id <- head(unlist(strsplit(fi,split=".Rds")),1)
@@ -70,9 +70,9 @@ ff <- lapply(x0$filenames,function(fi) {
 
 
 df <- pbapply::pblapply(ff,function(ffi)
-  tryCatch(wrap_test(ffi,ndist=3),error=function(e) return(NULL))
+  tryCatch(wrap_test(ffi),error=function(e) return(NULL))
 )
 
 df <- do.call(rbind,df)
 df <- data.frame(df)
-saveRDS(df,"figures/salehi_predictions/multireg_d3.Rds")
+saveRDS(df,"figures/salehi_predictions/data/multireg_landscape.Rds")

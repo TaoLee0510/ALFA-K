@@ -226,9 +226,7 @@ pc <- ggplot(dfagg[dfagg$declevel==1&dfagg$pos_r2,],aes(x=angle))+
 ```
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#It would be very interesting to compare how similar population evolution was in the instances where we have parallel evolution going on. 
 
-#The result is not as expected
 source("utils/comparison_functions.R")
 x <- readRDS("data/salehi/chrom_level_cn.Rds")
 m <- read.csv("data/salehi/metadata.csv")
@@ -289,9 +287,167 @@ pd
 library(gridExtra)
 bot <- grid.arrange(pb,pc,pd,nrow=1)
 plt <- grid.arrange(pa,bot,heights=c(2,1))
-ggsave("figures/salehi_data_fitting/figures/figure.png",plot=plt,width=5,height=5,units="in")
+ggsave("figures/salehi_data_fitting/fit_salehi.png",plot=plt,width=5,height=5,units="in")
 ```
 
 
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+source("figures/salehi_predictions/multireg.R")
 
+```
+
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+library(ggforce)
+circles <- data.frame(
+  x0 = c(1,4),
+  y0 = c(0,0),
+  r = c(2,2),
+  id = c("\u03B6","\u03A8")
+)
+
+circles$id <- factor(circles$id,levels=c("\u03A8","\u03B6"))
+
+anndf <- data.frame(x=c(1,4,-1.25),y=c(-2.5,-2.5,2.5),anno=c("\u03B6","\u03A8","\u0398"))
+anndf2 <- data.frame(x=c(1,4,-1.25),y=c(-2.5,-2.5,2.5),
+                     anno=c("\u03B6","\u0060\u03B6\u2229\u03A8","\u0060\u03B6\u2229\u0060\u03A8"))
+
+noaxistheme <- theme(axis.text = element_blank(),axis.title = element_blank(),
+        axis.line = element_blank(),axis.ticks = element_blank())
+
+# Behold some circles
+pa <- ggplot() +
+  geom_rect(aes(xmin = -2, xmax = 7, ymin = -3, ymax = 3),alpha=0,color="black")+
+  geom_circle(aes(x0 = x0, y0 = y0, r = r), data = circles)+
+  geom_text(data=anndf,aes(x=x,y=y,label=anno))+
+  labs(tag="A")+
+  theme_void(base_size=8)
+pa
+
+pb <- ggplot() +
+  geom_rect(aes(xmin = -2, xmax = 7, ymin = -3, ymax = 3,fill="\u0398"),
+            color="black", show.legend = F)+
+  geom_circle(aes(x0 = x0, y0 = y0, r = r,fill=id), 
+              data = circles,show.legend = F)+
+  geom_text(data=anndf2,aes(x=x,y=y,label=anno),parse=F)+
+  labs(tag="B")+
+  theme_void(base_size=8)
+pb
+```
+
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+#generate the features to perform the multiple regression:
+source("figures/salehi_data_fitting/scripts/multireg_landscape.R")
+
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+## 
+proc_data <- function(i,x,fit){
+  
+  nn <- rownames(fit$xv_res)
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
+  
+  newk <- rownames(x)[x[,i+1]>0 & x[,i]==0]
+  oldk <- rownames(x)[x[,i]>0]
+  oldv <- do.call(rbind,lapply(oldk,s2v)) 
+ 
+  vn <- do.call(rbind,lapply(nn,s2v))
+  
+  
+  df <- apply(vn,1,function(ni){
+    d <- apply(oldv,1,function(oi){
+      sum(abs(oi-ni))
+    })
+    sapply(0:5,function(di){
+      sum(x[oldk[d==di],i])
+    })
+  })
+  df <- t(df)
+  df <- df/sum(x[,i])
+  df <- data.frame(df,row.names=NULL)
+  colnames(df) <- paste0("d",0:5)
+  df$f <- predict(fit$fit,vn)
+  df$y <- nn%in%newk
+  df <- df[df[,1]==0,-1]
+  
+  return(df)
+
+}
+
+fit <- readRDS("data/salehi/alfak_fits/minobs_5/SA609_X9_l_9_d1_1_d2_0.Rds")
+x <- readRDS("data/salehi/alfak_inputs_v2/SA609_X10_l_10_d1_0_d2_0.Rds")$x
+test <- proc_data(ncol(x)-1,x=x,fit=fit)
+
+i1 <- unlist(test[which.max(test$d1),1:5])
+i2 <- unlist(test[which.min(test$d1),1:5])
+
+df <- data.frame(frac=c(i1,i2),d=c(names(i1),names(i2)),
+                 id=c(rep("1",length(i1)),rep("2",length(i2))))
+
+pc <- ggplot(df,aes(x=d,y=frac,fill=id))+
+  geom_col(position="dodge")+
+  scale_fill_discrete("karyotype")+
+  theme_classic(base_size=8)+
+  labs(tag="C")+
+  scale_x_discrete("distance")+
+  scale_y_continuous("population fraction")+
+  theme(legend.position = c(0.2,0.9),legend.key.size = unit(0.1,"in"))
+pc
+
+```
+
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+df <- readRDS("figures/salehi_predictions/data/multireg_landscape.Rds")
+df$rep <- ceiling((1:nrow(df))/7)
+w <- split(df,f=df$rep)
+
+
+w <- do.call(rbind,lapply(w,function(wi){
+  wi <- wi[-1,]
+  wi <- wi[wi$Estimate>0,]
+  data.frame(rep=wi$rep[1],w=wi$ids[which.min(wi$Pr...z..)])
+}))
+z <- split(df,f=df$ids)
+
+z <- do.call(rbind,lapply(z,function(zi){
+  data.frame(var=zi$ids[1],frac=mean(zi$Estimate>0 & zi$Pr...z..<0.01))
+}))
+
+renamr <- c(d1="d[1]",d2="d[2]",d3="d[3]",d4="d[4]",d5="d[5]",f="f")
+z <- z[!z$var=="(Intercept)",]
+z$var <- renamr[z$var]
+w$w <- renamr[w$w]
+pd <- ggplot(z,aes(x=var,y=frac))+
+  geom_col()+
+  theme_classic(base_size=8)+
+  labs(tag="D")+
+  scale_x_discrete("variable",labels = scales::parse_format())+
+  scale_y_continuous("fraction significant (P<0.01)")
+pd
+
+
+pe <- ggplot(w,aes(x=w))+ 
+  stat_count(aes(y=..count../sum(..count..)))+
+  theme_classic(base_size=8)+
+  labs(tag="E")+
+  scale_x_discrete("variable",labels = scales::parse_format())+
+  scale_y_continuous("fraction most significant")
+pe
+
+
+```
+```{r,echo=FALSE,eval=FALSE,include=FALSE}
+
+library(gridExtra)
+
+plt <- grid.arrange(grid.arrange(pa,pb,ncol=2),
+                    grid.arrange(pc,pd,pe,ncol=3),
+                    nrow=2,heights=c(5,6))
+ggsave("figures/salehi_data_fitting/prednovel.png",plot=plt,width=7,height=5,units="in")
+```
 
