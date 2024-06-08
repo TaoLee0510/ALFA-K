@@ -1,25 +1,18 @@
----
-title: "WGD in p53 KO cell lines"
-output: github_document
----
+WGD in p53 KO cell lines
+================
 
-This script contains an analysis of fitness landscapes with whole genome doubling for P53KO cell lines. 
+This script contains an analysis of fitness landscapes with whole genome
+doubling for P53KO cell lines.
 
-```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
-```
-
-```{r,message=FALSE,warning=FALSE}
+``` r
 source("utils/comparison_functions.R")
 source("utils/ALFA-K.R")
 library(ggplot2)
 ```
 
-
-
 Quantificiation of aneuploidy over time:
-```{r}
 
+``` r
 getAscore <- function(fi){
   x<- readRDS(paste0("data/salehi/alfak_inputs_v2/",fi))$x
   
@@ -57,10 +50,12 @@ wgdA <- ggplot(df,aes(x=time,y=value,color=variable))+
   theme_classic(base_size=8)+
   labs(tag = "A")
 wgdA
-
 ```
-Comparison of fitness and aneuploidy:
-```{r}
+
+![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- --> Comparison of
+fitness and aneuploidy:
+
+``` r
 ## this function generates a matrix of fitness changes associated with each possible CNA for all (frequent) karyotypes in the input file, according to the fitted landscape. 
 cna_mat <- function(fi,remove_negs =F){
   xi <- readRDS(paste0("data/salehi/alfak_fits/minobs_5/",fi))
@@ -138,15 +133,23 @@ wgdB <- ggplot(df,aes(x=d,y=f_est))+
   scale_x_continuous("distance from Euploid",breaks=0:10)+
   scale_y_continuous("estimated fitness")
 wgdB
-
-
-
-
 ```
 
-It is illuminating to compare how the fitness landscapes look as a function of ploidy near and far from the input data points. We see that there is a trend towards a triploid karyotype being fitter (in the well charted region), which agrees with other observations in the literature. Far from any observed karyotypes, the fitness landscape is flat, reflecting our lack of information. 
-```{r,message=FALSE,warning=FALSE}
+    ## Warning: Removed 1 rows containing missing values (geom_segment).
+    ## Removed 1 rows containing missing values (geom_segment).
+    ## Removed 1 rows containing missing values (geom_segment).
+    ## Removed 1 rows containing missing values (geom_segment).
 
+![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+
+It is illuminating to compare how the fitness landscapes look as a
+function of ploidy near and far from the input data points. We see that
+there is a trend towards a triploid karyotype being fitter (in the well
+charted region), which agrees with other observations in the literature.
+Far from any observed karyotypes, the fitness landscape is flat,
+reflecting our lack of information.
+
+``` r
 gen_random_mat <- function(p,n){
   k <- rep(p,n*22)+sample(c(0,1,-1),n*22,replace=T,prob=c(0.9,0.05,0.05))
   matrix(k,ncol=22)
@@ -203,9 +206,11 @@ p <- ggplot(df,aes(x=ploidy,y=fitness))+
 p
 ```
 
-Comparing the distribution of fitness effects for WGD+ v.s. negative. 
-```{r}
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
+Comparing the distribution of fitness effects for WGD+ v.s. negative.
+
+``` r
 get_ploidy <- function(cnm){
   sapply(rownames(cnm),function(ri){
     round(mean(s2v(ri)))
@@ -226,7 +231,16 @@ x$ploidyLab <- "WGD-"
 x$ploidyLab[x$ploidy==4] <- "WGD+"
 
 ks.test(x$value[x$ploidy==2],x$value[x$ploidy==4])
+```
 
+    ## 
+    ##  Two-sample Kolmogorov-Smirnov test
+    ## 
+    ## data:  x$value[x$ploidy == 2] and x$value[x$ploidy == 4]
+    ## D = 0.12828, p-value = 7.728e-09
+    ## alternative hypothesis: two-sided
+
+``` r
 wgdC <- ggplot(x,aes(x=value,color=ploidyLab))+
   facet_grid(rows=vars(id))+
   stat_ecdf()+
@@ -237,8 +251,7 @@ wgdC <- ggplot(x,aes(x=value,color=ploidyLab))+
   labs(tag = "C")
 wgdC
 ```
-```{r,echo=FALSE,include=FALSE,eval=FALSE}
 
-pwgd <- cowplot::plot_grid(wgdA,wgdB,wgdC,nrow=1)
-ggsave(filename = "figures/WGDanalysis/wgd.png",width=9,height=3,units="in")
-```
+    ## Warning: Removed 40 rows containing non-finite values (stat_ecdf).
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->

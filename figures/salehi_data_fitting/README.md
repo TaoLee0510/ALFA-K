@@ -31,4 +31,4 @@ number of samples used in the fitting and the
 ![R^2](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;R%5E2 "R^2")
 metric score. Red horizontal line indicates the expected value of the
 angle under the null hypothesis (i.e. that the fitted and true landscape
-are different).](figures/figure.png)
+are different).](fit_salehi.png) ![](prednovel.png)
