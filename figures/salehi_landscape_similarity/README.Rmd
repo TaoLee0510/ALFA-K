@@ -1,12 +1,9 @@
 ---
-title: "Karyotypic background determines fitness effects of CNAs"
-output:
-  pdf_document:
-header-includes:
-- \usepackage{caption}
-- \captionsetup[figure]{labelformat=empty}
+title: "comparison Karyotypic landscapes"
+output: github_document
 ---
 
+Code in this folder compares similarity of various fitness landscapes and generates the figure below. See .Rmd file for more details. 
 
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
@@ -19,14 +16,11 @@ library(ggtree)
 library(ape)
 library(ggplot2)
 m <- read.csv("data/salehi/metadata.csv")
-xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+xx <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 ```
 
-We sought to compare fitness landscapes derived from the various in vitro and PDX datasets. For individual karyotypes within these landscapes, we computed copy number alteration profiles (CNAPs) i.e., the fitness deltas ($\Delta f$) resulting from each possible CNA (Fig.5A). To assess whether there were any broad changes in CNAPs across experimental conditions, we aggregated the $\Delta f$ for all karyotypes and CNAs per condition.To assess whether there were any broad changes in CNAPs across experimental conditions, we aggregated the $\Delta f$ for karyotypes per condition. We observed larger $\Delta f$ in PDX vs. in vitro landscapes (Fig.5B). In PDX landscapes, cisplatin-treated lineages showed greater fitness deltas ($\Delta f$) than those untreated (Fig.5C). This indicates the strongest selection pressure is in cisplatin-treated PDX landscapes, followed by untreated PDX, and is least within the in vitro landscapes. Overall, the results indicate that ALFA-K fitted landscapes could be used to compare the stringency of selection various contexts. 
 
-We then explored how a CNA's impact on fitness varies with the karyotypic context using our model landscapes. We compared pairs of karyotypes within the same landscape and analyzed the correlation between their CNAPs. The correlation strength was inversely proportional to the manhattan distance between the copy number profiles of the karyotype pair (Fig.5D). These results indicate that within a fixed biological context, similar karyotypes will experience similar fitness effects from a given CNA. However, if the karyotypes are not similar the fitness effects of a particular CNA are unlikely to correlate. We asked whether CNAPs from similar karyotypes derived from different fitness landscapes would correlate. We first used landscapes fitted to data from different PDX cell lines (Fig.5E). We saw a small but significant positive correlation, of comparable magnitude to karyotype pairs taken from identical landscapes. Unfortunately however, there were no karyotypes separated by a manhattan distance less than 5, so we could not assess whether the higher correlations observed for very similar karyotypes were also present across cell lines. We also checked whether CNAPs from different fitness landscapes fitted within the same cell line would correlate. For the SA609 cell line we had three available non-overlapping lineages, two untreated and one treated. CNAPs across the two untreated lineages exhibited much more evidence of correlation than CNAPS compared between either untreated lineage and the cisplatin treated lineage (Fig.5F). For SA535 we had available two lineages, one untreated and the other cisplatin treated. CNAPs exhibited significant correlation across these two lineages (Fig.5G). Finally we used the angle metric to compare the similarity of the evolutionary paths taken by karyotype populations from the previously analysed lineages (i.e. Figs 5F-G). For SA535, the low angle metric values indicate similar evolutionary paths between untreated and cisplatin treated lineages (Fig. 5H). For SA609, low angle metrics between the untreated lineages indicate similar evolutionary paths whilst high angle metrics around 90 degrees indicated a different evolutionary path for the untreated lineage (Fig.5I).  Overall, our findings strongly suggest that a CNA's fitness effects rely on the parent cell's karyotype. Our results are less clear regarding how CNA fitness effects depend on biological context. More data from populations with similar karyotypes in varying biological contexts would be useful to address this question.
-
-![Figure 5. Comparison of fitted landscapes. A) CNAPs for karyotypes taken from a single fitness landscape. Each column in the image represents a CNAP. Karyotypes are clustered based on the manhattan distance between their copy number profiles. B) ($\Delta f$) comparison between in vitro (cultured) and PDX karyotypes. C) ($\Delta f$) comparison between treated and untreated PDX karyotypes. D) Correlation between CNAPs within the same landscape. Each point represents the pearson correlation coefficient between two CNAPs, presented according to the manhattan distance between the two karyotypes in karyotype space. E) Correlation between CNAPs across cell lines. F) correlation of CNAPS across independent lineages of SA609. Untreated lineages are da and bb, cisplatin treated lineage is aaa. G) correlation of CNAPS across independent lineages of SA609. H) Angle metrics indicate similarity of evolutionary paths taken by SA609 lineages. I) Angle metrics indicate similarity of evolutionary paths taken by SA535 lineages.](figure.png)
+![Comparison of fitted landscapes.](figure.png)
 
 
 
@@ -200,92 +194,6 @@ pa
 
 ```
 
-```{r}
-library(ggplot2)
-longest_cons <- function(ff,longest=T){
-  ids <- sapply(ff, function(fi){
-    fsplit <- unlist(strsplit(fi,split="_"))
-    lsplit <- length(fsplit)
-    fsplit <- fsplit[1:(lsplit-6)]
-    paste(fsplit,collapse="_")
-  })
-  ff <- split(ff,f=ids)
-  
-  ff <- sapply(ff, function(fi){
-    fi <- fi[order(fi)]
-    if(longest) return(tail(fi,1))
-    return(head(fi,1))
-  })
-  as.character(ff)
-}
-wrap_tree <- function(pdx_id,m){
-  x <- m[m$PDX_id==pdx_id,]
-  x$x <- as.numeric(gsub("X","",x$x))
-
-  xseg <- x[!is.na(x$parent),]
-
-  xseg <- cbind(xseg,do.call(rbind,lapply(xseg$parent, function(i){
-    tmp <- x[x$uid==i,c("x","y")]
-    colnames(tmp) <- paste0(colnames(tmp),"start")
-    tmp
-  })))
-  list(x=x,xseg=xseg)
-}
-
-
-
-
-assign_labels <- function(m){
-  root <- m$uid[is.na(m$parent)]
-lineages <- list(c(x=root))
-new_lineages <- list()
-finished_lineages <- list()
-
-
-while(length(lineages)>0){
-  for(li in lineages){
-  descendents <- m$uid[!is.na(m$parent)&m$parent==tail(li,1)]
-  if(length(descendents)==0) finished_lineages <- c(finished_lineages,list(li))
-  new_lineages <- c(new_lineages,lapply(descendents, function(di) {
-    lij <- c(li,di)
-    names(lij)[length(lij)] <- tail(names(li),1)
-    if(length(descendents)>1){
-      names(lij)[length(lij)] <- paste0(tail(names(li),1),letters[which(descendents==di)])
-    }
-    return(lij)
-    }))
-  }
-lineages <- new_lineages
-new_lineages <- list()
-
-}
-
-ids <- unlist(finished_lineages)
-ids <- ids[!duplicated(ids)]
-m <- m[order(m$uid),]
-ids <- ids[order(ids)]
-m$linlab <- names(ids)
-m$linlab <- gsub("x","",m$linlab)
-return(m)
-}
-
-adder <- function(xx,dx,dy){
-  xx$x$x <- xx$x$x + dx
-  xx$xseg$x <- xx$xseg$x + dx
-  xx$xseg$xstart <- xx$xseg$xstart + dx
-  xx$x$y <- xx$x$y + dy
-  xx$xseg$y <- xx$xseg$y + dy
-  xx$xseg$ystart <- xx$xseg$ystart + dy
-  return(xx)
-}
-
-wrap_assign_labels <- function(m){
-  m <- split(m,f=m$PDX_id)
-  do.call(rbind,lapply(m,assign_labels))
-}
-
-```
-
  
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
@@ -327,54 +235,24 @@ pb_old
 #ggsave("figures/salehi_landscape_similarity/figs/deltaf_pdx_vitro.png",width=4,height=3,units="in")
 ```
 
-```{r}
 
-## similar to cna_mat, consider merging
-assess_nkary <- function(fi){
-  uid <- x$uid[x$filenames==fi]
-  pdx <- m$PDX_id[m$uid==uid]
-  lab <- m$label[m$uid==uid]
-  xi <- readRDS(paste0("data/salehi/alfak_fits_post_jump/minobs_5/",fi))
-  nkary <- sum(xi$xo$id=="fq")
-  data.frame(uid,pdx,lab,nkary)
-}
-
-x <- xx[xx$min_obs==5&!xx$has_descendents&!xx$has_parents&xx$r2>0,]
-ff <- x$filenames
-
-df <- do.call(rbind,lapply(ff,assess_nkary))
-df$treatment_status <- sapply(df$uid, function(id){
-  x$treatment_status[x$uid==id]
-})
-
-df$type <- "pdx"
-df$type[df$pdx=="SA906"] <- "culture"
-df$treatment_status[df$treatment_status=="mixed"] <- "on"
-
-df_agg <- aggregate(list(sd=df$nkary),by=list(type=df$type,treatment=df$treatment_status),sd,na.rm=T)
-df_agg$mean <- aggregate(list(mean=df$nkary),by=list(type=df$type,treatment=df$treatment_status),mean,na.rm=T)$mean
-df_agg$labs <- c("in-vitro","PDX","PDX+C")
-
-```
-
-```{r,echo=FALSE,include=FALSE,eval=FALSE}
-lablr <- c(off="untreated",mixed="treated")
-pc_old <- ggplot(df[df$type=="pdx",],aes(x=deltaf))+
-  facet_grid(rows=vars(lablr[treatment_status]),scales="free_y")+
-  geom_histogram(binwidth=0.02,boundary=0)+
-  scale_x_continuous(expression(CNA~fitness~Delta),limits=c(-0.3,0.3))+
-  scale_y_continuous()+
-  labs(tag="C")+
-  theme_bw(base_size=8)
-pc_old
-#ggsave("figures/salehi_landscape_similarity/figs/deltaf_treat_un.png",width=4,height=3,units="in")
-
-#df_agg
-```
 
  
-```{r}
-
+ 
+```{r,echo=FALSE,include=FALSE,eval=FALSE}
+rotate_matrix <- function(matrix, angle) {
+  # Convert angle from degrees to radians
+  angle_rad <- angle * pi / 180
+  
+  # Create the rotation matrix
+  rotation_matrix <- matrix(c(cos(angle_rad), -sin(angle_rad), 
+                              sin(angle_rad), cos(angle_rad)), nrow = 2)
+  
+  # Perform the matrix multiplication to rotate the coordinates
+  rotated_matrix <- matrix %*% rotation_matrix
+  
+  return(rotated_matrix)
+}
 library(RColorBrewer)
 
 x <- xx[xx$min_obs==5&xx$r2>0.0&xx$treatment_status!="off",]
@@ -389,13 +267,16 @@ ff <- c("SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
         "SA609_X7_l_5_d1_2_d2_1.Rds")
 ids <- gsub(".Rds","",ff)
 m <- readRDS("data/salehi/metadata.Rds")
-lineages <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+lineages <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
 lineages <- lineages[ids]
 
 x535 <- adder(wrap_tree("SA535",m),0,8)
 x609 <- adder(wrap_tree("SA609",m),0,0)
 
+
 x <- rbind(x535$x,x609$x)
+
+
 xseg <- rbind(x535$xseg,x609$xseg)
 
 labpoints <- sapply(lineages, function(li) tail(li$ids,1))
@@ -409,6 +290,7 @@ colpoint <- do.call(rbind,lapply(1:length(lineages),function(i){
   msel
 }))
 
+
 linlabs <- data.frame(x=c(1,4),y=c(2,9),labs=c("SA609","SA535"))
 
 colpoint$x[colpoint$lid=="a"] <- colpoint$x[colpoint$lid=="a"] + 0.1
@@ -421,8 +303,8 @@ colpoint$y[colpoint$lid=="e"] <- colpoint$y[colpoint$lid=="e"] -0.1
 
 pe <- ggplot(x,aes(x=x,y=y))+
   geom_segment(data=xseg,aes(xend=xstart,yend=ystart,linetype=on_treatment),show.legend = F)+
-  geom_point(size=5,color="grey80")+
-  geom_point(data=colpoint,aes(color=lid),size=5,show.legend = F)+
+  geom_point(size=3,color="grey80")+
+  geom_point(data=colpoint,aes(color=lid),size=3,show.legend = F)+
   geom_text(data=xlab,aes(label=linlab),nudge_y = 0.3,nudge_x = 0.3,color="red")+
   geom_text(data=linlabs,aes(label=labs))+
  # scale_color_viridis_c(expression(R^2),limits=c(-1,1))+
@@ -461,7 +343,7 @@ pc <- ggplot(x,aes(x=d,y=cor))+
   theme_bw(base_size=8)+
   theme(legend.position = c(.8,.85),legend.key.size = unit(0.1,"in"))
 pc
-#ggsave("figures/salehi_landscape_similarity/figs/cor_within_landscape.png",width=4.5,height=3,units="in")
+
 ```
 
 
@@ -527,7 +409,7 @@ pd
 
  
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
-meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+meta <- readRDS("figures/salehi_data_fitting/data/labelled_metadata.Rds")
 x <- xx[grepl("SA906",xx$filenames)&xx$r2>0&xx$min_obs==5,]
 
 ff <- c("SA906a_X57_l_7_d1_0_d2_0.Rds",
@@ -580,14 +462,9 @@ pxx
 #ggsave("figures/salehi_landscape_similarity/figs/cor_within_SA609.png",width=4.5,height=7.5,units="in")
 ```
 
-```{r,echo=FALSE,include=FALSE,eval=FALSE}
-meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
-x <- xx[grepl("SA1035",xx$filenames)&xx$r2>0&xx$min_obs==5,]
-
-```
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
-meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+meta <- readRDS("figures/salehi_data_fitting/data/labelled_metadata.Rds")
 
 ff <- c("SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
         "SA609R2_X7_l_4_d1_0_d2_0.Rds",
@@ -642,7 +519,7 @@ pf
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
 
-meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
+meta <- readRDS("figures/salehi_data_fitting/data/labelled_metadata.Rds")
 ff <- c("SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds",
         "SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
 
@@ -698,7 +575,7 @@ pg
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
 
-xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
+xx <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 #xx <- xx[xx$min_obs==5&grepl("SA609",xx$id)&xx$r2>0.3,]
 
 #ff <- c("SA609UnBU_X7_l_6_d1_0_d2_0.Rds",
@@ -737,9 +614,8 @@ ph
 
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
-xx <- readRDS("figures/salehi_data_fitting/fit_summaries.Rds")
-meta <- readRDS("figures/salehi_data_fitting/labelled_metadata.Rds")
-li <- readRDS("figures/salehi_data_fitting/lineages.Rds")
+
+li <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
 ids <- c("SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds","SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
 
 res <- wrapamap(ids[c(2,1)])
@@ -785,6 +661,6 @@ top <- cowplot::plot_grid(pa,topr,nrow=1,rel_widths=c(2,3))
 #bot <- grid.arrange(bota,botb,nrow=1)
 
 plot <- cowplot::plot_grid(top,bot,nrow=2)
-ggsave("figures/salehi_landscape_similarity/figs/figure.png",plot = plot,width=9,height=9,units="in",bg="white")
+ggsave("figures/salehi_landscape_similarity/figure.png",plot = plot,width=9,height=9,units="in",bg="white")
 ```
 
