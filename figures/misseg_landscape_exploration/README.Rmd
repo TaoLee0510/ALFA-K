@@ -1,10 +1,6 @@
 ---
 title: "Missegregation rate influences karyotype dominance"
-output:
-  pdf_document:
-header-includes:
-- \usepackage{caption}
-- \captionsetup[figure]{labelformat=empty}
+output: github_document
 ---
 
 Code in this folder analyses the effect of missegregation rate on karyotype evolution and generates the figure below. See .Rmd file for more details. 
@@ -29,7 +25,7 @@ names(linlabs) <- c("SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0",
 ```
 
 
-![](figure.png)
+![](fig6.png)
 
 ```{r,include=FALSE,eval=FALSE,echo=FALSE}
 
@@ -233,13 +229,13 @@ saveRDS(df,"figures/misseg_landscape_exploration/peak_karyotypes.Rds")
 Compare theory to prediction 
 
 
-```{r}
+```{r,include=F,echo=F,eval=F}
 
 get_theory_ss <- function(fi,df){
   pks <- df[[fi]]
   mr <- list.files(paste0(dir,fi))
   mr <- c("0p0004","0p001","0p002","0p003","0p005")
-  y <- readRDS(paste0("figures/misseg_landscape_exploration/coords/",fi,".Rds"))
+  y <- readRDS(paste0("figures/misseg_landscape_exploration/data/coords/",fi,".Rds"))
   cellLine <- fi
   cellLine <- as.character(linlabs[cellLine])
   dims <- rep(length(y$kary),2)
@@ -266,18 +262,17 @@ get_theory_ss <- function(fi,df){
   return(z)
 }
 
+df <- readRDS("figures/misseg_landscape_exploration/data/peak_karyotypes.Rds")
 ff <- c("SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0",
                "SA906a_X57_l_7_d1_0_d2_0")#list.files(dir)
 
 z2 <- do.call(rbind,pbapply::pblapply(ff,get_theory_ss,df=df))
 z2 <- reshape2::melt(z2,id.vars=c("ntot","misrate","cellLine"))
 
-df <- readRDS("figures/misseg_landscape_exploration/peak_karyotypes.Rds")
 
-#z <- do.call(rbind,lapply(ff,proc_abm_ss,df=df))
-za <- readRDS("figures/misseg_landscape_exploration/processed_swept_abm_with_fits_v2b.Rds")
-z <- readRDS("figures/misseg_landscape_exploration/processed_swept_abm_with_fits_v2.Rds")
 
+
+z <- readRDS("figures/misseg_landscape_exploration/data/processed_swept_abm_with_fits_v2.Rds")
 #zb <- zb[!(zb$cellLine%in%za$cellLine & zb$misrate%in%za$misrate),]
 #z <- rbind(za[grepl("SA906",za$cellLine),],zb[grepl("SA535",zb$cellLine),])
 z <- split(z,f=interaction(z$rep,z$misrate,z$cellLine))
@@ -312,10 +307,10 @@ pb
 ```
 
 
-```{r}
+```{r,include=F,echo=F,eval=F}
 
 proc_screen <- function(fi){
-  y <- readRDS(paste0("figures/misseg_landscape_exploration/coords/",fi))
+  y <- readRDS(paste0("figures/misseg_landscape_exploration/data/coords/",fi))
   cellLine <- head(unlist(strsplit(fi,split=".Rds")),1)
   cellLine <- as.character(linlabs[cellLine])
   dims <- rep(length(y$kary),2)
