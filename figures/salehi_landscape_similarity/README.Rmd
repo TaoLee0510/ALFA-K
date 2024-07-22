@@ -12,6 +12,7 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
 source("utils/comparison_functions.R")
 source("utils/ALFA-K.R")
+source("figures/salehi_data_fitting/scripts/lineage_processing.R")
 library(ggtree)
 library(ape)
 library(ggplot2)
@@ -22,7 +23,50 @@ xx <- readRDS("figures/salehi_data_fitting/data/fit_summaries.Rds")
 
 ![Comparison of fitted landscapes.](figure.png)
 
+```{r,include=F}
+## adds custom grobs instead of normal facet labels
+## labels is a vector c("uppertext\nlowertext",...)
+## indents control how far text is from border.
+custom_grob <- function(labels,indent_x=0.2,indent_y=0.4) {
+  grobs <- list()
+  
+  for (i in seq_along(labels)) {
+    panel_labels <- strsplit(labels[[i]], "\n")[[1]]
+    grobs[[i]] <- gTree(children = gList(
+      rectGrob(gp = gpar(fill = "white", col = NA)), # Solid white background
+      polygonGrob(
+        x = unit(c(0, 1, 0), "npc"),
+        y = unit(c(1, 1, 0), "npc"),
+        gp = gpar(fill = "white", col = "black")
+      ),
+      textGrob(panel_labels[1], x = unit(indent_x, "npc"), y = unit(1-indent_y, "npc"), gp = gpar(col = "black")),
+      polygonGrob(
+        x = unit(c(1, 1, 0), "npc"),
+        y = unit(c(0, 1, 0), "npc"),
+        gp = gpar(fill = "white", col = "black")
+      ),
+      textGrob(panel_labels[2], x = unit(1-indent_x, "npc"), y = unit(indent_y, "npc"), gp = gpar(col = "black"))
+    ))
+  }
+  
+  return(grobs)
+}
 
+grobwrapper <- function(p,labels){
+  # Generate the custom grobs for each panel
+custom_grobs <- custom_grob(labels)
+
+# Add custom grobs to the plot
+g <- ggplotGrob(p)
+strip_positions <- which(grepl("strip-t", g$layout$name))
+
+for (i in seq_along(strip_positions)) {
+  g$grobs[[strip_positions[i]]] <- custom_grobs[[i]]
+}
+return(g)
+}
+
+```
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
 
@@ -171,10 +215,10 @@ wrapamap <- function(ids){
 
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
-
 x <- xx[xx$min_obs==5&xx$r2>0,]
 fi <- x$filenames[12]#"SA609_X8_l_4_d1_1_d2_1.Rds", SA609_X10_l_8_d1_0_d2_0.Rds...
 x <- cna_mat(fi)
+colnames(x) <- paste0(colnames(x)," ")
 v <- do.call(rbind,lapply(rownames(x),s2v))
 tree <- as.phylo(hclust(dist(v,method="euc")))
 tree$tip.label <- rownames(x)
@@ -186,15 +230,230 @@ pa <- gheatmap(p,x, offset=0, width=5, font.size=2.5,
   labs(tag="A")+
   theme_void(base_size=8)+
   theme(plot.margin = margin(0,0,0,0))+
-  annotate(geom="text",x=-.5,y=16,label="karyotype")+
-  annotate(geom="text",x=6,y=-2,label="CNA",angle=90)
+  annotate(geom="text",x=-.5,y=16,label="")+
+  annotate(geom="text",x=6,y=-2,label="",angle=90)
 pa
-
-#ggsave("figures/salehi_landscape_similarity/figs/correlation_illustration.png",width=7,height=6,units="in")
 
 ```
 
- 
+```{r}
+
+library(pheatmap)
+library(ggtree)
+library(viridis)
+
+# Sample data preparation
+x <- xx[xx$min_obs == 5 & xx$r2 > 0, ]
+fi <- x$filenames[12] # Example filename
+x <- cna_mat(fi)
+v <- do.call(rbind, lapply(rownames(x), s2v))
+tree <- as.phylo(hclust(dist(v, method = "euc")))
+tree$tip.label <- rownames(x)
+x <- t(x)
+pheatmap(x)
+# Generate heatmap with pheatmap
+pheatmap(x, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         show_rownames = TRUE, 
+         show_colnames = FALSE, 
+         annotation_legend = TRUE, 
+         fontsize = 8, 
+         treeheight_row = 50, 
+         treeheight_col = 50, 
+         color = viridis(100))
+
+# Customizing the plot
+grid.text("karyotype", x = unit(0.5, "npc"), y = unit(-0.05, "npc"), gp = gpar(fontsize = 8))
+grid.text("CNA", x = unit(-0.05, "npc"), y = unit(0.5, "npc"), gp = gpar(fontsize = 8), rot = 90)
+
+
+```
+
+```{r}
+
+x <- xx[xx$min_obs==5&xx$r2>0&!xx$has_descendents,]
+ff <- longest_cons(x$filenames)
+x <- x[x$filenames%in%ff,]
+x$lab <- paste(x$pdx[1],x$tp[1],x$uid[1])
+#ff <- x$filenames
+df <- do.call(rbind,pbapply::pblapply(ff,assess_cna))
+#y <- df[!grepl("SA535",df$pdx),]
+#y$deltaf[is.na(y$deltaf)] <- (-1)
+y <- df
+y <- split(y,f=y$uid)
+
+y <- do.call(rbind,lapply(y,function(yi){
+  dfi <- aggregate(list(deltaf=yi$deltaf),by=list(cna=yi$cna),
+            function(z) mean(z>0,na.rm=T))
+  dfi$uid <- yi$uid[1]
+  dfi$lab <- paste(yi$pdx[1],yi$tp[1],yi$uid[1])
+  return(dfi)
+}))
+
+
+
+lut <- unique(y$uid)
+names(lut) <- unique(y$lab)
+lu_treatment <- function(lab){
+  uid <- lut[lab]
+  x$treatment_status[x$uid==uid]
+}
+
+lut2 <- sapply(unique(y$lab),lu_treatment)
+lut2 <- as.character(lut2[])
+
+# Assuming your dataframe is named df
+# Convert dataframe to matrix, with rows as one categorical variable and columns as the other
+data_matrix <- as.matrix(reshape2::acast(y, lab ~ cna, value.var="deltaf"))
+
+# Create heatmap with hierarchical clustering
+hmp <- pheatmap::pheatmap(data_matrix, clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean", clustering_method = "complete")
+
+colors <- rep("blue",length(lut2))
+colors[lut2!="off"] <- "red"
+
+
+# Extract the gtable from the pheatmap object
+g <- hmp$gtable
+
+g$grobs[[which(g$layout$name == "row_names")]]$gp$col <- colors[hmp$tree_row$order]
+
+
+
+hmp$gtable <- g
+
+get_lineage_from_lab <- function(lab){
+  m$PDX_id[m$uid==lut[lab]]
+}
+get_trt_from_lab <- function(lab){
+  m$on_treatment[m$uid==lut[lab]]
+}
+
+pvals <- do.call(rbind,lapply(2:7, function(ki){
+  clusters <- cutree(hmp$tree_row,k = ki)
+  lineage <- sapply(names(clusters),get_lineage_from_lab)
+  treatment <- sapply(names(clusters),get_trt_from_lab)
+  comb <- interaction(lineage,treatment)
+  cl_df <- data.frame(clusters,lineage)
+  ctabl_lin <- table(lineage,clusters)
+  ctabl_trt <- table(treatment,clusters)
+  ctabl_comb <- table(comb,clusters)
+  data.frame(clusters=ki,
+             combined=fisher.test(ctabl_comb,simulate.p.value = T)$p.value,
+             lineage=fisher.test(ctabl_lin)$p.value,
+             treatment=fisher.test(ctabl_trt)$p.value)
+}))
+
+
+
+```
+
+```{r}
+
+# Load necessary libraries
+library(cluster)
+library(datasets)
+
+data(iris)
+set.seed(42)
+
+# Perform hierarchical clustering on the numeric data
+dist_matrix <- dist(iris[, -5])
+hclust_result <- hclust(dist_matrix, method = "ward.D2")
+
+# Cut the dendrogram into a certain number of clusters
+clusters <- cutree(hclust_result, k = 3)
+
+# Add the clusters as a new column in the dataset
+iris$Cluster <- as.factor(clusters)
+# Create a contingency table for GrowthLocation and Cluster, controlling for Species
+library(dplyr)
+iris$GrowthLocation <- sample(c('indoors', 'outdoors'), nrow(iris), replace = TRUE)
+# Create a new variable combining Species and GrowthLocation
+iris$Species_Growth <- interaction(iris$Species, iris$GrowthLocation)
+
+# Create contingency tables
+contingency_table_species <- table(iris$Species, iris$Cluster)
+contingency_table_growth <- table(iris$GrowthLocation, iris$Cluster)
+contingency_table_combined <- table(iris$Species_Growth, iris$Cluster)
+
+# Perform chi-square tests
+chi_square_test_species <- chisq.test(contingency_table_species)
+chi_square_test_growth <- chisq.test(contingency_table_growth)
+chi_square_test_combined <- chisq.test(contingency_table_combined)
+
+# Display the test results
+print(chi_square_test_species)
+print(chi_square_test_growth)
+print(chi_square_test_combined)
+
+
+
+
+```
+
+```{r}
+
+p <- ggplot(y,aes(x=cna,y=lab,fill=deltaf))+
+  geom_raster()+
+  scale_fill_viridis_c()
+p
+
+df <- split(df,f=df$cna)
+y <- do.call(rbind,lapply(df,function(dfi){
+  data.frame(cna=dfi$cna[1],
+             f=mean(dfi$deltaf>0,na.rm=T),
+             f2=mean(dfi$deltaf,na.rm=T))
+}))
+
+
+p1 <- ggplot(y,aes(x=cna,y=f1))+
+  geom_point()
+p1
+p2 <- ggplot(y,aes(x=cna,y=f2))+
+  geom_point()
+p2
+```
+
+
+```{r}
+library(grid)
+library(pheatmap)
+# Example data
+set.seed(123)
+data_matrix <- matrix(rnorm(100), nrow = 10)
+rownames(data_matrix) <- paste0("Row", 1:10)
+colnames(data_matrix) <- paste0("Col", 1:10)
+
+# Create the heatmap
+p <- pheatmap(data_matrix)
+
+# Get the order of the clustered rows and columns
+row_order <- p$tree_row$order
+col_order <- p$tree_col$order
+
+# Define custom colors for row and column labels
+row_colors <- rep(c("red", "blue"), length.out = nrow(data_matrix))
+col_colors <- rep(c("green", "purple"), length.out = ncol(data_matrix))
+
+# Extract the gtable from the pheatmap object
+g <- p$gtable
+
+g$grobs[[which(g$layout$name == "row_names")]]$gp$col <- row_colors[row_order]
+
+
+# Modify column label colors based on the clustering order
+for (i in seq_along(col_order)) {
+  g$grobs[[which(g$layout$name == "col_names")]]$gp$col[col_order[i]] <- col_colors[i]
+}
+
+# Draw the modified heatmap
+grid::grid.newpage()
+grid::grid.draw(g)
+
+
+```
 
 ```{r,echo=FALSE,include=FALSE,eval=FALSE}
 
@@ -331,13 +590,14 @@ cdf <- aggregate(list(sig=x$cor),by=list(d=x$d),function(i){
   t.test(i)$p.value
 })
 adf$pval <- cdf$sig
-adf$sig <-adf$pval<0.01
+adf$p.adj <- p.adjust(adf$pval,method="BH")
+adf$sig <- adf$p.adj<0.05
 
 pc <- ggplot(x,aes(x=d,y=cor))+
   geom_jitter(width=0.1,height=0,alpha=0.1)+
   geom_errorbar(data=adf,aes(ymax=cor,ymin=cor,color=sig),size=2)+
   scale_x_continuous("manhattan distance",limits=c(-0.5,20.5))+
-  scale_color_manual("P<0.01",values=c("#0000CC","#FF6666"))+
+  scale_color_manual("P<0.05",values=c("#0000CC","#FF6666"))+
   scale_y_continuous("Pearson coefficient")+
   labs(tag="C")+
   theme_bw(base_size=8)+
@@ -391,13 +651,14 @@ cdf <- aggregate(list(sig=df$cor),by=list(d=df$d),function(i){
   t.test(i)$p.value
 })
 adf$pval <- cdf$sig
-adf$sig <-adf$pval<0.01
+adf$p.adj <- p.adjust(adf$pval,method="BH")
+adf$sig <- adf$p.adj<0.05
 
 pd <- ggplot(df[df$pdx_equal==FALSE,],aes(x=d,y=cor))+
   geom_jitter(width=0.1,height=0,alpha=0.1)+
   geom_errorbar(data=adf,aes(ymax=cor,ymin=cor,color=sig),size=2)+
   scale_x_continuous("manhattan distance",limits=c(-0.5,20.5))+
-  scale_color_manual("P<0.01",values=c("#0000CC","#FF6666"))+
+  scale_color_manual("P<0.05",values=c("#0000CC","#FF6666"))+
   scale_y_continuous("Pearson coefficient")+
   labs(tag="D")+
   theme_bw(base_size=8)+
@@ -445,7 +706,8 @@ cdf <- aggregate(list(sig=df$cor),by=list(d=df$d,ids=df$ids),function(i){
   t.test(i)$p.value
 })
 adf$pval <- cdf$sig
-adf$sig <-adf$pval<0.01
+adf$p.adj <- p.adjust(adf$pval,method="BH")
+adf$sig <- adf$p.adj<0.05
 
 pxx <- ggplot(df[!df$are_equal,],aes(x=d,y=cor))+
   facet_grid(cols=vars(ids))+
@@ -453,7 +715,7 @@ pxx <- ggplot(df[!df$are_equal,],aes(x=d,y=cor))+
   geom_errorbar(data=adf,aes(ymax=cor,ymin=cor,color=sig),size=2,
                 show.legend = F)+
   scale_x_continuous("manhattan distance",limits=c(-0.5,20.5))+
-  scale_color_manual("P<0.01",values=c("#0000CC","#FF6666"))+
+  scale_color_manual("P<0.05",values=c("#0000CC","#FF6666"))+
   scale_y_continuous("Pearson coefficient")+
   labs(tag="F")+
   theme_bw(base_size=8)
@@ -500,20 +762,32 @@ cdf <- aggregate(list(sig=df$cor),by=list(d=df$d,ids=df$ids),function(i){
   t.test(i)$p.value
 })
 adf$pval <- cdf$sig
-adf$sig <-adf$pval<0.01
+
+adf <- split(adf,f=adf$ids)
+
+adf <- do.call(rbind,lapply(adf,function(ai){
+  ai$p.adj <- p.adjust(ai$pval,method="BH")
+  ai$sig <- ai$p.adj<0.05
+  return(ai)
+}))
+
+
+
+
 
 pf <- ggplot(df[!df$are_equal,],aes(x=d,y=cor))+
   facet_grid(cols=vars(ids))+
   geom_jitter(width=0.1,height=0,alpha=0.1)+
   geom_errorbar(data=adf,aes(ymax=cor,ymin=cor,color=sig),size=2,
                 show.legend = F)+
-  scale_x_continuous("manhattan distance",limits=c(-0.5,20.5))+
-  scale_color_manual("P<0.01",values=c("#0000CC","#FF6666"))+
+  scale_x_continuous("manhattan distance\nbetween karyotypes",limits=c(-0.5,20.5))+
+  scale_color_manual("P<0.05",values=c("#0000CC","#FF6666"))+
   scale_y_continuous("Pearson coefficient")+
   labs(tag="F")+
   theme_bw(base_size=8)
 pf
-
+labels <- c("bb\naaa","bb\nda","aaa\nda")
+pf <- grobwrapper(pf,labels)
 #ggsave("figures/salehi_landscape_similarity/figs/cor_within_SA609.png",width=4.5,height=7.5,units="in")
 ```
 
@@ -553,21 +827,22 @@ cdf <- aggregate(list(sig=df$cor),by=list(d=df$d,ids=df$ids),function(i){
   t.test(i)$p.value
 })
 adf$pval <- cdf$sig
-adf$sig <-adf$pval<0.01
-
+adf$p.adj <- p.adjust(adf$pval,method="BH")
+adf$sig <- adf$p.adj<0.05
 
 
 pg <- ggplot(df[!df$are_equal,],aes(x=d,y=cor))+
-  facet_grid(rows=vars(ids))+
+  facet_grid(cols=vars(ids))+
   geom_jitter(width=0.1,height=0,alpha=0.1)+
   geom_errorbar(data=adf,aes(ymax=cor,ymin=cor,color=sig),size=2)+
-  scale_x_continuous("manhattan distance",limits=c(-0.5,20.5))+
-  scale_color_manual("P<0.01",values=c("#0000CC","#FF6666"))+
+  scale_x_continuous("manhattan distance\nbetween karyotypes",limits=c(-0.5,20.5))+
+  scale_color_manual("P<0.05",values=c("#0000CC","#FF6666"))+
   scale_y_continuous("Pearson coefficient")+
   labs(tag="G")+
   theme_bw(base_size=8)
 pg
 
+pg <- grobwrapper(pg,c("baabb\na"))
 #ggsave("figures/salehi_landscape_similarity/figs/cor_within_SA535.png",width=4.5,height=3,units="in")
 ```
 
@@ -596,17 +871,21 @@ res <- rbind(wrapamap(ids=c(ff[2],ff[1])),
              wrapamap(ids=c(ff[3],ff[2])))
 
 res$uid <- gsub("b"," b",res$uid)
+
 ph <- ggplot(res,aes(x=a,y=b,fill=am))+
   facet_grid(cols=vars(uid))+
   geom_raster(show.legend = F)+
   scale_x_discrete("")+
   scale_y_discrete("")+
-  scale_fill_viridis_c("angle\nmetric",limits=c(20,120))+
+  scale_fill_viridis_c("angle\nmetric",limits=c(20,120)) +
   coord_fixed()+
   labs(tag="H")+
   theme_classic(base_size=8)+
   theme(plot.margin = margin(0,0,0,0))
 ph
+
+labels <- c("bb\naaa","bb\nda","aaa\nda")
+ph <- grobwrapper(ph,labels)
 #ggsave("figures/salehi_landscape_similarity/figs/SA609_angles.png",plot=p,width=7,height=2.5,units="in")
 
 ```
@@ -619,23 +898,27 @@ li <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
 ids <- c("SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds","SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds")
 
 res <- wrapamap(ids[c(2,1)])
+res$a <- stringr::str_pad(res$a,width=3)
 
 ppi <- ggplot(res,aes(x=a,y=b,fill=am))+
   facet_grid(cols=vars(uid))+
   geom_raster()+
   scale_x_discrete("")+
   scale_y_discrete("")+
-  scale_fill_viridis_c()+
-  scale_fill_viridis_c("angle\nmetric",limits=c(20,120))+
+  scale_fill_viridis_c("angle\nmetric",limits=c(20,120)) +
   coord_fixed()+
   labs(tag="I")+
   theme_classic(base_size=8)+
   theme(plot.margin = margin(0,0,0,0))
 ppi
+
+ppi <- grobwrapper(ppi,c("baabb\na"))
+
 #ggsave("figures/salehi_landscape_similarity/figs/SA535_angles.png",plot=p,width=3,height=2.5,units="in")
 
 
 ```
+
 
 
 
@@ -661,6 +944,7 @@ top <- cowplot::plot_grid(pa,topr,nrow=1,rel_widths=c(2,3))
 #bot <- grid.arrange(bota,botb,nrow=1)
 
 plot <- cowplot::plot_grid(top,bot,nrow=2)
-ggsave("figures/salehi_landscape_similarity/figure.png",plot = plot,width=9,height=9,units="in",bg="white")
+ggsave("figures/salehi_landscape_similarity/fig5.png",plot = plot,width=9,height=9,units="in",bg="white")
+
 ```
 

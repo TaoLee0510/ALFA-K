@@ -34,6 +34,7 @@ process_lineages <- function(m){
   
   lnames <- sapply(lineages,lineage_namer)
   names(lineages) <- lnames
+  return(lineages)
 }
 
 longest_cons <- function(ff,longest=T){

@@ -52,7 +52,7 @@ wgdA <- ggplot(df,aes(x=time,y=value,color=variable))+
   facet_grid(rows=vars(id))+
   geom_point()+
   scale_color_viridis_d("",end=0.7,labels=c("WGD-","WGD+"))+
-  scale_y_continuous("distance from euploid")+
+  scale_y_continuous("chromosomes altered")+
   scale_x_discrete("passage no.")+
   theme_classic(base_size=8)+
   labs(tag = "A")
@@ -87,8 +87,8 @@ getD <- function(k){
   d <- apply(k,1,function(ki){
     p <- mean(ki)
   
-    ddip <- sum(abs(ki-2))
-    dtet <- sum(abs(ki-4))
+    ddip <- sum(abs(ki-2)>0)
+    dtet <- sum(abs(ki-4)>0)
     if(p<3) return(ddip)
     return(dtet)
   
@@ -135,7 +135,7 @@ wgdB <- ggplot(df,aes(x=d,y=f_est))+
                fun.max = function(y) mean(y)+sd(y))+
   theme_classic(base_size=8)+
   labs(tag = "B")+
-  scale_x_continuous("distance from Euploid",breaks=0:10)+
+  scale_x_continuous("chromosomes altered",breaks=0:10)+
   scale_y_continuous("estimated fitness")
 wgdB
 

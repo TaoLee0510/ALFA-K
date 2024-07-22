@@ -21,11 +21,12 @@ gen_coords <- function(fi){
   
   u <- rownames(x$xo)
   
+  ## ALL KARYOTYPES
   v <- rbind(do.call(rbind,lapply(u,s2v)),
              gen_all_neighbours(u))
   
   
-  f <- c(predict(x$fit,v))
+  f <- c(predict(x$fit,v)) #KARYOTYPE FITNESS
   v <- apply(v,1,paste,collapse=".")
   indices <- unlist(lapply(1:22,rep,2))
   

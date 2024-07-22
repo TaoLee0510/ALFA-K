@@ -233,7 +233,7 @@ Compare theory to prediction
 
 get_theory_ss <- function(fi,df){
   pks <- df[[fi]]
-  mr <- list.files(paste0(dir,fi))
+  #mr <- list.files(paste0(dir,fi))
   mr <- c("0p0004","0p001","0p002","0p003","0p005")
   y <- readRDS(paste0("figures/misseg_landscape_exploration/data/coords/",fi,".Rds"))
   cellLine <- fi
@@ -362,44 +362,54 @@ z <- rbind(z1$z,z2$z)
 df <- rbind(z1$df,z2$df)
 
 relablr <- c(n0='misrate=0.0001',n1='misrate=0.005')
-pc <- ggplot(z,aes(x=u1,y=u2,color=value,shape=id))+
+
+labdf <- aggregate(list(u1=z$u1,u2=z$u2),by=list(cellLine=z$cellLine,variable=z$variable,id=z$id),mean)
+labdf$u3 <- c(0,-1,0,-1,15,-4,15,-4)
+labdf$u4 <- c(2,-3,2,-3,0,-1,0,-1)
+labdf$txt <- "x"
+labdf$txt[labdf$id] <- "y"
+ 
+pc <- ggplot(z,aes(x=u1,y=u2))+http://127.0.0.1:42627/graphics/plot_zoom_png?width=713&height=554
   facet_grid(cols=vars(cellLine),rows=vars(relablr[variable]),scales="free")+
-    geom_point(size=0.6)+
     scale_color_viridis_c("steady\n-state\nfreq.",trans="log",breaks=c(1e-1,1e-5,1e-9,1e-13,1e-17))+
+    geom_segment(data=labdf,aes(xend=u3,yend=u4),color="grey50")+  
+    geom_point(size=1,aes(color=value))+
     scale_x_continuous("umap1")+
     scale_y_continuous("umap2")+
-    scale_shape_discrete("group",labels=c("x","y"))+
+    geom_label(data=labdf,aes(x=u3,y=u4,label=txt))+
     theme_classic(base_size=8)+
     labs(tag="C")+
     theme(legend.key.size = unit(0.1,"in"))
 pc
   
-pe <- ggplot(z2$df,aes(x=u1,y=u2,color=f,shape=id))+
+pe <- ggplot(z2$df,aes(x=u1,y=u2))+
     facet_grid(cols=vars(cellLine),scales="free")+
-    geom_point(size=0.4)+
+    geom_segment(data=labdf[labdf$cellLine=="scenario B",],aes(xend=u3,yend=u4),color="grey50")+  
+    geom_point(size=1,aes(color=f))+
+    geom_label(data=labdf[labdf$cellLine=="scenario B",],aes(x=u3,y=u4,label=txt))+
     scale_color_viridis_c("fitness")+
     scale_x_continuous("umap1")+
     scale_y_continuous("umap2")+
-    scale_shape_discrete("group",labels=c("x","y"))+
     theme_classic(base_size=8)+
     labs(tag="E")+
     theme(legend.key.size = unit(0.1,"in"))
 pe
   
-  pd <- ggplot(z1$df,aes(x=u1,y=u2,color=f,shape=id))+
+pd <- ggplot(z1$df,aes(x=u1,y=u2))+
     facet_grid(cols=vars(cellLine),scales="free")+
-    geom_point(size=0.4)+
-    scale_color_viridis_c("fitness")+
+    geom_segment(data=labdf[labdf$cellLine=="scenario A",],aes(xend=u3,yend=u4),color="grey50")+  
+    geom_point(size=1,aes(color=f))+
+    geom_label(data=labdf[labdf$cellLine=="scenario A",],aes(x=u3,y=u4,label=txt))+
     scale_x_continuous("umap1")+
     scale_y_continuous("umap2")+
-    scale_shape_discrete("group",labels=c("x","y"))+
+    scale_color_viridis_c("fitness")+  
     theme_classic(base_size=8)+
     labs(tag="D")+
     theme(legend.key.size = unit(0.1,"in"))
   pd
   
   pf <- ggplot(df,aes(x=ploidy,fill=id))+
-    facet_grid(cols=vars(cellLine),scales="free")+
+    facet_wrap(~cellLine,scales="free")+
     geom_histogram(position="dodge",bins = 10)+
     scale_fill_viridis_d("group",labels=c("x","y"),end=0.8)+
     scale_x_continuous("ploidy")+
@@ -409,7 +419,7 @@ pe
   pf
   
   pg <- ggplot(df,aes(x=f,fill=id))+
-    facet_grid(cols=vars(cellLine),scales="free")+
+    facet_wrap(~cellLine,scales="free")+
     geom_histogram(position="dodge",bins=10)+
     scale_fill_viridis_d("group",labels=c("x","y"),end=0.8)+
     scale_x_continuous("fitness")+
@@ -429,5 +439,5 @@ c1 <- grid.arrange(pa,pc,ncol=1,heights=c(1,1))
 c2 <- grid.arrange(pb,grid.arrange(pd,pe,ncol=2),pf,pg,ncol=1,heights=c(1,1,1,1))
 
 plt <- grid.arrange(c1,c2,nrow=1,widths=c(1.2,1))
-ggsave("figures/misseg_landscape_exploration/figure.png",plot=plt,width=8,height=8,units="in")
+ggsave("figures/misseg_landscape_exploration/fig6.png",plot=plt,width=8,height=8,units="in")
 ```
