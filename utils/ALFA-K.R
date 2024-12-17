@@ -5,7 +5,7 @@ proc_sim <- function(dir,times){
   dt <- read.csv(paste0(dir,"/log.txt"),sep=",")$dt
   
   filenames <- list.files(dir)
-  filenames <- filenames[!filenames%in%c("proc_data","log.txt")]
+  filenames <- filenames[!filenames%in%c("proc_data.txt","log.txt","summary.txt")]
   tx <- as.numeric(substr(filenames,1,5))
   filenames <- paste0(dir,"/",sapply(times, function(ti) filenames[which.min(abs(ti-tx))]))
   tx <- sapply(times, function(ti) tx[which.min(abs(ti-tx))])

@@ -1,5 +1,5 @@
-#setwd("~/projects/ALFA-K")
-setwd("~/projects/008_birthrateLandscape/ALFA-K")
+setwd("~/projects/ALFA-K")
+#setwd("~/projects/008_birthrateLandscape/ALFA-K")
 
 dir <- "data/main/"
 conditions <- list.files(dir)
@@ -7,10 +7,10 @@ ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))
 #print(unique(ids))
 conditions <- conditions[ids=="0.00005"]
 #print(conditions)
-conds <- expand.grid(min_obs=c(5,10,20),ntp=c(2,4,8))
+conds <- expand.grid(min_obs=c(5,10,20),ntp=c(2,3,4,8))
 
 library(parallel)
-cl <- makeCluster(getOption("cl.cores", 3))
+cl <- makeCluster(getOption("cl.cores", 8))
 clusterCall(cl, function() source("utils/ALFA-K.R"))
 clusterExport(cl = cl,c("dir","conds"))
 
@@ -18,7 +18,7 @@ clusterExport(cl = cl,c("dir","conds"))
 x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
   print(fi)
   di <- paste0(dir,fi,"/train/")
-  fit_dir <- paste0(dir,fi,"/sweep_fits/")
+  fit_dir <- paste0(dir,fi,"/sweep_fits_v2/")
   dir.create(fit_dir)
   rep_id <- list.files(di)
   
@@ -50,7 +50,7 @@ x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
       df <- split(df,f=df$id)
       
       res <- do.call(rbind,lapply(df,function(dfi){
-        data.frame(id=dfi$id[1],r2=cor(dfi$f_est,dfi$f))
+        data.frame(id=dfi$id[1],r2=cor(dfi$f_est,dfi$f,use="complete.obs"))
       }))  
       res$cond_id <- fi
       res$rep_id <- rep_i
