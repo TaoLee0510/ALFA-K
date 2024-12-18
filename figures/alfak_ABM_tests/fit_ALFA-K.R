@@ -12,10 +12,6 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-if (is.null(opt$name)){
-  print_help(opt_parser)
-  stop("At least one argument must be supplied (name)", call.=FALSE)
-}
 
 ## https://stackoverflow.com/questions/1815606/determine-path-of-the-executing-script
 thisFile <- function() {
