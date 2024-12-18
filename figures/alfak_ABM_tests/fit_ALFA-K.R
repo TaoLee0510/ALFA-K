@@ -33,7 +33,7 @@ thisFile <- function() {
 
 root.dir <- gsub("[\\]","/",thisFile())
 root.dir <- unlist(strsplit(root.dir,split="/"))
-root.dir <- root.dir[1:(length(root.dir)-2)]
+root.dir <- root.dir[1:(length(root.dir)-3)]
 root.dir <- paste0(paste(root.dir,collapse="/"),"/")
 setwd(root.dir)
 
