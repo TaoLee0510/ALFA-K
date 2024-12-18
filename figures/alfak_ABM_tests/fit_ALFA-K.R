@@ -1,16 +1,53 @@
-setwd("~/projects/ALFA-K")
-#setwd("~/projects/008_birthrateLandscape/ALFA-K")
+library("optparse")
+
+option_list = list(
+  make_option(c("-c", "--cores"), type="numeric", default=1, 
+              help="number of parallel cores [default= %default]"),
+  make_option(c("-n", "--ntp"), type="character", default="2,3,4,8", 
+              help="number of timepoints to sample[default= %default]"),
+  make_option(c("-m", "--minobs"), type="character", default="5,10,20", 
+              help="frequent karyotype minimal threshold [default= %default]")
+); 
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser);
+
+if (is.null(opt$name)){
+  print_help(opt_parser)
+  stop("At least one argument must be supplied (name)", call.=FALSE)
+}
+
+## https://stackoverflow.com/questions/1815606/determine-path-of-the-executing-script
+thisFile <- function() {
+  cmdArgs <- commandArgs(trailingOnly = FALSE)
+  needle <- "--file="
+  match <- grep(needle, cmdArgs)
+  if (length(match) > 0) {
+    # Rscript
+    return(normalizePath(sub(needle, "", cmdArgs[match])))
+  } else {
+    # 'source'd via R console
+    return(normalizePath(sys.frames()[[1]]$ofile))
+  }
+}
+
+root.dir <- gsub("[\\]","/",thisFile())
+root.dir <- unlist(strsplit(root.dir,split="/"))
+root.dir <- root.dir[1:(length(root.dir)-2)]
+root.dir <- paste0(paste(root.dir,collapse="/"),"/")
+setwd(root.dir)
 
 dir <- "data/main/"
 conditions <- list.files(dir)
 ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))[6]))
-#print(unique(ids))
-conditions <- conditions[ids=="0.00005"]
-#print(conditions)
-conds <- expand.grid(min_obs=c(5,10,20),ntp=c(2,3,4,8))
+
+min_obs <- as.numeric(unlist(strsplit(opt$min_obs,split=",")))
+ntp <- as.numeric(unlist(strsplit(opt$ntp,split=",")))
+
+conds <- expand.grid(min_obs=min_obs,ntp=ntp)
 
 library(parallel)
-cl <- makeCluster(getOption("cl.cores", 8))
+cl <- makeCluster(getOption("cl.cores", opt$cores))
 clusterCall(cl, function() source("utils/ALFA-K.R"))
 clusterExport(cl = cl,c("dir","conds"))
 
@@ -18,7 +55,7 @@ clusterExport(cl = cl,c("dir","conds"))
 x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
   print(fi)
   di <- paste0(dir,fi,"/train/")
-  fit_dir <- paste0(dir,fi,"/sweep_fits_v2/")
+  fit_dir <- paste0(dir,fi,"/sweep_fits/")
   dir.create(fit_dir)
   rep_id <- list.files(di)
   
@@ -61,5 +98,3 @@ x <- do.call(rbind,parLapplyLB(cl=cl,X=conditions, fun=function(fi){
   }))
   saveRDS(xi,paste0(dir,fi,"/fit_summaries.Rds"))
 }))
-
-#saveRDS(x,"figures/alfak_ABM_tests/fit_summaries.Rds")

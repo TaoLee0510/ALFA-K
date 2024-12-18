@@ -225,7 +225,7 @@ ggsave("figures/alfak_ABM_tests/figs/fig1.png",plot = fig1,width=ncol(lay)/300,h
 
 ```
 Input data for this sweep was generated using the following commands and scripts:
-Rscript utils/generate_ABM_sweep.R -n data/main -r 100 -w 0.2 0.4 0.8 1.6 -m 0.00005 
+Rscript utils/generate_ABM_sweep.R -n data/main -r 100 -w '0.2,0.4,0.8,1.6 -m 0.00005 
 Rscript utils/process_abm_sweep.R -n data/main 
 Rscript utils/sweep_summary_stats -n data/main -o data/main_stats.Rds
 
