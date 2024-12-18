@@ -5,7 +5,7 @@ option_list = list(
               help="number of parallel cores [default= %default]"),
   make_option(c("-n", "--ntp"), type="character", default="2,3,4,8", 
               help="number of timepoints to sample[default= %default]"),
-  make_option(c("-m", "--minobs"), type="character", default="5,10,20", 
+  make_option(c("-m", "--min_obs"), type="character", default="5,10,20", 
               help="frequent karyotype minimal threshold [default= %default]")
 ); 
 
