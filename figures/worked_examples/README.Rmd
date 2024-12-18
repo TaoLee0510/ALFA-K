@@ -16,6 +16,7 @@ knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
 
 We will explore what happens when there are not enough samples first.
 
+
 ```{r}
 root.dir <- "data/main/"
 sweepID <- "N_22_w_1p6_m_0.00005_rep_08"
@@ -85,6 +86,7 @@ p2
 
 root.dir <- "data/main/"
 sweepID <- "N_22_w_1p6_m_0.00005_rep_08"
+dir.create(paste0("figures/worked_examples/data/",sweepID),showWarnings = F)
 dir <- paste0(root.dir,sweepID,"/")
 
 z <- readRDS("tests/data/pearsonR.Rds")
@@ -97,22 +99,103 @@ fobj <- gen_fitness_object(paste0(dir,"/config.txt"), paste0(dir,"/landscape.txt
 
 q <- do.call(rbind,lapply(z$id2,function(id){
   ntp <- as.numeric(unlist(strsplit(id,"_"))[4])
-  fit_obj <- readRDS(paste0(dir,"sweep_fits/",id,".Rds"))
-  q <- fit_obj$xo
-  q$id2 <- ntp
-  v <- do.call(rbind,lapply(rownames(q),s2v))
-  q$ftru <- apply(v,1,getf,fobj=fobj)
-  q
+  
+  x <- proc_sim(paste0(dir,"train/00000/"),seq(0,2000,length.out=ntp))
+  xo <- alfak(x,min_obs = 10)
+  n <- do.call(rbind,lapply(rownames(xo$xo),s2v))
+  xo$xo$f_tru <- apply(n,1,getf,fobj=fobj)
+  
+  n2 <- gen_all_neighbours(rownames(xo$xo))
+  ftru2 <- apply(n2,1,getf,fobj=fobj)
+  fest2 <- predict(xo$fit,n2)
+  
+  df2 <- data.frame(f_est=fest2,f_tru=ftru2)
+  
+  xo$d2n <- df2
+  
+  saveRDS(xo,paste0("figures/worked_examples/data/",sweepID,"/",id,".Rds"))
 }))
 
-p <- ggplot(q,aes(x=f_est,y=ftru,color=id))+
-  facet_grid(cols=vars(id2),scales="free")+
-  geom_point()+
-  geom_point(data=q[q$id=="fq",])+
-  geom_abline(intercept=0.28)
+dd <- "figures/worked_examples/data/N_22_w_1p6_m_0.00005_rep_08/"
+for(d in list.files(dd)){
+  x <- readRDS(paste0(dd,d))
+  n <- do.call(rbind,lapply(rownames(x$xo),s2v))
+  x$xo$f_tru <- apply(n,1,getf,fobj=fobj)
+  colnames(x$d2n) <- c("f_tru","f_est")
+  saveRDS(x,paste0(dd,d))
+}
+```
+
+
+
+```{r}
+
+dd <- "figures/worked_examples/data/N_22_w_1p6_m_0.00005_rep_08/"
+f <- list.files(dd)
+
+y <- do.call(rbind,lapply(f,function(fi){
+  x <- readRDS(paste0(dd,fi))
+  x$d2n$id <- "d2n"
+  y <- rbind(x$xo[,colnames(x$d2n)],x$d2n)
+  y$ntp <- unlist(strsplit(fi,split="_"))[4]
+  y
+}))
+
+
+p <- ggplot(y,aes(x=f_est,y=f_tru))+
+  facet_grid(cols=vars(ntp),rows=vars(id),scales="free")+
+  geom_point(aes(color=id))
 p
 
+```
 
+```{r}
+
+
+root.dir <- "data/main/"
+sweepID <- "N_22_w_1p6_m_0.00005_rep_08"
+dir <- paste0(root.dir,sweepID,"/")
+
+id <- "minobs_10_ntp_2_00000"
+outDir <- paste0("figures/worked_examples/data/",id,"/")
+dir.create(outDir)
+set.seed(42)
+
+
+fobj <- gen_fitness_object(paste0(dir,"/config.txt"), paste0(dir,"/landscape.txt"))
+
+reps <- 0:9
+ntp <- as.numeric(unlist(strsplit(id,"_"))[4])
+x <- proc_sim(paste0(dir,"train/00000/"),seq(0,2000,length.out=ntp))
+for(rep in reps){
+  xo <- alfak(x,min_obs = 10)
+  n <- do.call(rbind,lapply(rownames(xo$xo),s2v))
+  xo$xo$f_tru <- apply(n,1,getf,fobj=fobj)
+  saveRDS(xo,paste0(outDir,"test_",rep,".Rds"))
+  print(cor(xo$xo$f_est[xo$xo$id=="fq"],xo$xo$f_tru[xo$xo$id=="fq"]))
+  print(cor(xo$xo$f_est[xo$xo$id=="nn"],xo$xo$f_tru[xo$xo$id=="nn"]))
+}
+
+
+
+```
+
+
+```{r}
+
+root.dir <- "data/main/"
+sweepID <- "N_22_w_1p6_m_0.00005_rep_08"
+dir <- paste0(root.dir,sweepID,"/")
+
+id <- "minobs_10_ntp_2_00000"
+ntp <- as.numeric(unlist(strsplit(id,"_"))[4])
+
+x <- proc_sim(paste0(dir,"train/00000/"),seq(0,2000,length.out=ntp))
+
+x0 <- readRDS("figures/worked_examples/data/minobs_10_ntp_2_00000/test_1.Rds")
+x0 <- x0$xo[x0$xo$id=="fq",]
+x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
+hist(x1$f_est)
 ```
 
 Seems like something is different about our neighbor fitness estimation that means our old result is not reproducible. Plus side - new result looks better. Guess we better rerun.
@@ -133,11 +216,15 @@ ntp <- as.numeric(unlist(strsplit(id,"_"))[4])
 x <- proc_sim(paste0(dir,"train/00000/"),seq(0,2000,length.out=ntp))
 
 misseg_rate<- 0.00005
+min_obs=10
+min_tp=0
 
 fit_obj <- readRDS(paste0(dir,"sweep_fits/",id,".Rds"))
 
-x0 <- fit_obj$xo[fit_obj$xo$id=="fq",]
-x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
-x1_ <- fit_obj$xo[fit_obj$xo$id=="nn",]
+x0 <- opt_g_free(x,min_obs,min_tp)
+  x1 <- wrap_neighbor_fitness(x,x0,pm0=misseg_rate)
+  x0$id <- "fq"
+  x1$id <- "nn"
+  xo <- rbind(x0,x1)
 ```
 

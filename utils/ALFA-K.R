@@ -207,7 +207,7 @@ optim_neighbor_fitness <- function(f,tp,iflux,ftp,sdy,u,tt,pop_size,f_est,dt){
   ux <- approx(tp,xtp,xout=tt)$y
   ux <- pmin(ux,0.9999)
   deltaf <- abs(f-f_est)
-  negll <- c(-log(dbinom(u,pop_size,prob=ux)), -log(dnorm(deltaf,mean=0,sd=sdy)))
+  negll <- c(-dbinom(u,pop_size,prob=ux,log=T), -dnorm(deltaf,mean=0,sd=sdy,log=T))
   negll[!is.finite(negll)] <- 10^9## to prevent warnings when probability is zero
   sum(negll)
 }
@@ -245,8 +245,11 @@ get_neighbor_fitness <- function(ni,x_opt,x,pm0,ntp=100){
     aj <- approx(as.numeric(colnames(x$x)),as.numeric(fu[j,]),xout = tp)$y
     aj*diff(tp)[1]*x$dt*pm[j]*x_opt_i$f_est[j]
   })))
-  
-  oni <- optimise(optim_neighbor_fitness,interval=c(0,max(x_opt$f_est)),tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
+  estimated_range <- diff(range(x_opt$f_est))
+  oni <- optimise(optim_neighbor_fitness,
+                  interval=c(min(x_opt$f_est)-estimated_range,
+                             max(x_opt$f_est)+estimated_range),
+                  tp=tp,iflux=iflux,ftp=ftp,sdy=sdy,
                   u=u,tt=colnames(x$x),pop_size=colSums(x$x),f_est=x_opt_i$f_est,dt=x$dt)
   data.frame(f_est=oni$minimum,u0=NaN,ll=oni$objective,n=sum(u),ntp=sum(u>0))
 }
