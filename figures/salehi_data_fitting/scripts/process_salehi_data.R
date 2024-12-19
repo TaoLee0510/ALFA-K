@@ -339,7 +339,7 @@ fitSalehiData <- function(ncores=70,inputsDir="data/salehi/alfak_inputs/",min_ob
   cl <- makeCluster(getOption("cl.cores", ncores))
   outdirs <- paste0(outputsDir,"minobs_",min_obs,"/")
   sapply(outdirs,dir.create,recursive=T)
-  clusterExport(cl,varlist = c("min_obs","outdirs","inputsDir"))
+  clusterExport(cl,varlist = c("min_obs","outdirs","inputsDir"), envir = environment())
   parLapplyLB(cl=cl,X=ff, function(fi){
     source("utils/ALFA-K.R")
     print(fi)
