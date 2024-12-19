@@ -331,3 +331,43 @@ extract_lineages <- function(data_path="data/salehi/"){
     saveRDS(x,paste0(outdir,id,".Rds"))
   }
 }
+
+fitSalehiData <- function(ncores=70,inputsDir="data/salehi/alfak_inputs/",min_obs=c(5,10,20),
+                          outputsDir="data/salehi/alfak_fits/"){
+  ff <- list.files(inputsDir)
+  library(parallel)
+  cl <- makeCluster(getOption("cl.cores", ncores))
+  outdirs <- paste0(outputsDir,"minobs_",min_obs,"/")
+  sapply(outdirs,dir.create,recursive=T)
+  clusterExport(cl,varlist = c("min_obs","outdirs","inputsDir"))
+  parLapplyLB(cl=cl,X=ff, function(fi){
+    source("utils/ALFA-K.R")
+    print(fi)
+    tryCatch({
+      x <- readRDS(paste0(inputsDir,fi))
+      nx <- rowSums(x$x)
+      
+      fits <- lapply(min_obs,function(ni){
+        tryCatch({
+          if(sum(nx>ni)<3) stop("insufficient data for XV procedure")
+          fit <- alfak(x,min_obs = ni)
+          xfq <- fit$xo[fit$xo$id=="fq",]
+          fv <- unlist(sapply(1:nrow(xfq),optim_loo,xx=x,xo=xfq))
+          xfq$f_xv <- fv
+          fit$min_obs <- ni
+          fit$xv_res <- xfq
+          fit$vx_cor <- tryCatch({cor(xfq$f_est,xfq$f_xv,use="complete")},
+                                 error=function(e) return(-Inf))
+          print(fit$vx_cor)
+          fit
+        },error=function(e) return(NULL))
+        
+      })
+      for(i in 1:length(fits)){
+        if(!is.null(fits[[i]])){
+          saveRDS(fits[[i]],paste0(outdirs[i],fi))
+        }
+      }
+    },error=function(e) print(e))
+  })
+}
