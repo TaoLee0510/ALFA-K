@@ -95,6 +95,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   clusterCall(cl, function() {
     source("utils/comparison_functions.R")
     source("utils/ALFA-K.R")
+    library(transport)
   })
   
   # Export variables to the cluster
@@ -110,6 +111,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
       # Process simulations
       x0 <- proc_sim(train_path, times = eval_times)
       x1 <- proc_sim(test_path, times = eval_times - delta_t)
+      colnames(x1$x) <- as.numeric(colnames(x1$x))+delta_t
       
       # Compute metrics
       a <- w <- c()
