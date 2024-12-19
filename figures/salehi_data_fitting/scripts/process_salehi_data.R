@@ -291,7 +291,7 @@ extract_lineages <- function(data_path="data/salehi/"){
   saveRDS(lineages,paste0(data_path,"/lineages.Rds"))
   outdir <- paste0(data_path,"/alfak_inputs/")
   dir.create(outdir,showWarnings = F,recursive = T)
-  cnmat <- readRDS(paste0(data_path,"/data/salehi/chrom_level_cn.Rds"))
+  cnmat <- readRDS(paste0(data_path,"chrom_level_cn.Rds"))
   for(i in 1:length(lineages)){
     id <- names(lineages)[i]
     print(i)
