@@ -219,11 +219,10 @@ call_cn <- function(x,arms,level="chrom"){
   return(x)
 }
 
-extract_cn_profiles <- function(data_path){
-  setwd(data_path)
-  arms <- readRDS("../arm_loci.Rds")
+extract_cn_profiles <- function(path2armloci="data/salehi/arm_loci.Rds",path2raw="data/salehi/raw_post_jump",path2Save="data/salehi/"){
+  arms <- readRDS(path2armloci)
   
-  ff <- list.files()
+  ff <- list.files(path2raw)
   #bins <- lapply(ff, function(fi){
   # if(!file.exists(paste0(fi,"/named_mat.csv"))) return(NULL)
   #x <- data.frame(data.table::fread(paste0(fi,"/named_mat.csv")))
@@ -241,6 +240,7 @@ extract_cn_profiles <- function(data_path){
   
   #nbins <- sapply(ff, function(fi) nrow(data.table::fread(paste0(fi,"/named_mat.csv"))))
   ff <- ff[!ff=="SA004"]
+  ff <- paste0(path2raw,"/",ff)
   
   ##IF USING POST JUMP DATA UNCOMMENT ABOVE THEN FOLLOW CAPS COMMENTS BELOW
   
@@ -262,7 +262,7 @@ extract_cn_profiles <- function(data_path){
   ids <- sapply(ids, function(idi) unlist(strsplit(idi,split="[.]"))[2])
   x <- data.frame(x,check.names=F)
   x <- split(x,f=ids)
-  saveRDS(x,file="../chrom_level_cn.Rds")
+  saveRDS(x,file=paste0(path2Save,"/chrom_level_cn.Rds"))
   
   x <- do.call(rbind,lapply(ff, function(fi){
     print(fi)
@@ -282,17 +282,16 @@ extract_cn_profiles <- function(data_path){
   ids <- sapply(ids, function(idi) unlist(strsplit(idi,split="[.]"))[2])
   x <- data.frame(x,check.names=F)
   x <- split(x,f=ids)
-  saveRDS(x,file="../arm_level_cn.Rds")
+  saveRDS(x,file=paste0(path2Save,"/arm_level_cn.Rds"))
 }
 
-extract_lineages <- function(data_path){
-  setwd(data_path)
-  m <- read.csv("metadata.csv")
+extract_lineages <- function(data_path="data/salehi/"){
+  m <- read.csv(paste0(data_path,"/metadata.csv"))
   lineages <- process_lineages(m)
-  saveRDS(lineages,"lineages.Rds")
-  outdir <- "alfak_inputs/"
+  saveRDS(lineages,paste0(data_path,"/lineages.Rds"))
+  outdir <- paste0(data_path,"/alfak_inputs/")
   dir.create(outdir,showWarnings = F,recursive = T)
-  cnmat <- readRDS("data/salehi/chrom_level_cn.Rds")
+  cnmat <- readRDS(paste0(data_path,"/data/salehi/chrom_level_cn.Rds"))
   for(i in 1:length(lineages)){
     id <- names(lineages)[i]
     print(i)
