@@ -31,7 +31,7 @@ setup_and_run <- function(fi){
 }
 
 forwardSims <- function(alfak_dir="~/projects/ALFA-K",
-                        fitDir = "data/salehi/alfak_fits/",
+                        fitDir = "data/salehi/alfak_fits/minobs_5/",
                         dataDir = "data/salehi/alfak_inputs/",
                         simDir = "data/salehi/forward_sims/",
                         nCores=60,nRuns=3){
