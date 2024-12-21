@@ -26,7 +26,7 @@ setup_and_run <- function(fi){
   config <- modify_config("output_dir",outputDir,config)
   writeLines(config,configPath)
   
-  cmd <- paste(cpp_cmd,cfig_path)
+  cmd <- paste(cpp_cmd,configpath)
   for(i in 1:nRuns) system(cmd)
 }
 
