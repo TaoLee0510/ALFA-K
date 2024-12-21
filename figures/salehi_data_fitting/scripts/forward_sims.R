@@ -35,7 +35,7 @@ forwardSims <- function(alfak_dir="~/projects/ALFA-K",
                         dataDir = "data/salehi/alfak_inputs/",
                         simDir = "data/salehi/forward_sims/",
                         nCores=60,nRuns=3){
-  setwd(base_dir)
+  setwd(alfak_dir)
   ff <- list.files(fitDir)
   base_config <- c("init_kary,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2",
                    "fitness_landscape_type,krig",
