@@ -371,3 +371,17 @@ fitSalehiData <- function(ncores=70,inputsDir="data/salehi/alfak_inputs/",min_ob
     },error=function(e) print(e))
   })
 }
+
+aggregateSalehiFits <- function(inDir,outPath){
+  soure("utils/comparison_functions.R")
+  ff <- list.files(inDir)
+  df <- do.call(rbind,lapply(ff,function(fi){
+    xi <- readRDS(paste0(inDir,"/",fi))
+    xvr <- xi$xv_res
+    xvr <- xvr[!is.na(xvr$f_xv),]
+    r2 <- R2(obs = xvr$f_est,pred=xvr$f_xv)
+    data.frame(file=fi,R2=r2)
+  }))
+  saveRDS(df,outPath)
+  return(df)
+}
