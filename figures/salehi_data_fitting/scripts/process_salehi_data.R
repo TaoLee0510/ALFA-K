@@ -373,9 +373,9 @@ fitSalehiData <- function(ncores=70,inputsDir="data/salehi/alfak_inputs/",min_ob
 }
 
 aggregateSalehiFits <- function(inDir,outPath){
-  soure("utils/comparison_functions.R")
+  source("utils/comparison_functions.R")
   ff <- list.files(inDir)
-  df <- do.call(rbind,lapply(ff,function(fi){
+  df <- do.call(rbind,pbapply::lapply(ff,function(fi){
     xi <- readRDS(paste0(inDir,"/",fi))
     xvr <- xi$xv_res
     xvr <- xvr[!is.na(xvr$f_xv),]
