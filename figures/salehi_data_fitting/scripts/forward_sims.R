@@ -50,12 +50,8 @@ forwardSims <- function(alfak_dir="~/projects/ALFA-K",
   cpp_cmd <- "ABM/bin/ABM"
   library(parallel)
   cl <- makeCluster(getOption("cl.cores", nCores))
-  clusterExport(cl,varlist=c("cpp_cmd","base_config","simDir","dataDir","fitDir","nRuns"))
+  clusterExport(cl,varlist=c("cpp_cmd","base_config","simDir","dataDir","fitDir","nRuns"), envir = environment())
   clusterCall(cl,fun=function() source("utils/sim_setup_functions.R"))
   x <- parLapplyLB(cl=cl,X=ff,fun=setup_and_run)
 }
-
-
-
-
 
