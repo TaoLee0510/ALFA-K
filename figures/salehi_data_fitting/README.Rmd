@@ -25,7 +25,7 @@ knitr::opts_knit$set(root.dir = "~/projects/008_birthrateLandscape/ALFA-K/")
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
 #First we will pull all the lineages from the metadata. A lineage is defined as any sequence of two or more consecutive samples. 
-source("figures/salehi_data_fitting/scripts/lineage_processing.R")
+source("figures/salehi_data_fitting/scripts/process_salehi_data.R")
 
 m <- read.csv("data/salehi/metadata.csv")
 lineages <- process_lineages(m)
@@ -35,10 +35,15 @@ saveRDS(lineages,"figures/salehi_data_fitting/data/lineages.Rds")
 
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
-#Run the following scripts (in order) to preprocess & fit the Salehi data.The third script will take several hours on a regular PC. 
-source("figures/salehi_data_fitting/scripts/extract_cn_profiles.R")
-source("figures/salehi_data_fitting/scripts/extract_lineage_v2.R") 
-source("figures/salehi_data_fitting/scripts/fit_alfak_v2.R")
+#Run the following preprocess & fit the Salehi data.The third function will take several hours on a regular PC but can be done in parallel to speed up. 
+
+source("figures/salehi_data_fitting/scripts/process_salehi_data.R")
+
+extract_cn_profiles()
+extract_lineages()
+fitSalehiData(ncores = 1)
+
+
 ```
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}

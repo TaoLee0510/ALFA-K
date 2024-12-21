@@ -118,10 +118,11 @@ setup_abm <- function(sim_dir,pars=NULL,pop=NULL,fit=NULL){
   return(config_path)
 }
 
-gen_abm_landscape <- function(fit){
+gen_abm_landscape <- function(fit,deltaf=0){
   knots <- fit$knots
   cc <- fit$c
   d <- fit$d
+  d[1] <- d[1]+deltaf
   fscape <- rbind(cbind(knots,cc),c(d))
   return(fscape)
 }

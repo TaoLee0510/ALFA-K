@@ -1,0 +1,10 @@
+init_kary,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
+fitness_landscape_type,krig
+dt,0.1
+p,0.00005
+Nsteps,1000
+init_size,100000
+pop_write_freq,10
+population_file,data/salehi/forward_sims_v2a/SA000_X4_l_3_d1_3_d2_5/pop.txt
+output_dir,data/salehi/forward_sims_v2a/SA000_X4_l_3_d1_3_d2_5/output/
+fitness_landscape_file,data/salehi/forward_sims_v2a/SA000_X4_l_3_d1_3_d2_5/lscape.txt
