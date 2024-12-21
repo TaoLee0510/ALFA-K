@@ -1,5 +1,5 @@
 
-xvalALFAK <- function(alfak_dir = "~/projects/ALFA-K",simDir="data/main/"){
+xvalALFAK <- function(alfak_dir = "~/projects/ALFA-K",simDir="data/main/",nCores=70){
   setwd(alfak_dir)
   conditions <- list.files(simDir)
   ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))[6]))
