@@ -139,3 +139,63 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   return(df)
 }
 
+
+compute_wasserstein_distances <- function(eval_times=c(2000,3000), inDir="data/main/", outPath="data/proc/summaries/wasserstein_distances.Rds", delta_t = 2000, cores = 70) {
+  #N.B the way this function is setup, always set eval times as the "initial" timepoint & the timepoint of interest
+  # Load required libraries
+  library(parallel)
+  
+  # Retrieve train-test paths
+  df <- get_train_test_paths(inDir)
+  if (nrow(df) == 0) {
+    stop("No valid train-test paths found in the specified directory.")
+  }
+  
+  # Set up parallel cluster
+  cl <- makeCluster(cores)
+  
+  # Source necessary scripts on all workers
+  clusterCall(cl, function() {
+    source("utils/comparison_functions.R")
+    source("utils/ALFA-K.R")
+    library(transport)
+  })
+  
+  # Export variables to the cluster
+  clusterExport(cl, varlist = c("eval_times", "delta_t", "df"), envir = environment())
+  
+  # Parallel processing
+  res <- data.frame(do.call(rbind, parLapplyLB(cl, 1:nrow(df), function(i) {
+    tryCatch({
+      # Extract paths
+      train_path <- paste(df$base_path[i], df$train_path[i], sep = "/")
+      test_path <- paste(df$base_path[i], df$test_path[i], sep = "/")
+      
+      # Process simulations
+      x0 <- proc_sim(train_path, times = eval_times)
+      x1 <- proc_sim(test_path, times = eval_times - delta_t)
+      colnames(x1$x) <- as.numeric(colnames(x1$x))+delta_t
+      
+      
+      d1 <- wasserstein_distance(test,t=eval_times[2],is.ref.multiple.objects = is.test.multiple.objects)
+      d2 <- wasserstein_distance(ref,t=eval_times[2],is.ref.multiple.objects = is.ref.multiple.objects)
+      d3 <- wasserstein_distance(test,ref,t=eval_times[2],is.test.multiple.objects,is.ref.multiple.objects)
+
+      return(c(d1,d2,d3))
+    }, error = function(e) {
+      # Return a vector of NAs to ensure consistent output
+      return(rep(NA, 3))
+    })
+  })))
+  colnames(res) <- c("d_pred","d_ref","d_ref_pred")
+  
+  # Stop the cluster
+  stopCluster(cl)
+  
+  # Combine results with the data frame
+  df <- cbind(df, res)
+  df$eval_time <- tail(eval_times,1)
+  saveRDS(df, outPath)
+  return(df)
+}
+
