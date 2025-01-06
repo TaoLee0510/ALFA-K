@@ -177,9 +177,9 @@ compute_wasserstein_distances <- function(eval_times=c(2000,3000), inDir="data/m
       colnames(x1$x) <- as.numeric(colnames(x1$x))+delta_t
       
       
-      d1 <- wasserstein_distance(test,t=eval_times[2],is.ref.multiple.objects = is.test.multiple.objects)
-      d2 <- wasserstein_distance(ref,t=eval_times[2],is.ref.multiple.objects = is.ref.multiple.objects)
-      d3 <- wasserstein_distance(test,ref,t=eval_times[2],is.test.multiple.objects,is.ref.multiple.objects)
+      d1 <- wasserstein_distance(x1,t=eval_times[2])
+      d2 <- wasserstein_distance(x0,t=eval_times[2])
+      d3 <- wasserstein_distance(x1,x0,t=eval_times[2])
 
       return(c(d1,d2,d3))
     }, error = function(e) {
