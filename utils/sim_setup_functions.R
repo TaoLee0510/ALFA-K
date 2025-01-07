@@ -164,12 +164,13 @@ generate_neutral_reference <- function(root.dir="~/projects/ALFA-K",
                                        target.dir="data/main/",
                                        tstart=2000,Nsteps=1000,Nreps=10,
                                        ncores=50){
-
+  setwd(root.dir)
   conditions <- list.files(target.dir)
   ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))[6]))
   dirs <- paste0(target.dir,conditions,"/")
   library(parallel)
   cl <- makeCluster(getOption("cl.cores", min(ncores,length(dirs))))
+  clusterExport(cl = cl,c("modify_config"),envir=environment())
   
   x <- parLapplyLB(cl=cl,X=dirs, fun=run_sims_in_dir_neutral,
                    tstart=tstart,Nsteps=Nsteps,Nreps=Nreps)
