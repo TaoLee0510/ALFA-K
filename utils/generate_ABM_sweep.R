@@ -54,11 +54,12 @@ if(Sys.info()["sysname"]=="Windows") cpp_source <- paste0(cpp_source,".exe")
 sweep_dir <- paste0(root.dir,opt$name)
 
 library(parallel)
-cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
+
 dir_success <- dir.create(sweep_dir,recursive = T)
 if(opt$augment>0){
   if(dir_success) stop("parameter a intended for use with existing sweep")
   fo <- list.files(sweep_dir)
+  cl <- makeCluster(getOption("cl.cores", min(length(fo),opt$cores)))
   cpp_cmds <- paste(cpp_source,paste0(sweep_dir,"/",fo,"/config.txt"))
   for(i in 1:opt$augment){
     parSapplyLB(cl,cpp_cmds,function(xx) system(xx))
@@ -66,6 +67,7 @@ if(opt$augment>0){
 }
 
 if(opt$augment==0){
+  cl <- makeCluster(getOption("cl.cores", min(opt$reps,opt$cores)))
   source(paste0(script_dir,"sim_setup_functions.R"))
   
   wavelengths <- as.numeric(unlist(strsplit(opt$wavelengths,split=",")))

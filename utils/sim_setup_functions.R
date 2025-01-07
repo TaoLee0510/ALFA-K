@@ -126,3 +126,51 @@ gen_abm_landscape <- function(fit,deltaf=0){
   fscape <- rbind(cbind(knots,cc),c(d))
   return(fscape)
 }
+
+##given an existing sweep, run new replicates of the sims in the directory 
+## with neutral evolution
+run_sims_in_dir_neutral <- function(d0,tstart=2000,Nsteps=1000,Nreps=10){
+  tryCatch({
+    cpp_cmd <- "ABM/bin/ABM"
+    source("utils/ALFA-K.R")
+    x <- proc_sim(paste0(d0,"train/00000"),times=tstart)
+    x <- x$x
+    pop0 <- cbind(do.call(rbind,lapply(rownames(x),s2v)),x)
+    rownames(pop0) <- NULL
+    colnames(pop0) <- NULL
+    pop0[,ncol(pop0)] <- round(100000*pop0[,ncol(pop0)]/sum(pop0[,ncol(pop0)]))
+    write.table(pop0,paste0(d0,"pop2000.txt"),sep=",",row.names = F,col.names = F)
+    
+    cfig0 <- readLines(paste0(d0,"config.txt"))
+    odir <- paste0(d0,"flats/")
+    dir.create(odir,recursive = T)
+    cfig <- modify_config("fitness_landscape_type",parval = "flat",config = cfig0)
+    cfig <- cfig[!grepl("fitness_landscape_file",cfig)]
+    cfig <- modify_config("output_dir",parval = odir,config = cfig)
+    cfig <- c(cfig,paste0("population_file,",d0,"pop2000.txt"))
+    cfig <- modify_config("Nsteps",Nsteps,cfig)
+    cfig_path <- paste0(d0,"flat_config.txt")
+    writeLines(cfig,cfig_path)
+    
+    
+    
+    cmd <- paste(cpp_cmd,cfig_path)
+    for(i in 1:Nreps) system(cmd)
+  },error=function(e) return(NULL))
+}
+
+## a wrapper function for run_sims_in_dir_neutral
+generate_neutral_reference <- function(root.dir="~/projects/ALFA-K",
+                                       target.dir="data/main/",
+                                       tstart=2000,Nsteps=1000,Nreps=10,
+                                       ncores=50){
+
+  conditions <- list.files(target.dir)
+  ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))[6]))
+  dirs <- paste0(target.dir,conditions,"/")
+  library(parallel)
+  cl <- makeCluster(getOption("cl.cores", min(ncores,length(dirs))))
+  
+  x <- parLapplyLB(cl=cl,X=dirs, fun=run_sims_in_dir_neutral,
+                   tstart=tstart,Nsteps=Nsteps,Nreps=Nreps)
+}
