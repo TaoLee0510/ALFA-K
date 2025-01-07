@@ -65,22 +65,23 @@ if(opt$augment>0){
   }
 }
 
-
-
-source(paste0(script_dir,"sim_setup_functions.R"))
-
-wavelengths <- as.numeric(unlist(strsplit(opt$wavelengths,split=",")))
-misrates <- as.numeric(unlist(strsplit(opt$misrates,split=",")))
-
-
-for(wavelength in wavelengths){
-  for(misrate in misrates){
-    setup_info <- lapply(1:opt$reps, function(dummyvar){
-      gen_replicate(Nchrom=opt$nchrom,wavelength = wavelength,p = misrate,sweep_dir = sweep_dir,cpp_source = cpp_source)
-    })
-    for(i in 1:opt$landscapereps){
-      parSapplyLB(cl,setup_info,function(xx) system(xx$cpp_run_cmd))
+if(opt$augment=0){
+  source(paste0(script_dir,"sim_setup_functions.R"))
+  
+  wavelengths <- as.numeric(unlist(strsplit(opt$wavelengths,split=",")))
+  misrates <- as.numeric(unlist(strsplit(opt$misrates,split=",")))
+  
+  
+  for(wavelength in wavelengths){
+    for(misrate in misrates){
+      setup_info <- lapply(1:opt$reps, function(dummyvar){
+        gen_replicate(Nchrom=opt$nchrom,wavelength = wavelength,p = misrate,sweep_dir = sweep_dir,cpp_source = cpp_source)
+      })
+      for(i in 1:opt$landscapereps){
+        parSapplyLB(cl,setup_info,function(xx) system(xx$cpp_run_cmd))
+      }
+      #print(setup_info)
     }
-    #print(setup_info)
   }
 }
+
