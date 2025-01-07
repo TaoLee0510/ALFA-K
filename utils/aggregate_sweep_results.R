@@ -16,62 +16,6 @@ aggregate_fit_summaries <- function(summaryName="fit_summaries.Rds",inDir="data/
   return(x)
 }
 
-get_train_test_paths <- function(base_dir) {
-  dirs_A <- list.files(base_dir, full.names = TRUE)
-  
-  do.call(rbind, lapply(dirs_A, function(dir_A) {
-    train_path <- file.path(dir_A, "train", "00000")
-    test_base <- file.path(dir_A, "test_v2")
-    
-    if (dir.exists(train_path) && dir.exists(test_base)) {
-      test_dirs <- list.dirs(test_base, full.names = TRUE, recursive = TRUE)
-      bottom_level_dirs <- test_dirs[sapply(test_dirs, function(d) {
-        length(list.dirs(d, recursive = FALSE)) == 0
-      })]
-      
-      base_path <- dir_A
-      relative_test_paths <- sub(paste0(base_path, "/"), "", bottom_level_dirs)
-      relative_train_path <- sub(paste0(base_path, "/"), "", train_path)
-      
-      data.frame(
-        base_path = rep(base_path, length(relative_test_paths)),
-        test_path = relative_test_paths,
-        train_path = rep(relative_train_path, length(relative_test_paths)),
-        stringsAsFactors = FALSE
-      )
-    } else {
-      NULL
-    }
-  }))
-}
-
-get_train_train_paths <- function(base_dir) {
-  dirs_A <- list.files(base_dir, full.names = TRUE)
-  
-  do.call(rbind, lapply(dirs_A, function(dir_A) {
-    train_base <- file.path(dir_A, "train")
-    
-    if (dir.exists(train_base)) {
-      train_dirs <- list.dirs(train_base, full.names = TRUE, recursive = TRUE)
-      bottom_level_dirs <- train_dirs[sapply(train_dirs, function(d) {
-        length(list.dirs(d, recursive = FALSE)) == 0
-      })]
-      
-      base_path <- dir_A
-      relative_train_paths <- sub(paste0(base_path, "/"), "", bottom_level_dirs)
-      
-      expand.grid(
-        base_path = base_path,
-        train_path1 = relative_train_paths,
-        train_path2 = relative_train_paths,
-        stringsAsFactors = FALSE
-      )
-    } else {
-      NULL
-    }
-  }))
-}
-
 get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, compare_only_train_00000 = FALSE) {
   dirs_A <- list.files(base_dir, full.names = TRUE)
   
@@ -142,7 +86,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   }
   
   # Retrieve train-test paths
-  df <- get_train_test_paths(inDir)
+  get_subdir_combinations(inDir, subdir_1="train", subdir_2="test", compare_only_train_00000 = TRUE)
   if (nrow(df) == 0) {
     stop("No valid train-test paths found in the specified directory.")
   }
@@ -199,13 +143,17 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
 }
 
 
-compute_wasserstein_distances <- function(eval_times=c(2000,3000), inDir="data/main/", outPath="data/proc/summaries/wasserstein_distances.Rds", delta_t = 2000, cores = 70) {
+compute_wasserstein_distances <- function(subdir_1="train", subdir_2="test", 
+                                          compare_only_train_00000 = TRUE,eval_times=c(2000,3000), 
+                                          inDir="data/main/",
+                                          outPath="data/proc/summaries/wasserstein_distances.Rds", 
+                                          delta_t = 2000, cores = 70) {
   #N.B the way this function is setup, always set eval times as the "initial" timepoint & the timepoint of interest
   # Load required libraries
   library(parallel)
   
   # Retrieve train-test paths
-  df <- get_train_test_paths(inDir)
+  get_subdir_combinations(inDir, subdir_1=subdir_1, subdir_2=subdir_2, compare_only_train_00000 = compare_only_train_00000)
   if (nrow(df) == 0) {
     stop("No valid train-test paths found in the specified directory.")
   }
