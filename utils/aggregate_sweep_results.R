@@ -164,7 +164,7 @@ wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000,
                               range_2=c(2000,3000), cores = 70,
                               inDir="data/main/", only_train_00000 =T,
                               outPath="data/proc/summaries/train_train_matrices.Rds"){
-  
+  library(parallel)
   # Set up parallel cluster
   cl <- makeCluster(cores)
   
