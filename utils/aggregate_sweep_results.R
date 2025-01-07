@@ -189,8 +189,8 @@ wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000,
   res <- parLapplyLB(cl, 1:nrow(df), function(i) {
     tryCatch({
       # Extract paths
-      path1 <- paste(df$base_path[i], df$train_path[i], sep = "/")
-      path2 <- paste(df$base_path[i], df$test_path[i], sep = "/")
+      path1 <- paste(df$base_path[i], df$path_1[i], sep = "/")
+      path2 <- paste(df$base_path[i], df$path_2[i], sep = "/")
       m <- wasserstein_matrix(path1,path2,range_1,range_2)
     }, error = function(e) {
       # Return a vector of NAs to ensure consistent output
