@@ -65,7 +65,7 @@ if(opt$augment>0){
   }
 }
 
-if(opt$augment=0){
+if(opt$augment==0){
   source(paste0(script_dir,"sim_setup_functions.R"))
   
   wavelengths <- as.numeric(unlist(strsplit(opt$wavelengths,split=",")))
