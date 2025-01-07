@@ -180,7 +180,7 @@ wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000,
   
     
   # Export variables to the cluster
-  clusterExport(cl, varlist = c("range_1","range_2", "delta_t", "df","wasserstein_matrix",
+  clusterExport(cl, varlist = c("range_1","range_2", "df","wasserstein_matrix",
                                 "get_eval_times"), envir = environment())
   
 
