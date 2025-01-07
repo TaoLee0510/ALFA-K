@@ -72,6 +72,65 @@ get_train_train_paths <- function(base_dir) {
   }))
 }
 
+get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, compare_only_train_00000 = FALSE) {
+  dirs_A <- list.files(base_dir, full.names = TRUE)
+  
+  do.call(rbind, lapply(dirs_A, function(dir_A) {
+    path_1 <- file.path(dir_A, subdir_1)
+    path_2 <- file.path(dir_A, subdir_2)
+    
+    if (!dir.exists(path_1) || !dir.exists(path_2)) return(NULL)
+    
+    # Handle special case for train/00000 in both subdir_1 and subdir_2
+    if (compare_only_train_00000) {
+      if (subdir_1 == "train") {
+        path_1 <- file.path(path_1, "00000")
+        if (!dir.exists(path_1)) return(NULL)
+      } else {
+        path_1_dirs <- list.dirs(path_1, full.names = TRUE, recursive = TRUE)
+        path_1_dirs <- path_1_dirs[sapply(path_1_dirs, function(d) {
+          length(list.dirs(d, recursive = FALSE)) == 0
+        })]
+      }
+      
+      if (subdir_2 == "train") {
+        path_2 <- file.path(path_2, "00000")
+        if (!dir.exists(path_2)) return(NULL)
+        path_2_dirs <- path_2
+      } else {
+        path_2_dirs <- list.dirs(path_2, full.names = TRUE, recursive = TRUE)
+        path_2_dirs <- path_2_dirs[sapply(path_2_dirs, function(d) {
+          length(list.dirs(d, recursive = FALSE)) == 0
+        })]
+      }
+      
+    } else {
+      # Standard bottom-level directory processing
+      path_1_dirs <- list.dirs(path_1, full.names = TRUE, recursive = TRUE)
+      path_1_dirs <- path_1_dirs[sapply(path_1_dirs, function(d) {
+        length(list.dirs(d, recursive = FALSE)) == 0
+      })]
+      
+      path_2_dirs <- list.dirs(path_2, full.names = TRUE, recursive = TRUE)
+      path_2_dirs <- path_2_dirs[sapply(path_2_dirs, function(d) {
+        length(list.dirs(d, recursive = FALSE)) == 0
+      })]
+    }
+    
+    # Generate combinations between path_1 and path_2 bottom-level directories
+    base_path <- dir_A
+    relative_path_1 <- sub(paste0(base_path, "/"), "", path_1_dirs)
+    relative_path_2 <- sub(paste0(base_path, "/"), "", path_2_dirs)
+    
+    expand.grid(
+      base_path = base_path,
+      path_1 = relative_path_1,
+      path_2 = relative_path_2,
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
 
 compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=seq(2000,2500,100), inDir="data/main/", outPath="data/proc/summaries/train_test_metrics.Rds", delta_t = 2000, cores = 70) {
   # Load required libraries
