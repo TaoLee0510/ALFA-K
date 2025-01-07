@@ -16,7 +16,7 @@ aggregate_fit_summaries <- function(summaryName="fit_summaries.Rds",inDir="data/
   return(x)
 }
 
-get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, compare_only_train_00000 = FALSE) {
+get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, only_train_00000 = FALSE) {
   dirs_A <- list.files(base_dir, full.names = TRUE)
   
   do.call(rbind, lapply(dirs_A, function(dir_A) {
@@ -25,41 +25,30 @@ get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, compare_only_t
     
     if (!dir.exists(path_1) || !dir.exists(path_2)) return(NULL)
     
-    # Handle special case for train/00000 in both subdir_1 and subdir_2
-    if (compare_only_train_00000) {
+    # Find all bottom-level directories in subdir_1
+    path_1_dirs <- list.dirs(path_1, full.names = TRUE, recursive = TRUE)
+    path_1_dirs <- path_1_dirs[sapply(path_1_dirs, function(d) {
+      length(list.dirs(d, recursive = FALSE)) == 0
+    })]
+    
+    # Find all bottom-level directories in subdir_2
+    path_2_dirs <- list.dirs(path_2, full.names = TRUE, recursive = TRUE)
+    path_2_dirs <- path_2_dirs[sapply(path_2_dirs, function(d) {
+      length(list.dirs(d, recursive = FALSE)) == 0
+    })]
+    
+    # Apply special case filter
+    if (only_train_00000) {
       if (subdir_1 == "train") {
-        path_1 <- file.path(path_1, "00000")
-        if (!dir.exists(path_1)) return(NULL)
-      } else {
-        path_1_dirs <- list.dirs(path_1, full.names = TRUE, recursive = TRUE)
-        path_1_dirs <- path_1_dirs[sapply(path_1_dirs, function(d) {
-          length(list.dirs(d, recursive = FALSE)) == 0
-        })]
+        path_1_dirs <- path_1_dirs[basename(path_1_dirs) == "00000"]
       }
-      
       if (subdir_2 == "train") {
-        path_2 <- file.path(path_2, "00000")
-        if (!dir.exists(path_2)) return(NULL)
-        path_2_dirs <- path_2
-      } else {
-        path_2_dirs <- list.dirs(path_2, full.names = TRUE, recursive = TRUE)
-        path_2_dirs <- path_2_dirs[sapply(path_2_dirs, function(d) {
-          length(list.dirs(d, recursive = FALSE)) == 0
-        })]
+        path_2_dirs <- path_2_dirs[basename(path_2_dirs) == "00000"]
       }
-      
-    } else {
-      # Standard bottom-level directory processing
-      path_1_dirs <- list.dirs(path_1, full.names = TRUE, recursive = TRUE)
-      path_1_dirs <- path_1_dirs[sapply(path_1_dirs, function(d) {
-        length(list.dirs(d, recursive = FALSE)) == 0
-      })]
-      
-      path_2_dirs <- list.dirs(path_2, full.names = TRUE, recursive = TRUE)
-      path_2_dirs <- path_2_dirs[sapply(path_2_dirs, function(d) {
-        length(list.dirs(d, recursive = FALSE)) == 0
-      })]
     }
+    
+    # If no bottom-level directories, return NULL
+    if (length(path_1_dirs) == 0 || length(path_2_dirs) == 0) return(NULL)
     
     # Generate combinations between path_1 and path_2 bottom-level directories
     base_path <- dir_A
@@ -76,6 +65,7 @@ get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, compare_only_t
 }
 
 
+
 compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=seq(2000,2500,100), inDir="data/main/", outPath="data/proc/summaries/train_test_metrics.Rds", delta_t = 2000, cores = 70) {
   # Load required libraries
   library(parallel)
@@ -86,7 +76,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   }
   
   # Retrieve train-test paths
-  get_subdir_combinations(inDir, subdir_1="train", subdir_2="test", compare_only_train_00000 = TRUE)
+  get_subdir_combinations(inDir, subdir_1="train", subdir_2="test", only_train_00000 = TRUE)
   if (nrow(df) == 0) {
     stop("No valid train-test paths found in the specified directory.")
   }
@@ -142,6 +132,73 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   return(df)
 }
 
+## gets all sim output timepoints from pathx that are in time range rangex.
+## if rangex is a single number it will find the closest output time and return that.
+get_eval_times <- function(pathx,rangex){
+  fx <- list.files(pathx)
+  fx <- fx[!fx%in%c("log.txt","summary.txt")]
+  tx <- as.numeric(gsub(".csv","",fx))
+  if(length(rangex)==1){
+    tmp <- abs(tx-rangex)
+    return(tx[tmp==min(tmp)])
+  }
+  rangex <- rangex[order(rangex)]
+  return(tx[tx>rangex[1]&tx<rangex[2]])
+  
+}
+wasserstein_matrix <- function(path1,path2,range1,range2){
+  ## function needs the following to be sourced in the environment to work:
+  ## source("utils/comparison_functions.R")
+  ## source("utils/ALFA-K.R")
+  x1 <- proc_sim(path1,times = get_eval_times(path1,range1))
+  x2 <- proc_sim(path2,times=get_eval_times(path2,range2))
+  m <- do.call(rbind,lapply(as.numeric(colnames(x1$x)),function(t1){
+    sapply(as.numeric(colnames(x2$x)),function(t2){
+      wasserstein_distance(test=x1,ref=x2,t=t1,t2=t2)
+    })
+  }))
+  return(m)
+}
+
+wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000, 
+                              range_2=c(2000,3000), cores = 70,
+                              inDir="data/main/", only_train_00000 =T,
+                              outPath="data/proc/summaries/train_train_matrices.Rds"){
+  
+  # Set up parallel cluster
+  cl <- makeCluster(cores)
+  
+  # Source necessary scripts on all workers
+  clusterCall(cl, function() {
+    source("utils/comparison_functions.R")
+    source("utils/ALFA-K.R")
+    library(transport)
+  })
+  
+  df <- get_subdir_combinations(inDir, subdir_1=subdir_1, subdir_2=subdir_2, 
+                                only_train_00000 = only_train_00000)
+  
+    
+  # Export variables to the cluster
+  clusterExport(cl, varlist = c("eval_range", "delta_t", "df","wasserstein_matrix",
+                                "get_eval_times"), envir = environment())
+  
+
+  
+  # Parallel processing
+  res <- parLapplyLB(cl, 1:nrow(df), function(i) {
+    tryCatch({
+      # Extract paths
+      path1 <- paste(df$base_path[i], df$train_path[i], sep = "/")
+      path2 <- paste(df$base_path[i], df$test_path[i], sep = "/")
+      m <- wasserstein_matrix(path1,path2,range_1,range_2)
+    }, error = function(e) {
+      # Return a vector of NAs to ensure consistent output
+      return(NA)
+    })
+  })
+  list(res=res,df=df)
+}
 
 compute_wasserstein_distances <- function(subdir_1="train", subdir_2="test", 
                                           compare_only_train_00000 = TRUE,eval_times=c(2000,3000), 

@@ -134,13 +134,14 @@ make_wass_object <- function(x,t,is.multiple.objects=F){
 ## gets wasserstein distance between two populations formatted as output from 
 ## proc_sim. Can use lists of populations. 
 ## with ref null then function returns wasserstien distance of object with itself at first and given timepoints
-wasserstein_distance <- function(test,ref=NULL,t,is.test.multiple.objects=F,is.ref.multiple.objects=F){
+wasserstein_distance <- function(test,ref=NULL,t,t2=NULL,is.test.multiple.objects=F,is.ref.multiple.objects=F){
+  if(is.null(t2)) t2 <- t
   s1 <- make_wass_object(test,t,is.multiple.objects = is.test.multiple.objects)
   if(is.null(ref)){
     s2 <- make_wass_object(test,0,is.multiple.objects = is.test.multiple.objects)
     return(get_dwass(s1,s2))
   }
-  s2 <- make_wass_object(ref,t,is.multiple.objects = is.ref.multiple.objects)
+  s2 <- make_wass_object(ref,t2,is.multiple.objects = is.ref.multiple.objects)
   get_dwass(s1,s2)
 }
 
