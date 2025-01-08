@@ -3,7 +3,7 @@ struct parameters{
     float p=0.001;
     float pgd=0.;
     float deltaf=0.0;
-    int pop_write_freq = 10000000000;
+    int pop_write_freq = 1000000000;
     float deltafu=0.0;
     float wavelength=1.;
     float centre = 0.;
@@ -11,6 +11,7 @@ struct parameters{
     float turnover_rate = 0.0;
     float sd_mutation,mean_mutation;
     float dt = 0.1;
+    float fitness_noise=0.0;
     int Nsteps = 1000;
     int target_output_size=1000;
     float t_on = 9.;
@@ -114,6 +115,7 @@ parameters::parameters(string path){
         if(words[0]=="wavelength") wavelength=stof(words[1]);
         if(words[0]=="scale") scale=stof(words[1]);
         if(words[0]=="centre") centre=stof(words[1]);
+        if(words[0]=="fitness_noise") fitness_noise=stof(words[1]);
         if(words[0]=="Nsteps") Nsteps=stoi(words[1]);
         if(words[0]=="init_size") init_size=stof(words[1]);
         if(words[0]=="bf") bf=stof(words[1]);

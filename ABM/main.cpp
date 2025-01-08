@@ -67,16 +67,18 @@ int main(int argc, char *argv[])
     }
     if(par.fitness_landscape_type=="flat"){
         f.init(1.0);
-
     }
-    cout << " type = " << f.type <<". initial clone fitness: " << f.get_fitness(k1) << endl;
+
+    f.setNoise(par.fitness_noise);
+
+    cout << " type = " << f.type <<". initial clone fitness: " << f.get_fitness(k1,gen) << endl;
 
     //instantiate cell population
     cout << "population file: " << par.population_file << endl;
     if(par.population_file=="not_supplied"){
-        instantiate_population(k1,par.init_size,m,f);
+        instantiate_population(k1,par.init_size,m,f,gen);
     }else{
-        instantiate_population(par.population_file,m,f);
+        instantiate_population(par.population_file,m,f,gen);
     }
 
     cout << "starting sim..." << endl;
@@ -114,7 +116,7 @@ int main(int argc, char *argv[])
                 // the following call to get fitness needs rethought so we can
                 // call the same way regardless of the fitness landscape
                 //float fitness = f.get_fitness(cl.cn,cl.fitness,gen);
-                float fitness  = f.get_fitness(cl.cn);
+                float fitness  = f.get_fitness(cl.cn,gen);
                 karyotype c2(cl.cn,1,fitness);
                 m[cl.cn]=c2;
             }

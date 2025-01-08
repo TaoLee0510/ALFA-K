@@ -1,6 +1,8 @@
 struct fitness_landscape{
         int type; // 0 = krig, 1= random, ...
         float deltaf=0; // use to modify fitness for therapy
+        std::normal_distribution<float> fitnessNoise;
+        float noiseVal=0.0; // used to add random noise on a fitness landscape.
         //krig landscape variables:
         vector<vector<float>> knots;
         vector<float> c;
@@ -33,7 +35,12 @@ struct fitness_landscape{
             scale = fitness;
         };// flat landscape constructor
 
-        float get_fitness(vector<int>&);
+        void setNoise(float noise){
+            std::normal_distribution<float> d{0, noise};
+            fitnessNoise = d;
+        }
+
+        float get_fitness(vector<int>&, mt19937&);
         float get_grf_fitness(vector<int>&);
         float get_krig_fitness(vector<int>&);
 };
@@ -74,10 +81,11 @@ float fitness_landscape::get_grf_fitness(vector<int>&cn){
     return fitness;
 }
 
-float fitness_landscape::get_fitness(vector<int>& cn){
-    if(type==0) return get_krig_fitness(cn)+deltaf;
-    if(type==1) return get_grf_fitness(cn)+deltaf;
-    if(type==2) return scale;
+float fitness_landscape::get_fitness(vector<int>& cn, mt19937& gen){
+    float noise = fitnessNoise(gen);
+    if(type==0) return get_krig_fitness(cn)+deltaf+noise;
+    if(type==1) return get_grf_fitness(cn)+deltaf+noise;
+    if(type==2) return scale+noise;
     cout << "unknown fitness landscape type" << endl;
     return 0.;
 }

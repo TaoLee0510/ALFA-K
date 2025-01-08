@@ -312,7 +312,7 @@ void roulette_selection(std::map<vector<int>,karyotype> &m, mt19937& gen, float 
 
 }
 
-void instantiate_population(string filename, map<vector<int>,karyotype>& m, fitness_landscape& fl){
+void instantiate_population(string filename, map<vector<int>,karyotype>& m, fitness_landscape& fl, mt19937& gen){
 
    fstream fin;
    fin.open(filename, ios::in);
@@ -338,7 +338,7 @@ void instantiate_population(string filename, map<vector<int>,karyotype>& m, fitn
         //cout << endl;
         for(int i = 0; i< (rowsize-1); i++) k.push_back(stoi(words[i]));
         N = stoi(words[rowsize-1]);
-        f = fl.get_fitness(k);
+        f = fl.get_fitness(k,gen);
 
         karyotype kary(k,N,f);
         m[k] = kary;
@@ -346,8 +346,8 @@ void instantiate_population(string filename, map<vector<int>,karyotype>& m, fitn
     }
 
 }
-void instantiate_population(vector<int>& k1,int N, map<vector<int>,karyotype>& m, fitness_landscape& fl){
-    float f0 = fl.get_fitness(k1);
+void instantiate_population(vector<int>& k1,int N, map<vector<int>,karyotype>& m, fitness_landscape& fl, mt19937& gen){
+    float f0 = fl.get_fitness(k1,gen);
     karyotype c1(k1,N,f0);
     m[k1]=c1;
 }
