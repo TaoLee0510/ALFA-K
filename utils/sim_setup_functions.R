@@ -201,7 +201,7 @@ fork_sims_in_dir <- function(d0,tstart=2000,Nsteps=1000,Nreps=10,noise=0){
     cfig <- modify_config("Nsteps",Nsteps,cfig)
     cfig_path <- paste0(d0,"forks_cfig/")
     dir.create(cfig_path,recursive = T,showWarnings = F)
-    cfig_path <- paste0(cfig_path,"flat_config.txt")
+    cfig_path <- paste0(cfig_path,gsub("[.]","p",noise),"_config.txt")
     writeLines(cfig,cfig_path)
     
     
