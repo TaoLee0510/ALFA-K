@@ -135,6 +135,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
 ## gets all sim output timepoints from pathx that are in time range rangex.
 ## if rangex is a single number it will find the closest output time and return that.
 get_eval_times <- function(pathx,rangex){
+  if(length(rangex)>2) return(rangex)
   fx <- list.files(pathx)
   fx <- fx[!fx%in%c("log.txt","summary.txt")]
   tx <- as.numeric(gsub(".csv","",fx))
@@ -157,11 +158,13 @@ wasserstein_matrix <- function(path1,path2,range1,range2){
       wasserstein_distance(test=x1,ref=x2,t=t1,t2=t2)
     })
   }))
+  rownames(m) <- colnames(x1$x)
+  colnames(m) <- colnames(x2$x)
   return(m)
 }
 
 wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000, 
-                              range_2=c(2000,3000), cores = 70,
+                              range_2=seq(2000,3000,200), cores = 70,
                               inDir="data/main/", only_train_00000 =T,
                               outPath="data/proc/summaries/train_train_matrices.Rds"){
   library(parallel)
