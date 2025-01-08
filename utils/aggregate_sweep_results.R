@@ -163,11 +163,56 @@ wasserstein_matrix <- function(path1,path2,range1,range2){
   return(m)
 }
 
-wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000, 
-                              range_2=seq(2000,3000,200), cores = 70,
-                              inDir="data/main/", only_train_00000 =T,
-                              outPath="data/proc/summaries/train_train_matrices.Rds"){
+metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein", "euclidean", "cosine", "jaccard")) {
+  ## function needs the following to be sourced in the environment to work:
+  ## source("utils/comparison_functions.R")
+  ## source("utils/ALFA-K.R")
+  
+  # Process simulations for the given paths and time ranges
+  x1 <- proc_sim(path1, times = get_eval_times(path1, range1))
+  x2 <- proc_sim(path2, times = get_eval_times(path2, range2))
+  
+  # Initialize an empty list to store results for each metric
+  metric_results <- lapply(metrics, function(metric) {
+    do.call(rbind, lapply(as.numeric(colnames(x1$x)), function(t1) {
+      sapply(as.numeric(colnames(x2$x)), function(t2) {
+        ##N.B the wasserstein function takes a numeric time input then finds the nearest 
+        if (metric == "wasserstein") {
+          wasserstein_distance(test = x1, ref = x2, t = t1, t2 = t2)
+        } else if (metric == "euclidean") {
+          compute_mean_karyotype_distance(x1,x2,t1,t2)
+        } else if (metric == "cosine") {
+          compute_cosine_similarity(x1,x2,t1,t2)
+        } else if (metric == "jaccard") {
+          compute_overlap_coefficient(x1,x2,t1,t2)
+        } else {
+          stop(paste("Unsupported metric:", metric))
+        }
+      })
+    }))
+  })
+  
+  # Combine results into a 3D array with named dimensions
+  names(metric_results) <- metrics
+  result_array <- abind::abind(metric_results, along = 3)
+  dimnames(result_array) <- list(
+    rownames = colnames(x1$x),
+    colnames = colnames(x2$x),
+    metrics = metrics
+  )
+  
+  return(result_array)
+}
+
+
+
+metric_comps <- function(subdir_1 = "train", subdir_2 = "train", 
+                         range_1 = 2000, range_2 = seq(2000, 3000, 200), 
+                         metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),
+                         cores = 70, inDir = "data/main/", only_train_00000 = TRUE, 
+                         outPath = "data/proc/summaries/train_train_matrices.Rds") {
   library(parallel)
+  
   # Set up parallel cluster
   cl <- makeCluster(cores)
   
@@ -178,15 +223,13 @@ wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000,
     library(transport)
   })
   
-  df <- get_subdir_combinations(inDir, subdir_1=subdir_1, subdir_2=subdir_2, 
+  # Get combinations of directories
+  df <- get_subdir_combinations(inDir, subdir_1 = subdir_1, subdir_2 = subdir_2, 
                                 only_train_00000 = only_train_00000)
   
-    
   # Export variables to the cluster
-  clusterExport(cl, varlist = c("range_1","range_2", "df","wasserstein_matrix",
-                                "get_eval_times"), envir = environment())
-  
-
+  clusterExport(cl, varlist = c("range_1", "range_2", "df", "metric_array", 
+                                "get_eval_times", "metrics"), envir = environment())
   
   # Parallel processing
   res <- parLapplyLB(cl, 1:nrow(df), function(i) {
@@ -194,16 +237,24 @@ wasserstein_comps <- function(subdir_1="train",subdir_2="train",range_1 = 2000,
       # Extract paths
       path1 <- paste(df$base_path[i], df$path_1[i], sep = "/")
       path2 <- paste(df$base_path[i], df$path_2[i], sep = "/")
-      m <- wasserstein_matrix(path1,path2,range_1,range_2)
+      
+      # Compute metric array
+      metric_array(path1, path2, range_1, range_2, metrics = metrics)
     }, error = function(e) {
-      # Return a vector of NAs to ensure consistent output
-      return(NA)
+      # Return NULL on error to ensure consistent output
+      return(NULL)
     })
   })
-  output <- list(res=res,df=df)
-  saveRDS(output,outPath)
+  
+  # Stop the cluster
+  stopCluster(cl)
+  
+  # Prepare output
+  output <- list(res = res, df = df)
+  saveRDS(output, outPath)
   return(output)
 }
+
 
 compute_wasserstein_distances <- function(subdir_1="train", subdir_2="test", 
                                           compare_only_train_00000 = TRUE,eval_times=c(2000,3000), 

@@ -226,3 +226,80 @@ angle_metric <- function(test,ref,t=1200,is.test.multiple.objects=F,is.ref.multi
   xr <- get_mean(ref,t,is.multiple.objects = is.ref.multiple.objects)-x0
   getangle(xt,xr)
 }
+
+get_counts_at_time <- function(x, t) {
+  # Convert column names to numeric
+  times <- as.numeric(colnames(x$x))
+  
+  # Find the closest time
+  closest_idx <- which.min(abs(times - t))
+  
+  # Return the counts for the closest time
+  return(x$x[, closest_idx])
+}
+
+
+compute_overlap_coefficient <- function(x1, x2, t1, t2) {
+  # Get counts at the specified times
+  x1_counts <- get_counts_at_time(x1, t1)
+  x2_counts <- get_counts_at_time(x2, t2)
+  
+  # Align rownames
+  all_karyotypes <- union(names(x1_counts), names(x2_counts))
+  x1_vector <- rep(0, length(all_karyotypes))
+  x2_vector <- rep(0, length(all_karyotypes))
+  names(x1_vector) <- names(x2_vector) <- all_karyotypes
+  
+  x1_vector[names(x1_counts)] <- x1_counts
+  x2_vector[names(x2_counts)] <- x2_counts
+  
+  # Compute intersection
+  intersection <- sum(pmin(x1_vector, x2_vector))
+  
+  # Compute minimum of total counts
+  min_total <- min(sum(x1_vector), sum(x2_vector))
+  
+  # Return overlap coefficient
+  if (min_total == 0) return(0) # Handle empty case
+  return(intersection / min_total)
+}
+compute_cosine_similarity <- function(x1, x2, t1, t2) {
+  # Get counts at the specified times
+  x1_counts <- get_counts_at_time(x1, t1)
+  x2_counts <- get_counts_at_time(x2, t2)
+  
+  # Align rownames
+  all_karyotypes <- union(names(x1_counts), names(x2_counts))
+  x1_vector <- rep(0, length(all_karyotypes))
+  x2_vector <- rep(0, length(all_karyotypes))
+  names(x1_vector) <- names(x2_vector) <- all_karyotypes
+  
+  x1_vector[names(x1_counts)] <- x1_counts
+  x2_vector[names(x2_counts)] <- x2_counts
+  
+  # Compute cosine similarity
+  numerator <- sum(x1_vector * x2_vector)
+  denominator <- sqrt(sum(x1_vector^2)) * sqrt(sum(x2_vector^2))
+  
+  if (denominator == 0) return(0) # Handle zero-vector case
+  return(numerator / denominator)
+}
+compute_mean_karyotype_distance <- function(x1, x2, t1, t2) {
+  # Get counts at the specified times
+  x1_counts <- get_counts_at_time(x1, t1)
+  x2_counts <- get_counts_at_time(x2, t2)
+  
+  # Compute mean karyotypes
+  compute_mean_karyotype <- function(population_counts) {
+    karyotype_matrix <- t(sapply(names(population_counts), function(k) as.numeric(unlist(strsplit(k, "\\.")))))
+    counts <- as.numeric(population_counts)
+    colSums(karyotype_matrix * counts) / sum(counts)
+  }
+  
+  mean_x1 <- compute_mean_karyotype(x1_counts)
+  mean_x2 <- compute_mean_karyotype(x2_counts)
+  
+  # Compute Euclidean distance
+  sqrt(sum((mean_x1 - mean_x2)^2))
+}
+
