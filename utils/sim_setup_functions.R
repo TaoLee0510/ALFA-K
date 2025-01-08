@@ -175,3 +175,60 @@ generate_neutral_reference <- function(root.dir="~/projects/ALFA-K",
   x <- parLapplyLB(cl=cl,X=dirs, fun=run_sims_in_dir_neutral,
                    tstart=tstart,Nsteps=Nsteps,Nreps=Nreps)
 }
+
+## Take the sampled output of a population (evolved on a GRF landscape),
+## at a particular timepoint, then rerun on the same landscape (test contigency
+## and possible bottlenecking caused by limited info & noise)
+fork_sims_in_dir <- function(d0,tstart=2000,Nsteps=1000,Nreps=10,noise=0){
+  tryCatch({
+    cpp_cmd <- "ABM/bin/ABM"
+    source("utils/ALFA-K.R")
+    x <- proc_sim(paste0(d0,"train/00000"),times=tstart)
+    x <- x$x
+    pop0 <- cbind(do.call(rbind,lapply(rownames(x),s2v)),x)
+    rownames(pop0) <- NULL
+    colnames(pop0) <- NULL
+    pop0[,ncol(pop0)] <- round(100000*pop0[,ncol(pop0)]/sum(pop0[,ncol(pop0)]))
+    write.table(pop0,paste0(d0,"pop2000.txt"),sep=",",row.names = F,col.names = F)
+    
+    cfig0 <- readLines(paste0(d0,"config.txt"))
+    cfig0 <- cfig0[!grepl("fitness_noise",cfig0)]
+    cfig0 <- c(cfig0,paste0("fitness_noise,",noise))
+    odir <- paste0(d0,"forks/n_",gsub("[.]","p",noise),"/")
+    dir.create(odir,recursive = T)
+    cfig <- modify_config("output_dir",parval = odir,config = cfig0)
+    cfig <- c(cfig,paste0("population_file,",d0,"pop2000.txt"))
+    cfig <- modify_config("Nsteps",Nsteps,cfig)
+    cfig_path <- paste0(d0,"forks_cfig/")
+    dir.create(cfig_path,recursive = T,showWarnings = F)
+    cfig_path <- paste0(cfig_path,"flat_config.txt")
+    writeLines(cfig,cfig_path)
+    
+    
+    
+    cmd <- paste(cpp_cmd,cfig_path)
+    for(i in 1:Nreps) system(cmd)
+  },error=function(e) return(NULL))
+}
+
+## a wrapper function for run_sims_in_dir_neutral
+generate_fork_reference <- function(root.dir="~/projects/ALFA-K",
+                                       target.dir="data/main/",
+                                       tstart=2000,Nsteps=1000,Nreps=10,
+                                        noise = c(0,0.1,0.01),
+                                       ncores=50){
+  setwd(root.dir)
+  conditions <- list.files(target.dir)
+  ids <- as.character(sapply(conditions, function(i) unlist(strsplit(i,split="_"))[6]))
+  dirs <- paste0(target.dir,conditions,"/")
+  library(parallel)
+  cl <- makeCluster(getOption("cl.cores", min(ncores,length(dirs))))
+  clusterExport(cl = cl,c("modify_config"),envir=environment())
+  
+  for(ni in noise){
+    x <- parLapplyLB(cl=cl,X=dirs, fun=fork_sims_in_dir,
+                     tstart=tstart,Nsteps=Nsteps,Nreps=Nreps,noise=ni)
+  }
+  
+  
+}
