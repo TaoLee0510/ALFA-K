@@ -1,4 +1,35 @@
 
+landscape_accuracy_metrics <- function(df){
+  # Check if required columns exist
+  if (!all(c("f_tru", "f_est") %in% colnames(df))) {
+    stop("Data frame must contain columns 'f_tru' and 'f_est'.")
+  }
+  
+  # Handle NaN, Inf, and missing values by removing invalid rows
+  df <- df[complete.cases(df) & is.finite(df$f_tru) & is.finite(df$f_est), ]
+  
+  # If no valid data remains, return NULL
+  if (nrow(df) == 0) {
+    return(NULL)
+  }
+  
+  # Rank-based correlation (Spearman's rho)
+  spearman_rho <- cor(df$f_tru, df$f_est, method = "spearman")
+  
+  # Pearson's r
+  pearson_r <- cor(df$f_tru, df$f_est, method = "pearson")
+  
+  # Variance explained (R^2)
+  tru_centered <- df$f_tru - mean(df$f_tru)
+  est_centered <- df$f_est - mean(df$f_est)
+  R_squared <- 1 - sum((est_centered - tru_centered)^2) / sum(tru_centered^2)
+  
+  # Normalized Root Mean Squared Error (NRMSE)
+  nrmse <- sqrt(mean((est_centered - tru_centered)^2)) / sd(df$f_tru)
+  
+  data.frame(spearman_rho,pearson_r,adjR2=R_squared,nrmse)
+}
+
 R2 <- function(obs,pred){
   1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
 }

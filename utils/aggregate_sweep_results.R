@@ -16,6 +16,52 @@ aggregate_fit_summaries <- function(summaryName="fit_summaries.Rds",inDir="data/
   return(x)
 }
 
+
+apply_landscape_metrics <- function(mainDir="data/main/",cfig_path="config.txt",
+                                    lscape_path="landscape.txt",fit_path="sweep_fits",
+                                    outPath="data/proc/summaries/landscape_metrics.Rds",cores=70){
+  library(parallel)
+  
+  # Set up parallel cluster
+  cl <- makeCluster(cores)
+  
+  # Source necessary scripts on all workers
+  clusterCall(cl, function() {
+    source("utils/comparison_functions.R")
+    source("utils/ALFA-K.R")
+  })
+  
+  # Export variables to the cluster
+  clusterExport(cl, varlist = c("mainDir","cfig_path","lscape_path","fit_path"), envir = environment())
+  dirs <- list.files(mainDir)
+  
+  df <- do.call(rbind,parLapplyLB(cl, dirs, function(di) {
+    landscape_path <- paste(mainDir,di,lscape_path,sep="/")
+    config_path <- paste(mainDir,di,cfig_path,sep="/")
+    fobj <- gen_fitness_object(cfig_path = paste(mainDir,di,cfig_path,sep="/"),
+                               lscape_path = paste(mainDir,di,lscape_path,sep="/"))
+    
+    fit_path_i <- paste(mainDir,di,fit_path,sep="/")
+    targets <- list.files(fit_path_i)
+    
+    df_i <- do.call(rbind,lapply(targets,function(ti){
+      tarpath <- paste(fit_path_i,ti,sep="/")
+      krigfit <- readRDS(tarpath)
+      k <- rbind(do.call(rbind,lapply(rownames(krigfit$xo),s2v)), gen_all_neighbours(rownames(krigfit$xo)))
+      
+      df <- data.frame(f_est=predict(krigfit$fit,k),
+                       f_tru=apply(k, 1, function(xi) getf(xi,fobj)))
+      
+      res <- landscape_accuracy_metrics(df)
+      res$fit_id <- gsub(".Rds","",ti)
+      return(res)
+    }))
+    df_i$sim_id <- di
+    return(df_i)
+  }))
+  saveRDS(df,outPath)
+}
+
 get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, only_train_00000 = FALSE) {
   dirs_A <- list.files(base_dir, full.names = TRUE)
   
