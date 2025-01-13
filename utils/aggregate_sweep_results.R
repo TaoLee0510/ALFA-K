@@ -111,8 +111,7 @@ get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, only_train_000
 }
 
 
-
-compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=seq(2000,2500,100), inDir="data/main/", outPath="data/proc/summaries/train_test_metrics.Rds", delta_t = 2000, cores = 70) {
+compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3000,200), inDir="data/main/", outPath="data/proc/summaries/train_test_angles.Rds", delta_t = 2000, cores = 70) {
   # Load required libraries
   library(parallel)
   
@@ -122,7 +121,7 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
   }
   
   # Retrieve train-test paths
-  get_subdir_combinations(inDir, subdir_1="train", subdir_2="test", only_train_00000 = TRUE)
+  df <- get_subdir_combinations(inDir, subdir_1="train", subdir_2="test_v2", only_train_00000 = TRUE)
   if (nrow(df) == 0) {
     stop("No valid train-test paths found in the specified directory.")
   }
@@ -151,11 +150,11 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
       x0 <- proc_sim(train_path, times = eval_times)
       x1 <- proc_sim(test_path, times = eval_times - delta_t)
       colnames(x1$x) <- as.numeric(colnames(x1$x))+delta_t
-      
+      x_ini <- get_mean(x0,1)
       # Compute metrics
       a <- w <- c()
       if ("angle" %in% metrics) {
-        a <- sapply(eval_times, function(t) angle_metric(x0, x1, t = t))
+        a <- sapply(eval_times, function(t) angle_metric(x0, x1, t = t,x0 = x_ini))
         names(a) <- paste0("a", eval_times)
       }
       if ("wass" %in% metrics) {
