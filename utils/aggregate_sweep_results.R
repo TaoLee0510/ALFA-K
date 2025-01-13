@@ -369,3 +369,53 @@ compute_wasserstein_distances <- function(subdir_1="train", subdir_2="test",
   return(df)
 }
 
+
+f <- function(mainDir="data/main/",cores=70,outDir="data/proc/summaries/f2000.Rds"){
+  
+  cl <- makeCluster(cores)
+  clusterCall(cl, function() {
+    source("utils/comparison_functions.R")
+    source("utils/ALFA-K.R")
+    library(transport)
+  })
+  
+  # Export variables to the cluster
+  clusterExport(cl, varlist = c("mainDir"), envir = environment())
+  ff <- list.files(mainDir)
+  
+  res <- data.frame(do.call(rbind, parLapplyLB(cl, ff, function(fi) {
+    tryCatch({
+      inDir <- paste0(mainDir,fi,"/")
+      x <- proc_sim(paste0(inDir,"train/00000/"),times=2000)
+      xin <- do.call(rbind,lapply(rownames(x$x),s2v))
+      fits <- list.files(paste0(inDir,"sweep_fits/"))
+      
+      preds <- do.call(cbind,lapply(fits,function(fi){
+        ai <- readRDS(paste0(inDir,"sweep_fits/",fi))
+        fest <- predict(ai$fit,xin)
+        c(fest)
+      }))
+      
+      preds <- data.frame(preds)
+      fits <- gsub("_00000.Rds","",fits)
+      colnames(preds) <- fits
+      
+      df <- data.frame(N=x$x[,1],f=x$clone.fitness,row.names = NULL)
+      preds <- preds[order(df$N,decreasing=T),]
+      df <- df[order(df$N,decreasing=T),]
+      df$base_dir <- fi
+      df <- cbind(df,preds)
+      
+      return(df)
+    }, error = function(e) {
+      # Return a vector of NAs to ensure consistent output
+      return(NULL)
+    })
+  })))
+  
+  
+  saveRDS(res,outDir)
+  
+  
+}
+
