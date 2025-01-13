@@ -209,7 +209,7 @@ wasserstein_matrix <- function(path1,path2,range1,range2){
   return(m)
 }
 
-metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),limit=Inf) {
+metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),limit=Inf,diag_only=F) {
   ## function needs the following to be sourced in the environment to work:
   ## source("utils/comparison_functions.R")
   ## source("utils/ALFA-K.R")
@@ -223,6 +223,9 @@ metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein"
     do.call(rbind, lapply(as.numeric(colnames(x1$x)), function(t1) {
       sapply(as.numeric(colnames(x2$x)), function(t2) {
         ##N.B the wasserstein function takes a numeric time input then finds the nearest 
+        if(diag_only){
+          if(which(colnames(x1$x)==t1)!=which(colnames(x2$x)==t2)) return(NaN)
+        }
         if (metric == "wasserstein") {
           wasserstein_distance(test = x1, ref = x2, t = t1, t2 = t2)
         } else if (metric == "euclidean") {
@@ -255,7 +258,7 @@ metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein"
 metric_comps <- function(subdir_1 = "train", subdir_2 = "train", 
                          range_1 = 2000, range_2 = seq(2000, 3000, 200), 
                          metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),
-                         limit=Inf,
+                         limit=Inf,diag_only=F,
                          cores = 70, inDir = "data/main/", only_train_00000 = TRUE, 
                          outPath = "data/proc/summaries/train_train_matrices.Rds") {
   library(parallel)
@@ -276,7 +279,7 @@ metric_comps <- function(subdir_1 = "train", subdir_2 = "train",
   
   # Export variables to the cluster
   clusterExport(cl, varlist = c("range_1", "range_2", "df", "metric_array", 
-                                "get_eval_times", "metrics","limit"), envir = environment())
+                                "get_eval_times", "metrics","limit","diag_only"), envir = environment())
   
   # Parallel processing
   res <- parLapplyLB(cl, 1:nrow(df), function(i) {
@@ -286,7 +289,7 @@ metric_comps <- function(subdir_1 = "train", subdir_2 = "train",
       path2 <- paste(df$base_path[i], df$path_2[i], sep = "/")
       
       # Compute metric array
-      metric_array(path1, path2, range_1, range_2, metrics = metrics,limit=limit)
+      metric_array(path1, path2, range_1, range_2, metrics = metrics,limit=limit,diag_only = diag_only)
     }, error = function(e) {
       # Return NULL on error to ensure consistent output
       return(NULL)
