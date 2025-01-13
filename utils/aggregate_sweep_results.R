@@ -111,7 +111,7 @@ get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, only_train_000
 }
 
 
-compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3000,200), inDir="data/main/", outPath="data/proc/summaries/train_test_angles.Rds", delta_t = 2000, cores = 70) {
+compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3000,100), inDir="data/main/", outPath="data/proc/summaries/train_test_angles.Rds", delta_t = 2000, cores = 70) {
   # Load required libraries
   library(parallel)
   
@@ -143,8 +143,8 @@ compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3
   res <- do.call(rbind, parLapplyLB(cl, 1:nrow(df), function(i) {
     tryCatch({
       # Extract paths
-      train_path <- paste(df$base_path[i], df$train_path[i], sep = "/")
-      test_path <- paste(df$base_path[i], df$test_path[i], sep = "/")
+      train_path <- paste(df$base_path[i], df$path_1[i], sep = "/")
+      test_path <- paste(df$base_path[i], df$path_2[i], sep = "/")
       
       # Process simulations
       x0 <- proc_sim(train_path, times = eval_times)
