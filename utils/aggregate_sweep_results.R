@@ -16,7 +16,7 @@ aggregate_fit_summaries <- function(summaryName="fit_summaries.Rds",inDir="data/
   return(x)
 }
 
-
+##20 mins 70 cores
 apply_landscape_metrics <- function(mainDir="data/main/",cfig_path="config.txt",
                                     lscape_path="landscape.txt",fit_path="sweep_fits",
                                     outPath="data/proc/summaries/landscape_metrics.Rds",cores=70){
@@ -180,17 +180,17 @@ compute_population_metrics <- function(metrics=c("angle", "wass"), eval_times=se
 
 ## gets all sim output timepoints from pathx that are in time range rangex.
 ## if rangex is a single number it will find the closest output time and return that.
-get_eval_times <- function(pathx,rangex){
-  if(length(rangex)>2) return(rangex)
+get_eval_times <- function(pathx,rangex,limit=Inf){
+  if(length(rangex)>2) return(head(rangex,limit))
   fx <- list.files(pathx)
   fx <- fx[!fx%in%c("log.txt","summary.txt")]
   tx <- as.numeric(gsub(".csv","",fx))
   if(length(rangex)==1){
     tmp <- abs(tx-rangex)
-    return(tx[tmp==min(tmp)])
+    return(head(tx[tmp==min(tmp)],limit))
   }
   rangex <- rangex[order(rangex)]
-  return(tx[tx>rangex[1]&tx<rangex[2]])
+  return(head(tx[tx>rangex[1]&tx<rangex[2]],limit))
   
 }
 wasserstein_matrix <- function(path1,path2,range1,range2){
@@ -209,14 +209,14 @@ wasserstein_matrix <- function(path1,path2,range1,range2){
   return(m)
 }
 
-metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein", "euclidean", "cosine", "jaccard")) {
+metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),limit=Inf) {
   ## function needs the following to be sourced in the environment to work:
   ## source("utils/comparison_functions.R")
   ## source("utils/ALFA-K.R")
   
   # Process simulations for the given paths and time ranges
-  x1 <- proc_sim(path1, times = get_eval_times(path1, range1))
-  x2 <- proc_sim(path2, times = get_eval_times(path2, range2))
+  x1 <- proc_sim(path1, times = get_eval_times(path1, range1,limit=limit))
+  x2 <- proc_sim(path2, times = get_eval_times(path2, range2,limit=limit))
   
   # Initialize an empty list to store results for each metric
   metric_results <- lapply(metrics, function(metric) {
@@ -255,6 +255,7 @@ metric_array <- function(path1, path2, range1, range2, metrics = c("wasserstein"
 metric_comps <- function(subdir_1 = "train", subdir_2 = "train", 
                          range_1 = 2000, range_2 = seq(2000, 3000, 200), 
                          metrics = c("wasserstein", "euclidean", "cosine", "jaccard"),
+                         limit=Inf,
                          cores = 70, inDir = "data/main/", only_train_00000 = TRUE, 
                          outPath = "data/proc/summaries/train_train_matrices.Rds") {
   library(parallel)
@@ -275,7 +276,7 @@ metric_comps <- function(subdir_1 = "train", subdir_2 = "train",
   
   # Export variables to the cluster
   clusterExport(cl, varlist = c("range_1", "range_2", "df", "metric_array", 
-                                "get_eval_times", "metrics"), envir = environment())
+                                "get_eval_times", "metrics","limit"), envir = environment())
   
   # Parallel processing
   res <- parLapplyLB(cl, 1:nrow(df), function(i) {
@@ -285,7 +286,7 @@ metric_comps <- function(subdir_1 = "train", subdir_2 = "train",
       path2 <- paste(df$base_path[i], df$path_2[i], sep = "/")
       
       # Compute metric array
-      metric_array(path1, path2, range_1, range_2, metrics = metrics)
+      metric_array(path1, path2, range_1, range_2, metrics = metrics,limit=limit)
     }, error = function(e) {
       # Return NULL on error to ensure consistent output
       return(NULL)
