@@ -429,17 +429,20 @@ aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="da
   # Export variables to the cluster
   clusterExport(cl, varlist = c("inDir"), envir = environment())
   source("utils/ALFA-K.R")
-  dir.create(outPath)
   ff <- list.files(inDir) 
   res <- parLapplyLB(cl, ff, function(fi) {
-    subdir <- paste(dir,fi,"output",sep="/")
-    output_folders <- list.files(subdir)
-    x <- lapply(output_folders,function(oi){
-      proc_sim(paste(subdir,oi,sep="/"),times=seq(0,500,100))
-    })
+    x <- tryCatch({
+      ## seems that sometimes the predicted population goes extinct. 
+      subdir <- paste(inDir,fi,"output",sep="/")
+      output_folders <- list.files(subdir)
+      x <- lapply(output_folders,function(oi){
+        proc_sim(paste(subdir,oi,sep="/"),times=seq(0,500,100))
+      })
+      return(x)
+    },error=function(e) return(NULL))
+    
     return(x)
   })
   names(res) <- ff
   saveRDS(res,outPath)
 }
-
