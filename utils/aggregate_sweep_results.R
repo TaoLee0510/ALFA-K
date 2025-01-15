@@ -418,3 +418,27 @@ f <- function(mainDir="data/main/",cores=70,outDir="data/proc/summaries/f2000.Rd
   
 }
 
+
+aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="data/proc/salehi_preds.Rds",cores=70){
+  cl <- makeCluster(cores)
+  clusterCall(cl, function() {
+    source("utils/ALFA-K.R")
+  })
+  
+  # Export variables to the cluster
+  clusterExport(cl, varlist = c("inDir"), envir = environment())
+  source("utils/ALFA-K.R")
+  dir.create(outDir)
+  ff <- list.files(inDir) 
+  res <- parLapplyLB(cl, ff, function(fi) {
+    subdir <- paste(dir,fi,"output",sep="/")
+    output_folders <- list.files(subdir)
+    x <- lapply(output_folders,function(oi){
+      proc_sim(paste(subdir,oi,sep="/"),times=seq(0,500,100))
+    })
+    return(x)
+  })
+  names(res) <- ff
+  saveRDS(res,outPath)
+}
+

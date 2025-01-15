@@ -188,6 +188,7 @@ wasserstein_metric <- function(test,ref,t,is.test.multiple.objects=F,is.ref.mult
 kary_vec <- function(x,t){
   col_id <- which.min(abs(as.numeric(colnames(x$x))-t))
   k <- x$x[,col_id]
+  names(k) <- rownames(x$x)
   k[k>0]
 }
 
@@ -266,7 +267,9 @@ get_counts_at_time <- function(x, t) {
   closest_idx <- which.min(abs(times - t))
   
   # Return the counts for the closest time
-  return(x$x[, closest_idx])
+  res <- x$x[, closest_idx]
+  names(res) <- rownames(x$x)
+  return(res)
 }
 
 

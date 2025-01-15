@@ -63,10 +63,8 @@ source("utils/comparison_functions.R")
 
 
 ```{r,echo=FALSE,eval=FALSE,include=FALSE}
-
 source("figures/salehi_data_fitting/scripts/extract_fit_summaries.R")
 source("figures/salehi_data_fitting/scripts/extract_validation_summaries.R")
-
 
 
 ```
