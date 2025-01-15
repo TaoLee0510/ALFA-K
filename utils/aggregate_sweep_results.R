@@ -420,6 +420,7 @@ f <- function(mainDir="data/main/",cores=70,outDir="data/proc/summaries/f2000.Rd
 
 
 aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="data/proc/salehi_preds.Rds",cores=70){
+  library(parallel)
   cl <- makeCluster(cores)
   clusterCall(cl, function() {
     source("utils/ALFA-K.R")
@@ -428,7 +429,7 @@ aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="da
   # Export variables to the cluster
   clusterExport(cl, varlist = c("inDir"), envir = environment())
   source("utils/ALFA-K.R")
-  dir.create(outDir)
+  dir.create(outPath)
   ff <- list.files(inDir) 
   res <- parLapplyLB(cl, ff, function(fi) {
     subdir <- paste(dir,fi,"output",sep="/")
