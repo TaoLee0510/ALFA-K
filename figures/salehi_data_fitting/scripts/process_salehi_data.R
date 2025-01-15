@@ -74,7 +74,8 @@ signr <- function(pval){
   if(pval<0.05) return("*")
   return("")
 }
-lineage_info <- function(ln){
+lineage_info <- function(ln,m=NULL){
+  if(is.null(m)) stop("a previous version of this function expected m defined. Now you must pass m explicitly")
   treat_numeric <- c(n=0,y=1)
   has_descendents <- length(ln$dec1)>0
   has_parents <- sum(is.na(m$parent[m$uid%in%ln$ids]))==0

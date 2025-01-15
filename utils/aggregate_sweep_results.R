@@ -419,7 +419,7 @@ f <- function(mainDir="data/main/",cores=70,outDir="data/proc/summaries/f2000.Rd
 }
 
 
-aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="data/proc/salehi_preds.Rds",cores=70){
+aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/",outPath="data/proc/salehi_preds.Rds",cores=70,times=seq(0,200,10)){
   library(parallel)
   cl <- makeCluster(cores)
   clusterCall(cl, function() {
