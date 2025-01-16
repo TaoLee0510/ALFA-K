@@ -14,7 +14,10 @@ df$R2 <- pmax(apply(df[,2:4],1,max),-1)
 
 df <- data.frame(id=gsub(".Rds","",df$file),Rsq=df$R2,best_minobs=df$best)
 
-lineages <- readRDS("figures/salehi_data_fitting/data/lineages.Rds")
+source("figures/salehi_data_fitting/scripts/process_salehi_data.R")
+
+m <- read.csv("data/salehi/metadata.csv")
+lineages <- process_lineages(m)
 
 df <- do.call(rbind,lapply(1:nrow(df),function(i){
   li <- lineages[[df$id[i]]]
@@ -26,6 +29,8 @@ df <- do.call(rbind,lapply(1:nrow(df),function(i){
     r
   }))
 }))
+
+print(df)
 
 ## each kid can match to multiple ids, but any will do the job. Each contains at minimum the population of the kid and parent:
 kid_lut <- do.call(rbind,lapply(names(lineages),function(nm){
