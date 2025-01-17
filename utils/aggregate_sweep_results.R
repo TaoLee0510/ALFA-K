@@ -446,3 +446,21 @@ aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/minobs_20/",o
   names(res) <- ff
   saveRDS(res,outPath)
 }
+
+get_evo_rate <- function(mainDir="data/main/"){
+  ff <- list.files(mainDir)
+  tarDir <- "train/00000/"
+  source("utils/ALFA-K.R")
+  get_tt <- function(path){
+    tt <- list.files(path)
+    tt <- gsub(".csv","",tt)
+    tt <- as.numeric(tt[!tt%in%c("log.txt","summary.txt")])
+  }
+  x <- pbapply::pblapply(ff,function(fi){
+    path <- paste(mainDir,fi,tarDir,sep="/")
+    tt <- get_tt(path)
+    x <- proc_sim(path,tt)
+    data.frame(tt=tt,fitness=x$pop.fitness,id=fi)
+  })
+  saveRDS(x,"data/proc/summaries/train_fitness.Rds")
+}
