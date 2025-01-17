@@ -34,7 +34,9 @@ parLapplyLB(cl=cl,simDirs,function(di){
         xfq <- fit$xo[fit$xo$id=="fq",]
         df <- do.call(rbind,lapply(1:nrow(xfq),function(i) optim_loo(i,x,xfq)))
         df$f_est <- xfq$f_est
-        results <- list(input=x,fit=fit,xval=df)
+        fobj <- gen_fitness_object(cfig_path = paste0(di,"/config.txt"),lscape_path = paste0(di,"/landscape.txt"))
+        
+        results <- list(input=x,fit=fit,xval=df,fobj=fobj)
         result_fname <- paste0("minobs_",m,"_ntp_",n,".Rds")
         savePath <- file.path(di,outDir,result_fname)
         saveRDS(results,savePath)
