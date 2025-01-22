@@ -47,6 +47,7 @@ apply_landscape_metrics <- function(mainDir="data/main/",cfig_path="config.txt",
     df_i <- do.call(rbind,lapply(targets,function(ti){
       tarpath <- paste(fit_path_i,ti,sep="/")
       krigfit <- readRDS(tarpath)
+      if("input"%in%names(krigfit)) krigfit <- krigfit$fit
       k <- rbind(do.call(rbind,lapply(rownames(krigfit$xo),s2v)), gen_all_neighbours(rownames(krigfit$xo)))
       
       df <- data.frame(f_est=predict(krigfit$fit,k),
@@ -180,6 +181,16 @@ compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3
 ## gets all sim output timepoints from pathx that are in time range rangex.
 ## if rangex is a single number it will find the closest output time and return that.
 get_eval_times <- function(pathx,rangex,limit=Inf){
+  if(!is.finite(rangex[1])){
+    ## this hack after the fact allows us to set e.g. rangex = c(NaN,1200)
+    ## then take the final timepoint before 1200 and N=limit-1 timepoints after
+    fx <- list.files(pathx)
+    fx <- fx[!fx%in%c("log.txt","summary.txt")]
+    tx <- as.numeric(gsub(".csv","",fx))
+    t0 <- max(tx[tx<rangex[2]])
+    tx <- head(tx[tx>=rangex[2]],limit-1)
+    return(c(t0,tx))
+  }
   if(length(rangex)>2) return(head(rangex,limit))
   fx <- list.files(pathx)
   fx <- fx[!fx%in%c("log.txt","summary.txt")]
@@ -463,4 +474,26 @@ get_evo_rate <- function(mainDir="data/main/"){
     data.frame(tt=tt,fitness=x$pop.fitness,id=fi)
   })
   saveRDS(x,"data/proc/summaries/train_fitness.Rds")
+}
+
+get_xval <- function(mainDir="data/main",subDir="alfak_eq_space_fits",outPath="data/proc/summaries/sweep_xval_eq_space_fits.Rds"){
+  setwd("~/projects/ALFA-K")
+  ci <- list.files(mainDir)
+  fpaths <- paste(mainDir,ci,subDir,sep="/")
+  x <- pbapply::pblapply(fpaths,function(f){
+    fits <- list.files(f)
+    fitnames <- sapply(fits,function(fi){
+      tail(unlist(strsplit(fi,split=".Rds")),1)
+    })
+    fits <- lapply(paste(f,fits,sep="/"),function(fit_path){
+      x <- readRDS(fit_path)
+      x$xval
+    })
+    names(fits) <- fitnames
+    return(fits)
+  })
+  names(x) <- ci
+  saveRDS(x,outPath)
+  return(x)
+  
 }
