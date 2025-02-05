@@ -6,14 +6,14 @@ setup_and_run <- function(fi){
   id <- gsub(".Rds","",fi)
   
   tarDir <- paste0(simDir,id,"/")
-  outputDir <- paste0(tarDir,"output/")
+  outputDir <- paste0(tarDir,"output_v2/")
   dir.create(outputDir,recursive = T)
   configPath <- paste0(tarDir,"config.txt")
   popPath <- paste0(tarDir,"pop.txt")
   lscapePath <- paste0(tarDir,"lscape.txt")
   
   pop <- x$x[,ncol(x$x)]
-  pop <- pop[pop>0]
+  pop <- pop[pop>1]
   pop <- round(pop*100000/sum(pop))
   pop <- gsub("[.]",",",paste(names(pop),pop,sep="."))
   writeLines(pop,popPath)

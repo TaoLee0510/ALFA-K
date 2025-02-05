@@ -57,31 +57,27 @@ clusterCall(cl, function() {
 # Export variables to the cluster
 clusterExport(cl, varlist = c("kid_lut","df","preds"), envir = environment())
 
-r <- parLapplyLB(cl, 1:nrow(df),function(i){
+r <- parSapplyLB(cl, 1:nrow(df),function(i){
   tryCatch({
     input2load <- kid_lut[paste0("k",df$kid[i])]
     xdat <- readRDS(paste0("data/salehi/alfak_inputs/",input2load,".Rds"))
-    #xdat <- readRDS(paste0("data/proc/alfak_inputs/",input2load,".Rds"))
-    xpred <- preds[[paste0("p",df$best_minobs[i])]][[df$id[i]]]
-    t2 <- as.numeric(tail(colnames(xdat$x),1))
-    x0 <- get_mean(xdat,t=as.numeric(head(colnames(xdat$x),1)))
-    xt <- get_mean(xdat,t=t2)-x0
+    path2fit <- paste0("data/salehi/alfak_fits/minobs_",df$best_minobs[i],"/",df$id[i],".Rds")
+    fit <- readRDS(path2fit)$fit
+    k <- do.call(rbind,lapply(rownames(xdat$x),s2v))
+    f <- predict(fit,k)
     
-    r <- do.call(rbind,lapply(xpred,function(xi){
-      r <- do.call(rbind,lapply(as.numeric(colnames(xi$x)),function(t1){
-        xr <- get_mean(xi,t1)-x0
-        data.frame(time=t1,
-                   wasserstein=wasserstein_distance(xi,xdat,t1,t2),
-                   cosine=compute_cosine_similarity(xi,xdat,t1,t2),
-                   euclidean=compute_mean_karyotype_distance(xi,xdat,t1,t2),
-                   overlap=compute_overlap_coefficient(xi,xdat,t1,t2),
-                   angle=getangle(xt,xr)
-        )
-      }))
-      r <- merge(df[i,],r)
-      return(r)
-    }))},error=function(e) return(NULL))
+    filter <- xdat$x[,1]>5
+    
+    f1 <- sum(xdat$x[filter,1]*f[filter])/sum(xdat$x[filter,1])
+    f2 <- sum(xdat$x[filter,2]*f[filter])/sum(xdat$x[filter,2])
+    
+    r <- f2-f1
+    
+    
+    
+    },error=function(e) return(NaN))
   
 })
+df$predicted_deltaf <- r
 
-saveRDS(r,"data/proc/summaries/salehi_all_metrics.Rds")
+saveRDS(r,"data/proc/summaries/salehi_is_fitness_increasing.Rds")

@@ -112,7 +112,10 @@ get_subdir_combinations <- function(base_dir, subdir_1, subdir_2, only_train_000
 }
 
 
-compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3000,100), inDir="data/main/", outPath="data/proc/summaries/train_test_angles.Rds", delta_t = 2000, cores = 70) {
+compute_population_metrics <- function(metrics=c("angle"), subdir_1 = "train", subdir_2="alfak_eq_space_fits/abm_output",
+                                       eval_times=c(NaN,1200), limit=8,
+                                       inDir="data/main/", outPath="data/proc/summaries/train_test_eq_space_angles.Rds", 
+                                       delta_t = 1199, cores = 70) {
   # Load required libraries
   library(parallel)
   
@@ -122,7 +125,7 @@ compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3
   }
   
   # Retrieve train-test paths
-  df <- get_subdir_combinations(inDir, subdir_1="train", subdir_2="test_v2", only_train_00000 = TRUE)
+  df <- get_subdir_combinations(inDir, subdir_1=subdir_1, subdir_2=subdir_2, only_train_00000 = TRUE)
   if (nrow(df) == 0) {
     stop("No valid train-test paths found in the specified directory.")
   }
@@ -134,38 +137,47 @@ compute_population_metrics <- function(metrics=c("angle"), eval_times=seq(2000,3
   clusterCall(cl, function() {
     source("utils/comparison_functions.R")
     source("utils/ALFA-K.R")
+    source("utils/aggregate_sweep_results.R")
     library(transport)
   })
   
   # Export variables to the cluster
-  clusterExport(cl, varlist = c("metrics", "eval_times", "delta_t", "df"), envir = environment())
+  clusterExport(cl, varlist = c("metrics", "eval_times", "delta_t", "df","limit"), envir = environment())
   
   # Parallel processing
   res <- do.call(rbind, parLapplyLB(cl, 1:nrow(df), function(i) {
+    use_eval_times <- eval_times
     tryCatch({
       # Extract paths
       train_path <- paste(df$base_path[i], df$path_1[i], sep = "/")
       test_path <- paste(df$base_path[i], df$path_2[i], sep = "/")
       
-      # Process simulations
-      x0 <- proc_sim(train_path, times = eval_times)
-      x1 <- proc_sim(test_path, times = eval_times - delta_t)
+      x0 <- proc_sim(train_path, times = get_eval_times(train_path, eval_times,limit=limit))
+      x1 <- proc_sim(test_path, times = get_eval_times(test_path, eval_times-delta_t,limit=limit))
+      
       colnames(x1$x) <- as.numeric(colnames(x1$x))+delta_t
+      
+      if(is.na(eval_times[1])){
+        colnames(x1$x) <- 1:ncol(x1$x)
+        colnames(x0$x) <- 1:ncol(x0$x)
+        use_eval_times <- 1:ncol(x0$x)
+      }
       x_ini <- get_mean(x0,1)
       # Compute metrics
       a <- w <- c()
       if ("angle" %in% metrics) {
-        a <- sapply(eval_times, function(t) angle_metric(x0, x1, t = t,x0 = x_ini))
-        names(a) <- paste0("a", eval_times)
+        a <- sapply(use_eval_times, function(t) angle_metric(x0, x1, t = t,x0 = x_ini))
+        names(a) <- paste0("a", use_eval_times)
       }
       if ("wass" %in% metrics) {
-        w <- sapply(eval_times, function(t) wasserstein_metric(x0, x1, t = t))
-        names(w) <- paste0("w", eval_times)
+        w <- sapply(use_eval_times, function(t) wasserstein_metric(x0, x1, t = t))
+        names(w) <- paste0("w", use_eval_times)
       }
-      return(c(a, w))
+      c(a, w)
     }, error = function(e) {
+      print(e)
       # Return a vector of NAs to ensure consistent output
-      return(rep(NA, length(metrics) * length(eval_times)))
+      return(rep(NA, length(metrics) * length(use_eval_times)))
     })
   }))
   
@@ -430,7 +442,10 @@ f <- function(mainDir="data/main/",cores=70,outDir="data/proc/summaries/f2000.Rd
 }
 
 
-aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/minobs_20/",outPath="data/proc/summaries/salehi_preds_minobs_20.Rds",cores=70,times=seq(0,200,10)){
+aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/minobs_20/",
+                                   outPath="data/proc/summaries/salehi_preds_minobs_20.Rds",
+                                   outoutSubdir = "output_v2",
+                                   cores=70,times=seq(0,200,10)){
   library(parallel)
   cl <- makeCluster(cores)
   clusterCall(cl, function() {
@@ -444,7 +459,7 @@ aggregate_salehi_preds <- function(inDir="data/salehi/forward_sims/minobs_20/",o
   res <- parLapplyLB(cl, ff, function(fi) {
     x <- tryCatch({
       ## seems that sometimes the predicted population goes extinct. 
-      subdir <- paste(inDir,fi,"output",sep="/")
+      subdir <- paste(inDir,fi,outoutSubdir,sep="/")
       output_folders <- list.files(subdir)
       x <- lapply(output_folders,function(oi){
         proc_sim(paste(subdir,oi,sep="/"),times=times)
@@ -495,5 +510,102 @@ get_xval <- function(mainDir="data/main",subDir="alfak_eq_space_fits",outPath="d
   names(x) <- ci
   saveRDS(x,outPath)
   return(x)
+  
+}
+
+load_fits <- function(mainDir="data/main",subDir="sweep_fits",
+                      outPath="data/proc/summaries/sweep_data.Rds",
+                      cores=70){
+  
+  setwd("~/projects/ALFA-K")
+  ci <- list.files(mainDir)
+  rep <- as.numeric(sapply(ci,function(cij){
+    tail(unlist(strsplit(cij,split="_")),1)
+  }))
+  #ci <- ci[rep<20]
+  fpaths <- paste(mainDir,ci,subDir,sep="/")
+  
+  library(parallel)
+  cl <- makeCluster(cores)
+
+  x <- parLapplyLB(cl,fpaths,function(f){
+    fits <- list.files(f)
+    fitnames <- sapply(fits,function(fi){
+      tail(unlist(strsplit(fi,split=".Rds")),1)
+    })
+    fits <- lapply(paste(f,fits,sep="/"),function(fit_path){
+      x <- readRDS(fit_path)
+      x$fit$fit <- NULL
+      x$fit$xo <- x$fit$xo[x$fit$xo$id=="fq",]
+      return(x)
+    })
+    names(fits) <- fitnames
+    return(fits)
+  })
+  names(x) <- ci
+  saveRDS(x,outPath)
+  return(x)
+  
+}
+
+fraction_uncharted <- function(outPath="data/proc/summaries/eq_space_frac_uncharted.Rds",cores=70){
+  
+  setwd("~/projects/ALFA-K/")
+  # Load required libraries
+  library(parallel)
+  
+  # Set up parallel cluster
+  cl <- makeCluster(cores)
+  
+  # Source necessary scripts on all workers
+  clusterCall(cl, function() {
+    source("utils/comparison_functions.R")
+    source("utils/ALFA-K.R")
+    source("utils/aggregate_sweep_results.R")
+  })
+  
+  # Export variables to the cluster
+ # clusterExport(cl, varlist = c("metrics", "eval_times", "delta_t", "df","limit"), envir = environment())
+  
+  # Parallel processing
+  
+  
+  
+  res <- do.call(rbind, parLapplyLB(cl, 1:length(fpaths), function(i) {
+    mainDir <- "data/main"
+    subdir_pred <- "alfak_eq_space_preds/abm_output"
+    subdir_fit <- "alfak_eq_space_fits"
+    fpaths <- list.files(mainDir)
+    fi <- fpaths[i]
+    
+    fpred <- paste(mainDir,fi,subdir_pred,sep="/")
+    ffit <- paste(mainDir,fi,subdir_fit,sep="/")
+    
+    fij <- list.files(fpred)
+    do.call(rbind,lapply(1:length(fij),function(j){
+      fijk <- fij[j]
+      
+      fitpath <- paste0(ffit,"/",fijk,".Rds")
+      predpaths <- paste(fpred,fijk,sep="/")
+      predpaths <- paste(predpaths,list.files(predpaths),sep="/")
+      
+      fit <- readRDS(fitpath)$fit
+      charted <- c(rownames(fit$xo),as.character(apply(gen_all_neighbours(rownames(fit$xo)),1,paste,collapse=".")))
+      
+      do.call(rbind,lapply(1:length(predpaths),function(k){
+        predpath <- predpaths[k] 
+        times <- get_eval_times(predpath,rangex=c(-1,1000),limit=8)
+        x <- proc_sim(predpath,times)$x
+        is_charted <- rownames(x)%in%charted
+        res <- apply(x,2,function(xi) sum(xi*as.numeric(is_charted))/sum(xi))
+        data.frame(fcharted=as.numeric(res),passage=1:length(res),rep=k-1,path_2=fijk,base_path=fi)
+      }))
+     
+    }))
+    
+  }))
+  
+  saveRDS(res,outPath)
+  return(res)
   
 }
