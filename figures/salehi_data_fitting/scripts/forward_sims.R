@@ -55,3 +55,8 @@ forwardSims <- function(alfak_dir="~/projects/ALFA-K",
   x <- parLapplyLB(cl=cl,X=ff,fun=setup_and_run)
 }
 
+
+
+forwardSims(fitDir = "data/salehi/alfak_fits/minobs_20/",simDir = "data/salehi/forward_sims/minobs_20/")
+forwardSims(fitDir = "data/salehi/alfak_fits/minobs_10/",simDir = "data/salehi/forward_sims/minobs_10/")
+forwardSims(fitDir = "data/salehi/alfak_fits/minobs_5/",simDir = "data/salehi/forward_sims/minobs_5/")

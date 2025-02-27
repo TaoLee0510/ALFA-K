@@ -64,33 +64,16 @@ r <- parLapplyLB(cl, 1:nrow(df),function(i){
     #xdat <- readRDS(paste0("data/proc/alfak_inputs/",input2load,".Rds"))
     xpred <- preds[[paste0("p",df$best_minobs[i])]][[df$id[i]]]
     t2 <- as.numeric(tail(colnames(xdat$x),1))
-    t0 <- as.numeric(head(colnames(xdat$x),1))
-    x0 <- get_mean(xdat,t=t0)
-    xt <- get_mean(xdat,t=t2)-x0
-    
-    wassersteinref=wasserstein_distance(xdat,xdat,t0,t2)
-    cosineref=compute_cosine_similarity(xdat,xdat,t0,t2)
-    euclideanref=compute_mean_karyotype_distance(xdat,xdat,t0,t2)
-    overlapref=compute_overlap_coefficient(xdat,xdat,t0,t2)
+    x0 <- get_mean(xdat,t=as.numeric(head(colnames(xdat$x),1)))
+    xt <- get_mean(xdat,t=t2)
     
     r <- do.call(rbind,lapply(xpred,function(xi){
       r <- do.call(rbind,lapply(as.numeric(colnames(xi$x)),function(t1){
-        xr <- get_mean(xi,t1)-x0
+        xr <- get_mean(xi,t1)
         data.frame(time=t1,
-                   wasserstein=wasserstein_distance(xi,xdat,t1,t2),
-                   wasserstein0=wasserstein_distance(xi,xdat,t1,t0),
-                   wassersteinref=wassersteinref,
-                   cosine=compute_cosine_similarity(xi,xdat,t1,t2),
-                   cosine0=compute_cosine_similarity(xi,xdat,t1,t0),
-                   cosineref=cosineref,
-                   euclidean=compute_mean_karyotype_distance(xi,xdat,t1,t2),
-                   euclidean0=compute_mean_karyotype_distance(xi,xdat,t1,t0),
-                   euclideanref=euclideanref,
-                   overlap=compute_overlap_coefficient(xi,xdat,t1,t2),
-                   overlap0=compute_overlap_coefficient(xi,xdat,t1,t0),
-                   overlapref=overlapref,
-                   angle=getangle(xt,xr)
-        )
+                   euc_pred = sqrt(mean((xr-x0)^2)),
+                   euc_ref = sqrt(mean((xt-x0)^2)),
+                   euc_err = sqrt(mean((xt-xr)^2)))
       }))
       r <- merge(df[i,],r)
       return(r)
@@ -98,4 +81,4 @@ r <- parLapplyLB(cl, 1:nrow(df),function(i){
   
 })
 
-saveRDS(r,"data/proc/summaries/salehi_all_metrics.Rds")
+saveRDS(r,"data/proc/summaries/salehi_basic_metrics.Rds")

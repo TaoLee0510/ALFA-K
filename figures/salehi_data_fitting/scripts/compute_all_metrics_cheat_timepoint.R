@@ -43,9 +43,9 @@ kid_lut <- tmp$id
 names(kid_lut) <- paste0("k",tmp$kid)
 
 source("utils/comparison_functions.R")
-preds <- list(p5 = readRDS("data/proc/summaries/salehi_preds_minobs_5.Rds"),
-              p10 = readRDS("data/proc/summaries/salehi_preds_minobs_10.Rds"),
-              p20 = readRDS("data/proc/summaries/salehi_preds_minobs_20.Rds"))
+preds <- list(p5 = readRDS("data/proc/summaries/salehi_preds_v2_minobs_5.Rds"),
+              p10 = readRDS("data/proc/summaries/salehi_preds_v2_minobs_10.Rds"),
+              p20 = readRDS("data/proc/summaries/salehi_preds_v2_minobs_20.Rds"))
 
 library(parallel)
 cl <- makeCluster(70)
@@ -59,43 +59,38 @@ clusterExport(cl, varlist = c("kid_lut","df","preds"), envir = environment())
 
 r <- parLapplyLB(cl, 1:nrow(df),function(i){
   tryCatch({
+    
     input2load <- kid_lut[paste0("k",df$kid[i])]
     xdat <- readRDS(paste0("data/salehi/alfak_inputs/",input2load,".Rds"))
-    #xdat <- readRDS(paste0("data/proc/alfak_inputs/",input2load,".Rds"))
     xpred <- preds[[paste0("p",df$best_minobs[i])]][[df$id[i]]]
     t2 <- as.numeric(tail(colnames(xdat$x),1))
-    t0 <- as.numeric(head(colnames(xdat$x),1))
-    x0 <- get_mean(xdat,t=t0)
+    x0 <- get_mean(xdat,t=as.numeric(head(colnames(xdat$x),1)))
     xt <- get_mean(xdat,t=t2)-x0
-    
-    wassersteinref=wasserstein_distance(xdat,xdat,t0,t2)
-    cosineref=compute_cosine_similarity(xdat,xdat,t0,t2)
-    euclideanref=compute_mean_karyotype_distance(xdat,xdat,t0,t2)
-    overlapref=compute_overlap_coefficient(xdat,xdat,t0,t2)
     
     r <- do.call(rbind,lapply(xpred,function(xi){
       r <- do.call(rbind,lapply(as.numeric(colnames(xi$x)),function(t1){
         xr <- get_mean(xi,t1)-x0
         data.frame(time=t1,
                    wasserstein=wasserstein_distance(xi,xdat,t1,t2),
-                   wasserstein0=wasserstein_distance(xi,xdat,t1,t0),
-                   wassersteinref=wassersteinref,
                    cosine=compute_cosine_similarity(xi,xdat,t1,t2),
-                   cosine0=compute_cosine_similarity(xi,xdat,t1,t0),
-                   cosineref=cosineref,
                    euclidean=compute_mean_karyotype_distance(xi,xdat,t1,t2),
-                   euclidean0=compute_mean_karyotype_distance(xi,xdat,t1,t0),
-                   euclideanref=euclideanref,
                    overlap=compute_overlap_coefficient(xi,xdat,t1,t2),
-                   overlap0=compute_overlap_coefficient(xi,xdat,t1,t0),
-                   overlapref=overlapref,
                    angle=getangle(xt,xr)
         )
       }))
       r <- merge(df[i,],r)
       return(r)
-    }))},error=function(e) return(NULL))
+    }))
+    
+    rag <- aggregate(list(wasserstein=r$wasserstein,euclidean=r$euclidean,overlap=r$overlap,cosine=r$cosine),by=list(time=r$time),median)
+    dbeat <- rbind(apply(rag[,c("wasserstein","euclidean")],1,function(ri) ri < rag[1,c("wasserstein","euclidean")]),
+                   apply(rag[,c("cosine","overlap")],1,function(ri) ri > rag[1,c("cosine","overlap")]))
+    
+    tpred <- r$time[which.max(colSums(dbeat))]
+    r[r$time==tpred,]
+    
+    },error=function(e) return(NULL))
   
 })
 
-saveRDS(r,"data/proc/summaries/salehi_all_metrics.Rds")
+saveRDS(r,"data/proc/summaries/salehi_all_metrics_cheat_timepoint.Rds")

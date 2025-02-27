@@ -43,9 +43,6 @@ kid_lut <- tmp$id
 names(kid_lut) <- paste0("k",tmp$kid)
 
 source("utils/comparison_functions.R")
-preds <- list(p5 = readRDS("data/proc/summaries/salehi_preds_minobs_5.Rds"),
-              p10 = readRDS("data/proc/summaries/salehi_preds_minobs_10.Rds"),
-              p20 = readRDS("data/proc/summaries/salehi_preds_minobs_20.Rds"))
 
 library(parallel)
 cl <- makeCluster(70)
@@ -55,18 +52,27 @@ clusterCall(cl, function() {
 })
 
 # Export variables to the cluster
-clusterExport(cl, varlist = c("kid_lut","df","preds"), envir = environment())
+clusterExport(cl, varlist = c("kid_lut","df"), envir = environment())
 
 r <- parSapplyLB(cl, 1:nrow(df),function(i){
   tryCatch({
     input2load <- kid_lut[paste0("k",df$kid[i])]
     xdat <- readRDS(paste0("data/salehi/alfak_inputs/",input2load,".Rds"))
     path2fit <- paste0("data/salehi/alfak_fits/minobs_",df$best_minobs[i],"/",df$id[i],".Rds")
-    fit <- readRDS(path2fit)$fit
-    k <- do.call(rbind,lapply(rownames(xdat$x),s2v))
-    f <- predict(fit,k)
+    fit <- readRDS(path2fit)
+    fq <- rownames(fit$xo)[fit$xo$id=="fq"]
+    nn <- gen_all_neighbours(fq)
+    nn <- apply(nn,1,paste,collapse=".")
+    n2 <- gen_all_neighbours(nn)
+    n2 <- apply(n2,1,paste,collapse=".")
+    L <- c(fq,n2,d2)#,n2)
     
-    filter <- xdat$x[,1]>5
+    filter <- rownames(xdat$x)%in%L
+    
+    k <- do.call(rbind,lapply(rownames(xdat$x),s2v))
+    f <- predict(fit$fit,k)
+    
+   # filter <- xdat$x[,1]>5
     
     f1 <- sum(xdat$x[filter,1]*f[filter])/sum(xdat$x[filter,1])
     f2 <- sum(xdat$x[filter,2]*f[filter])/sum(xdat$x[filter,2])
@@ -80,4 +86,4 @@ r <- parSapplyLB(cl, 1:nrow(df),function(i){
 })
 df$predicted_deltaf <- r
 
-saveRDS(r,"data/proc/summaries/salehi_is_fitness_increasing.Rds")
+saveRDS(df,"data/proc/summaries/salehi_is_fitness_increasing.Rds")

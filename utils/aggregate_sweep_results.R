@@ -609,3 +609,26 @@ fraction_uncharted <- function(outPath="data/proc/summaries/eq_space_frac_unchar
   return(res)
   
 }
+
+aggregate_training_data <- function(){
+  source("utils/ALFA-K.R")
+  dir="data/main/"
+  subdir="train/00000/"
+  dirs <- list.files(dir)
+  x <- pbapply::pblapply(dirs,function(di){
+    path<- paste0(dir,di,"/",subdir)
+    ff <- list.files(path)
+    ff <- ff[!ff%in%c("log.txt","summary.txt")]
+    ff <- as.numeric(gsub(".csv","",ff))
+    xi <- proc_sim(dir=path,times = ff)
+    lscape_path <- paste0(dir,di,"/landscape.txt")
+    cfig_path <- paste0(dir,di,"/config.txt")
+    lscape <-  gen_fitness_object(cfig_path,lscape_path)
+    list(data=xi,lscape=lscape)
+  
+  })
+  names(x) <- dirs
+  outpath <- "data/proc/sweep_inputs.Rds"
+  saveRDS(x,outpath)
+  
+}
