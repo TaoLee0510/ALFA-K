@@ -1,5 +1,6 @@
-
-
+#include<stdint.h>
+#include <vector>
+#include <random>
 struct karyotype{
     int n=0;
     int nchrom;
@@ -25,7 +26,7 @@ karyotype::karyotype(vector<int> &founder, int N, float f){
 // all cells divide
 void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants){
 
-    binomial_distribution<> d1(cn.size(), p); // isn't this an error? first arg should be n..!?
+    binomial_distribution<> d1(static_cast<int>(cn.size()), p); // Explicit cast // isn't this an error? first arg should be n..!?
 
     for(int i=0;i<n;i++){
         int n_mis = d1(gen);
@@ -64,8 +65,6 @@ void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants
         };
     }
     n*=2; // all the cells that didn't missegregate, divide.
-
-
 }
 
 //in overloaded version, karyotype fitness is interpreted as net growth rate and
@@ -127,26 +126,31 @@ void karyotype::divide(float p,float pgd, mt19937& gen, list<karyotype>& mutants
                 bool d2_valid=true;
                 int counter = 0;
                 int allocated = 0;
-                for(int i = 0; i<cn.size(); i++){
-                    counter+=cn[i];
-                    if(indices[allocated]<counter){
+                for(int i = 0; i < cn.size(); i++)
+                {
+                    counter += cn[i];
+                    if(allocated < indices.size() && indices[allocated] < counter)
+                    {
                         allocated++;
-                        if(unidis(gen)<0.5){
-                            d1[i]+=1;
-                            d2[i]-=1;
-                        }else{
-                            d2[i]+=1;
-                            d1[i]-=1;
+                        if(unidis(gen) < 0.5)
+                        {
+                            d1[i] += 1;
+                            d2[i] -= 1;
+                        } else {
+                            d2[i] += 1;
+                            d1[i] -= 1;
                         }
-                        if(d1[i]<1) d1_valid=false;
-                        if(d2[i]<1) d2_valid=false;
+                        if(d1[i] < 1) d1_valid=false;
+                        if(d2[i] < 1) d2_valid=false;
                     }
                 }
-                if(d1_valid){
+                if(d1_valid)
+                {
                     karyotype tmp(d1,1,fitness);
                     mutants.push_back(tmp);
                 }
-                if(d2_valid){
+                if(d2_valid)
+                {
                         karyotype tmp(d2,1,fitness);
                         mutants.push_back(tmp);
                 }
@@ -329,14 +333,16 @@ void instantiate_population(string filename, map<vector<int>,karyotype>& m, fitn
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
-
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<int> k;
         int N;
         float f;
         //for(int i = 0; i< (rowsize-1); i++) cout << stoi(words[i]) << ",";
         //cout << endl;
-        for(int i = 0; i< (rowsize-1); i++) k.push_back(stoi(words[i]));
+        for(int i = 0; i< (rowsize); i++) k.push_back(stoi(words[i]));
         N = stoi(words[rowsize-1]);
         f = fl.get_fitness(k,gen);
 

@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 
 
     string config_file_path = "config.txt";
+    //string config_file_path = "/Users/taolee/Documents/GBM/runtime_ver1/ABM/primray/10/P19/fitted_landscape_config.txt";
     if(argc<2) {
         cout << "using default config file (hopefully one is there...)" << endl;
     }else{
@@ -46,10 +47,8 @@ int main(int argc, char *argv[])
     cellfile.open(fname);
 
     // set random seeds
-    uint64_t randoseed = chrono::high_resolution_clock::
-                                        now().time_since_epoch().count();
-    mt19937 gen(randoseed);
-    srand(randoseed);
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
     // instantiate cell population
     vector<int> k1=par.init_kary;
@@ -64,6 +63,9 @@ int main(int argc, char *argv[])
     }
     if(par.fitness_landscape_type=="krig"){
         f.init(par.knots,par.c,par.d,par.deltafu);
+    }
+    if(par.fitness_landscape_type=="Predicted"){
+        f.init(par.knots,par.c,par.deltafu);
     }
     if(par.fitness_landscape_type=="flat"){
         f.init(1.0);

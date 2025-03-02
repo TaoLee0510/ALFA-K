@@ -1,3 +1,4 @@
+#include<stdint.h>
 struct parameters{
 
     float p=0.001;
@@ -58,6 +59,8 @@ struct parameters{
     void read_random_file();
     void read_random_file(string);
     void read_krig_file(string);
+    void read_Predicted_file();
+    void read_Predicted_file(string);
 
 };
 
@@ -134,6 +137,7 @@ void parameters::read_landscape_file(){
     if(fitness_landscape_type=="polyh") read_polyh_file();
     if(fitness_landscape_type=="random") read_random_file();
     if(fitness_landscape_type=="krig") read_krig_file();
+    if(fitness_landscape_type=="Predicted") read_Predicted_file();
 }
 
 void parameters::read_landscape_file(string flf){
@@ -141,6 +145,7 @@ void parameters::read_landscape_file(string flf){
     if(fitness_landscape_type=="polyh") read_polyh_file();
     if(fitness_landscape_type=="random") read_random_file(flf);
     if(fitness_landscape_type=="krig") read_krig_file(flf);
+    if(fitness_landscape_type=="Predicted") read_Predicted_file(flf);
 }
 
 // all these read functions are better associated with their respective fitness landscapes
@@ -158,7 +163,10 @@ void parameters::read_gaussian_file(){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<int> peak;
         for(int i = 0; i< (rowsize-2); i++){
             peak.push_back(stoi(words[i]));
@@ -184,7 +192,10 @@ void parameters::read_random_file(){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<int> peak;
         for(int i = 0; i< rowsize; i++){
             peak.push_back(stoi(words[i]));
@@ -212,7 +223,10 @@ void parameters::read_krig_file(){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<float> knot;
         for(int i = 0; i< (rowsize-1); i++){
             knot.push_back(stof(words[i]));
@@ -234,6 +248,41 @@ void parameters::read_krig_file(){
 
 }
 
+void parameters::read_Predicted_file(){
+    knots.clear();
+    c.clear();
+   fstream fin;
+   fin.open(fitness_landscape_file, ios::in);
+   std::string tmp, row;
+   vector<string> words;
+   char delim = ',';
+   while(std::getline(fin, row)){
+        // the last row of the input is v. Approach is to clear v and reset it every time through the loop,
+        // so at the end of the loop v is correct
+        d.clear();
+        words.clear();
+        stringstream tmp2(row);
+        while (std::getline(tmp2, tmp, delim)) {
+            words.push_back(tmp);
+        }
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
+        vector<float> knot;
+        for(int i = 0; i< (rowsize-1); i++){
+            knot.push_back(stof(words[i]));
+        }
+        knots.push_back(knot);
+        c.push_back(stof(words[rowsize-1]));
+    }
+
+   // remove the last elements (which are v)
+   c.pop_back();
+   knots.pop_back();
+
+}
+
 void parameters::read_random_file(string flf){
    peaks.clear();
    fstream fin;
@@ -248,7 +297,10 @@ void parameters::read_random_file(string flf){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<int> peak;
         for(int i = 0; i< rowsize; i++){
             peak.push_back(stoi(words[i]));
@@ -276,7 +328,10 @@ void parameters::read_krig_file(string flf){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<float> knot;
         for(int i = 0; i< (rowsize-1); i++){
             knot.push_back(stof(words[i]));
@@ -298,6 +353,42 @@ void parameters::read_krig_file(string flf){
 
 }
 
+void parameters::read_Predicted_file(string flf){
+    knots.clear();
+    c.clear();
+   fstream fin;
+   fin.open(flf, ios::in);
+   std::string tmp, row;
+   vector<string> words;
+   char delim = ',';
+   while(std::getline(fin, row)){
+        // the last row of the input is v. Approach is to clear v and reset it every time through the loop,
+        // so at the end of the loop v is correct
+        d.clear();
+        words.clear();
+        stringstream tmp2(row);
+        while (std::getline(tmp2, tmp, delim)) {
+            words.push_back(tmp);
+        }
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
+        vector<float> knot;
+        for(int i = 0; i< (rowsize-1); i++){
+            knot.push_back(stof(words[i]));
+        }
+        knots.push_back(knot);
+        c.push_back(stof(words[rowsize-1]));
+    }
+
+   // remove the last elements (which are v)
+   c.pop_back();
+   knots.pop_back();
+
+}
+
+
 void parameters::read_polyh_file(){
 
    fstream fin;
@@ -314,7 +405,10 @@ void parameters::read_polyh_file(){
         while (std::getline(tmp2, tmp, delim)) {
             words.push_back(tmp);
         }
-        int rowsize = words.size();
+       int rowsize = static_cast<int>(words.size());
+       if (words.size() > INT_MAX) {
+           throw std::overflow_error("words.size() exceeds int limits");
+       }
         vector<int> peak;
         for(int i = 0; i< (rowsize-1); i++){
             peak.push_back(stoi(words[i]));
