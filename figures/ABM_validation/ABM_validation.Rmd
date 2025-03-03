@@ -436,6 +436,201 @@ pa <- ggplot(z,aes(x=stringr::str_pad(minobs,width=2),color=as.character(ntp)))+
 pa
 
 ```
+```{r}
+x <- readRDS("data/proc/boot_test_summaries.Rds")
+y <- data.frame(w=sapply(x$id1,function(i) unlist(strsplit(i,split="_"))[4]))
+y <- cbind(y,do.call(rbind,lapply(x$id2,function(i){
+  i <- unlist(strsplit(i,split="_"))[c(2,4)]
+  data.frame(ntp=i[1],minobs=i[2])
+})))
+
+x <- cbind(y,x)
+r <- reshape2::melt(x[,!colnames(x)%in%c("id1","id2")],id.vars=c("w","ntp","minobs"))
+r$value <- pmax(r$value,-1)
+
+z <- aggregate(list(value=r$value),by=list(metric=r$variable,ntp=r$ntp,minobs=r$minobs,w=r$w),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+z <- z[z$metric%in%c("r","R"),]
+
+
+# Define custom labels as named character vector
+custom_labels <- c(
+  r = "Pearson~r",
+  R = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(r$w)))),
+  unique(r$w)
+)
+
+pa2<- ggplot(z,aes(x=stringr::str_pad(minobs,width=2),color=as.character(ntp)))+
+  facet_grid(rows=vars(metric),cols=vars(w),scales="free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)))+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,minobs)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous("Metric value") +
+  scale_x_discrete("Minimum Observations", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("longitudinal\nsamples") +
+  theme_classic()+
+  theme(legend.direction = "horizontal",
+  legend.position = c(0.01, .01),  # Top-left inside the plot
+  legend.justification = c("left", "bottom"),  # Anchor the legend by its top-left corner
+  legend.background = element_rect(fill = "transparent", color = NA))
+pa2
+```
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(reshape2)
+library(stringr)
+library(viridis)
+library(dplyr)
+
+###############################
+## Process Dataset 1: Landscape Accuracy
+###############################
+
+# Read the first data set
+land_acc <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+
+# Reshape to long format for three metrics
+land_acc_melt <- melt(land_acc, measure.vars = c("spearman_rho", "pearson_r", "adjR2"))
+
+# Ensure that values are at least -1 (as in your code)
+land_acc_melt$value <- pmax(land_acc_melt$value, -1)
+
+# Aggregate quantiles (10%, median, 90%) by group
+agg_land <- aggregate(list(value = land_acc_melt$value),
+                      by = list(metric = land_acc_melt$variable,
+                                ntp    = land_acc_melt$ntp,
+                                minobs = land_acc_melt$minobs,
+                                w      = land_acc_melt$w),
+                      FUN = quantile, probs = c(0.1, 0.5, 0.9))
+# The aggregate returns a matrix in the "value" column; convert it:
+dfz_land <- data.frame(agg_land$value)
+colnames(dfz_land) <- c("lo", "med", "hi")
+agg_land <- cbind(agg_land[, -which(names(agg_land) == "value")], dfz_land)
+
+# Subset only to the metrics common with the other data set (i.e. Pearson r and Rescaled R^2)
+agg_land <- agg_land[agg_land$metric %in% c("pearson_r", "adjR2"), ]
+
+# Recode the metric names so they match the labels in the second data set
+agg_land$metric <- recode(agg_land$metric,
+                          "pearson_r" = "Pearson~r",
+                          "adjR2"    = "Rescaled~R^2")
+
+# Tag this data as coming from the Landscape Accuracy data set
+agg_land$dataset <- "prior pipeline"
+
+
+###############################
+## Process Dataset 2: Boot Test Summaries
+###############################
+
+# Read the second data set
+boot_test <- readRDS("data/proc/boot_test_summaries.Rds")
+
+# Extract variable w from id1 and ntp, minobs from id2
+y_info <- data.frame(w = sapply(boot_test$id1, function(i) unlist(strsplit(i, split = "_"))[4]),
+                     stringsAsFactors = FALSE)
+y_extra <- do.call(rbind, lapply(boot_test$id2, function(i) {
+  parts <- unlist(strsplit(i, split = "_"))
+  data.frame(ntp = parts[2], minobs = parts[4], stringsAsFactors = FALSE)
+}))
+boot_df <- cbind(y_info, y_extra, boot_test)
+
+# Melt the data (drop the id1 and id2 columns)
+boot_melt <- melt(boot_df[, !colnames(boot_df) %in% c("id1", "id2")],
+                  id.vars = c("w", "ntp", "minobs"))
+
+# Ensure that values are at least -1
+boot_melt$value <- pmax(boot_melt$value, -1)
+
+# Aggregate quantiles (10%, median, 90%)
+agg_boot <- aggregate(list(value = boot_melt$value),
+                      by = list(metric = boot_melt$variable,
+                                ntp    = boot_melt$ntp,
+                                minobs = boot_melt$minobs,
+                                w      = boot_melt$w),
+                      FUN = quantile, probs = c(0.1, 0.5, 0.9))
+dfz_boot <- data.frame(agg_boot$value)
+colnames(dfz_boot) <- c("lo", "med", "hi")
+agg_boot <- cbind(agg_boot[, -which(names(agg_boot) == "value")], dfz_boot)
+
+# Keep only the two metrics of interest (here labeled "r" and "R")
+agg_boot <- agg_boot[agg_boot$metric %in% c("r", "R"), ]
+
+# Recode them to the common labels used above
+agg_boot$metric <- recode(agg_boot$metric,
+                          "r" = "Pearson~r",
+                          "R" = "Rescaled~R^2")
+
+# Tag this data as coming from the Boot Test Summaries data set
+agg_boot$dataset <- "bootstrap pipeline"
+
+
+###############################
+## Combine and Plot Comparison
+###############################
+
+# Combine the two aggregated data frames
+combined_df <- rbind(agg_land, agg_boot)
+
+# Convert minobs to a factor (for discrete x-axis labels)
+combined_df$minobs <- factor(combined_df$minobs,
+                             levels = sort(unique(as.numeric(as.character(combined_df$minobs)))))
+
+# Make sure w is a character (for faceting)
+combined_df$w <- as.character(combined_df$w)
+
+# Define custom labels for the metrics and for w (lambda values)
+custom_labels <- c(
+  "Pearson~r"    = "Pearson~r",
+  "Rescaled~R^2" = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(combined_df$w)))),
+  unique(combined_df$w)
+)
+
+# Create the comparison plot.
+# Here we map ntp (longitudinal samples) to color and dataset to shape.
+comp_plot <- ggplot(combined_df[combined_df$ntp%in%c(2,4,8)&combined_df$minobs%in%c(10,20),],
+                    aes(x = str_pad(minobs, width = 2),
+                        y = med,
+                        color = as.character(ntp),
+                        shape = dataset,
+                        group = interaction(dataset, ntp, minobs))) +
+  facet_grid(rows = vars(metric),
+             cols = vars(w),
+             scales = "free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)
+             )) +
+  geom_errorbar(aes(ymin = lo, ymax = hi),
+                position = position_dodge(width = 0.8), width = 0.2) +
+  geom_point(position = position_dodge(width = 0.8), size = 2) +
+  scale_y_continuous("Metric value") +
+  scale_x_discrete("Minimum Observations", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("Longitudinal\nsamples") +
+  theme_classic() +
+  theme(legend.direction = "horizontal",
+        legend.position = c(0.01, 0.01),
+        legend.justification = c("left", "bottom"),
+        legend.background = element_rect(fill = "transparent", color = NA))
+
+# Display the plot
+print(comp_plot)
+
+```
 
 
 So question will be why is the accuracy shit where it is?
@@ -1169,3 +1364,40 @@ pw <- ggplot(df,aes(x=times,y=fwins))+
 pw
 
 ```
+
+
+PREDICTIONNS WITH THE NEW PIPELINE...
+
+```{r}
+x <- readRDS("data/proc/boot_pred_summaries.Rds")
+
+ids <- do.call(rbind,lapply(x$id1,function(idi){
+  idi <- strsplit(idi,split="_")|>unlist()
+  data.frame(w=idi[4],rep=idi[8])
+}))
+
+ids <- cbind(ids,do.call(rbind,lapply(x$id2,function(idi){
+  idi <- strsplit(idi,split="_")|>unlist()
+  data.frame(ntp=idi[2],minobs=idi[4])
+})))
+
+x <- cbind(ids,x[,!colnames(x)%in%c("id1","id2")])
+x <- x[!is.na(as.numeric(x$minobs)),]
+
+x <- split(x,f=interaction(x$w,x$rep,x$minobs,x$ntp))
+x <- x[sapply(x,nrow)>0]
+x <- do.call(rbind,lapply(x,function(xi){
+  xi$passage <- 1:nrow(xi)
+  xi$win <- xi$ddatpred_t<xi$ddat0
+  xi
+}))
+
+smm <- aggregate(list(win=x$win),by=list(w=x$w,ntp=x$ntp,minobs=x$minobs,passage=x$passage),mean)
+
+p <- ggplot(smm,aes(x=passage,y=win,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(minobs))+
+  geom_line()
+p
+
+```
+
