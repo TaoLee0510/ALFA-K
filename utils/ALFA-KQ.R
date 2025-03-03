@@ -527,6 +527,7 @@ alfak <- function(yi,outdir,passage_times,minobs = 20,
   saveRDS(landscape,paste(c(outdir,"landscape.Rds"),collapse="/"))
   Rxv <- xval(fq_boot)
   saveRDS(Rxv,paste(c(outdir,"xval.Rds"),collapse="/"))
+  if(length(pred_times)==0) return(Rxv)
   coords <- gen_coords(landscape$k)
   dims <- rep(nrow(landscape), 2)
   tm <- tmbuild(pm, coords, dims)
