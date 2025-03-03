@@ -510,6 +510,7 @@ predict_evo <- function(landscape,pred_times,dtest,tm,times,pred_iters){
 
 alfak <- function(yi,outdir,passage_times,minobs = 20,
                   nboot = 45,
+                  pred_iters = 100,
                   n0 = 1e5,
                   nb = 1e7,
                   pred_times = c(275),
