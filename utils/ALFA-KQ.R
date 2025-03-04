@@ -523,7 +523,7 @@ alfak <- function(yi,outdir,passage_times,minobs = 20,
   fq_boot <- solve_fitness_bootstrap(yi, minobs=minobs, nboot = nboot,n=n0,nb=nb,pm=pm,passage_times = passage_times)
   saveRDS(fq_boot,paste(c(outdir,"bootstrap_res.Rds"),collapse="/"))
   
-  landscape <- fitKrig(fq_boot)
+  landscape <- fitKrig(fq_boot,nboot)
   saveRDS(landscape,paste(c(outdir,"landscape.Rds"),collapse="/"))
   Rxv <- xval(fq_boot)
   saveRDS(Rxv,paste(c(outdir,"xval.Rds"),collapse="/"))
