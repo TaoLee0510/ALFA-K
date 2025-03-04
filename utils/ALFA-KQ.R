@@ -402,7 +402,7 @@ gen_coords <- function(k) {
   }))
 }
 
-fitKrig <- function(fq_boot){
+fitKrig <- function(fq_boot,nboot){
 
   fboot <- cbind(fq_boot$final_fitness,fq_boot$nn_fitness)
   fq_str <- colnames(fq_boot$final_fitness)
