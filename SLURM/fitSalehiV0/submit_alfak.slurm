@@ -1,5 +1,5 @@
 #! /bin/bash
-
+mkdir -p logs
 MYFILES=(/home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/*.Rds) # array of files in dir
 MYCOMMAND="Rscript run_alfak.R"                    # run this command
 MYMODULE="R"                                  # use this software module
@@ -18,8 +18,9 @@ sbatch <<EOSUBMIT
 #SBATCH --time 1-6                      # kill job after 1 day and 6 hours
 #SBATCH --array 0-$((${NUMF}-1))${CONC} # zero based array jobs with concurrency
 #SBATCH --job-name ${SCRIPT}            # Jobname based on script name
-#SBATCH --output ${SCRIPT}-%A_%a.out    # STDOUT target based on script name
-#SBATCH --error ${SCRIPT}-%A_%a.err     # STDERR target based on script name
+#SBATCH --output=logs/${SCRIPT}-%A_%a.out    # Store STDOUT in logs/ directory
+#SBATCH --error=logs/${SCRIPT}-%A_%a.err     # Store STDERR in logs/ directory
+
 
 MYFILES=(${MYFILES[@]})                 # re-instantiate array of data files
 ml ${MYMODULE}                          # load our environment module

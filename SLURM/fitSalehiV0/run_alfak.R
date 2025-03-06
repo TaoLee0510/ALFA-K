@@ -7,7 +7,7 @@ source("utils/ALFA-KQ.R")
 
 args <- commandArgs(trailingOnly=TRUE)
 fi <- args[1]
-cat("Processing file:", infile, "\n")
+
 
 
 
