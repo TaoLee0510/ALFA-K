@@ -1,17 +1,15 @@
 # Load necessary libraries
 setwd("~/projects/ALFA-K/")
 inDir <- "data/salehi/alfak_inputs/"
-ff <- list.files(inDir)
 m <- read.csv("data/salehi/metadata.csv")
 
 source("utils/ALFA-KQ.R")
 
-# Get SLURM job array index
-task_id <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
-if (is.na(task_id)) stop("SLURM_ARRAY_TASK_ID is not set")
+args <- commandArgs(trailingOnly=TRUE)
+fi <- args[1]
+cat("Processing file:", infile, "\n")
 
-# Select file to process based on task_id
-fi <- ff[task_id]
+
 
 # Parameters
 pred_iters <- 100
