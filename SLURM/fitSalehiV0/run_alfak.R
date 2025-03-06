@@ -1,6 +1,6 @@
 # Load necessary libraries
-setwd("~/projects/008_birthrateLandscape/ALFA-K/")
-inDir <- "data/proc/alfak_inputs/"
+setwd("~/projects/ALFA-K/")
+inDir <- "data/salehi/alfak_inputs/"
 ff <- list.files(inDir)
 m <- read.csv("data/salehi/metadata.csv")
 
@@ -42,7 +42,7 @@ outdir <- paste0("data/proc/alfak_outputs/minobs_",minobs,"/", gsub(".Rds", "", 
 # Run ALFA-K
 alfak(yi, outdir, passage_times, minobs = minobs,
       nboot = nboot,
-      pred_iters = pred_iters),
+      pred_iters = pred_iters,
       n0 = n0,
       nb = nb,
       pred_times = pred_times,
