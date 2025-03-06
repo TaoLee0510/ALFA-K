@@ -1370,6 +1370,12 @@ PREDICTIONNS WITH THE NEW PIPELINE...
 
 ```{r}
 x <- readRDS("data/proc/boot_pred_summaries.Rds")
+y <- readRDS("data/proc/boot_test_summaries.Rds")
+xv <- y[,c("Rxv","id1","id2")]
+xv$id2 <- gsub(".Rds","",xv$id2)
+x$id2 <- gsub(".Rds","",x$id2)
+
+x <- merge(x,xv,by = c("id1","id2"))
 
 ids <- do.call(rbind,lapply(x$id1,function(idi){
   idi <- strsplit(idi,split="_")|>unlist()
@@ -1392,9 +1398,9 @@ x <- do.call(rbind,lapply(x,function(xi){
   xi
 }))
 
-smm <- aggregate(list(win=x$win),by=list(w=x$w,ntp=x$ntp,minobs=x$minobs,passage=x$passage),mean)
+smm <- aggregate(list(win=x$win),by=list(w=x$w,ntp=x$ntp,minobs=x$minobs,passage=x$passage,good=x$Rxv>0),mean)
 
-p <- ggplot(smm,aes(x=passage,y=win,color=w))+
+p <- ggplot(smm[smm$good,],aes(x=passage,y=win,color=w))+
   facet_grid(cols=vars(ntp),rows=vars(minobs))+
   geom_line()
 p

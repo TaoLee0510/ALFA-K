@@ -1,0 +1,1 @@
+sbatch --array=1-$(Rscript -e 'cat(length(list.files("data/proc/alfak_inputs/")))') submit_alfak.slurm
