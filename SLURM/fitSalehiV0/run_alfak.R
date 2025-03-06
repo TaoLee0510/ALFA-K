@@ -10,7 +10,7 @@ args <- commandArgs(trailingOnly=TRUE)
 fi <- args[1]
 fi <- tail(unlist(strsplit(fi,split="/")),1)
 
-
+print(paste("running ",fi))
 
 # Parameters
 pred_iters <- 100
@@ -37,7 +37,7 @@ pred_times <- yi$dt * pred_times
 
 passage_times <- min(as.numeric(colnames(yi$x))):max(as.numeric(colnames(yi$x)))
 outdir <- paste0("data/proc/alfak_outputs/minobs_",minobs,"/", gsub(".Rds", "", fi))
-
+print("entering alfak")
 # Run ALFA-K
 alfak(yi, outdir, passage_times, minobs = minobs,
       nboot = nboot,
