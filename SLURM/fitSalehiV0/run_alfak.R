@@ -1,4 +1,5 @@
 # Load necessary libraries
+print("STARTING JOB")
 options(error = function() { print("ERROR DETECTED"); traceback(); q(status=1) })
 setwd("~/projects/ALFA-K/")
 inDir <- "data/salehi/alfak_inputs/"
