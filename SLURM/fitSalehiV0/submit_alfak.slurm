@@ -1,40 +1,43 @@
-#!/bin/bash
+#! /bin/bash
 
-########################
-# 1) Define your input files and concurrency
-########################
-MYFILES=(data/salehi/alfak_inputs/*.Rds)      # All .Rds files in alfak_inputs
-MYCOMMAND="Rscript run_alfak.R"               # The command you want to run
-MYMODULE="R/4.2.2"                            # Example module; adjust as needed
-CONC=10                                       # Maximum number of parallel tasks
-NUMF="${#MYFILES[@]}"                         # Count of input files
+MYFILES=(/home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/*.Rds) # array of files in dir
+MYCOMMAND="Rscript run_alfak.R"                    # run this command
+MYMODULE="R"                                  # use this software module
 
-########################
-# 2) Create a temporary SLURM submission (here-doc)
-########################
+# you might not have to change these
+NUMF="${#MYFILES[@]}"                             # filecount in array
+SCRIPT=${0##*/} && SCRIPT=${SCRIPT%%.*}           # remove path and ext
+CONC=${1:+%$1}                                    # Concurrency cmd line
+
 sbatch <<EOSUBMIT
-#!/bin/bash
-#SBATCH --job-name=alfak
-#SBATCH --output=logs/alfak_%A_%a.out
-#SBATCH --error=logs/alfak_%A_%a.err
-#SBATCH --array=0-$((${NUMF}-1))%${CONC}  # zero-based array, up to NUMF-1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=50
-#SBATCH --mem=200G
-#SBATCH --time=12:00:00
-#SBATCH --partition=red       # or any other partition you prefer
+#! /bin/bash
+#SBATCH --nodes 1                       # one node
+#SBATCH --ntasks 1                      # one task
+#SBATCH --cpus-per-task 50               # one cpu core per task
+#SBATCH --mem-per-cpu 4G                # 4G of memory per core
+#SBATCH --time 1-6                      # kill job after 1 day and 6 hours
+#SBATCH --array 0-$((${NUMF}-1))${CONC} # zero based array jobs with concurrency
+#SBATCH --job-name ${SCRIPT}            # Jobname based on script name
+#SBATCH --output ${SCRIPT}-%A_%a.out    # STDOUT target based on script name
+#SBATCH --error ${SCRIPT}-%A_%a.err     # STDERR target based on script name
 
-########################
-# 3) Load modules and run
-########################
-ml ${MYMODULE}               # Load R environment
+MYFILES=(${MYFILES[@]})                 # re-instantiate array of data files
+ml ${MYMODULE}                          # load our environment module
+which ${MYCOMMAND} 2> /dev/null         # print path/version of our software
 
-MYFILES=(${MYFILES[@]})      # Re-instantiate array inside job
-THISFILE="\${MYFILES[\$SLURM_ARRAY_TASK_ID]}"
-echo "Running \${MYCOMMAND} on: \${THISFILE}"
-echo "SLURM_ARRAY_TASK_ID: \$SLURM_ARRAY_TASK_ID"
+echo "${MYCOMMAND} \${MYFILES[\$SLURM_ARRAY_TASK_ID]}"
 
-# Actually run it
-\${MYCOMMAND} "\${THISFILE}"
+echo "NUMF: ${NUMF}"
+echo "SCRIPT: ${SCRIPT}"
+echo "SLURM_JOB_ID: \${SLURM_JOB_ID}"
+echo "SLURM_ARRAY_TASK_ID: \${SLURM_ARRAY_TASK_ID}"
+echo "SLURM_ARRAY_TASK_MAX: \${SLURM_ARRAY_TASK_MAX}"
+echo "SLURM_ARRAY_TASK_MIN: \${SLURM_ARRAY_TASK_MIN}"
+echo "SLURM_ARRAY_TASK_COUNT: \${SLURM_ARRAY_TASK_COUNT}"
+echo "SLURM_SUBMIT_DIR: \${SLURM_SUBMIT_DIR}"
+echo "SLURMD_NODENAME: \${SLURMD_NODENAME}"
+echo "SLURM_JOB_CPUS_PER_NODE: \${SLURM_JOB_CPUS_PER_NODE}"
+echo "SLURM_JOB_NODELIST: \${SLURM_JOB_NODELIST}"
+echo "SLURM_MEM_PER_CPU: \${SLURM_MEM_PER_CPU}"
 
 EOSUBMIT
