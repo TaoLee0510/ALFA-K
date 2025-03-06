@@ -1,7 +1,7 @@
 #! /bin/bash
 mkdir -p logs
 MYFILES=(/home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/*.Rds) # array of files in dir
-MYCOMMAND="Rscript run_alfak.R"                    # run this command
+MYCOMMAND="Rscript /home/4473331/projects/ALFA-K/SLURM/fitSalehiV0/run_alfak.R"                    # run this command
 MYMODULE="R"                                  # use this software module
 
 # you might not have to change these
