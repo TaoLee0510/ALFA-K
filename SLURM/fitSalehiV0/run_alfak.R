@@ -7,7 +7,7 @@ source("utils/ALFA-KQ.R")
 
 args <- commandArgs(trailingOnly=TRUE)
 fi <- args[1]
-
+fi <- tail(unlist(strsplit(fi,split="/")),1)
 
 
 
