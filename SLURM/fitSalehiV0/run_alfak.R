@@ -21,7 +21,6 @@ n0 <- 1e5
 nb <- 1e7
 pm <- 0.00005
 num_cores <- 50
-stop("random error")
 # Load data
 yi <- readRDS(paste0(inDir, fi))
 ix <- strsplit(fi, split = "_") |> unlist()
