@@ -556,9 +556,9 @@ alfak <- function(yi, outdir, passage_times, minobs = 20,
     t0 <- as.numeric(colnames(yi$x))[i-1] * yi$dt
     tend <- as.numeric(colnames(yi$x))[i] * yi$dt
     t_seq <- t0:tend
-    xpr <- predict_evo(landscape, pred_times=as.numeric(colnames(yi$x))*yi$dt,
+    xpr <- predict_evo(landscape, pred_times=tend,
                          dtest, tm, t_seq, pred_iters, cl = cl)
-    xpr[-1,]
+    return(xpr)
   }))
   saveRDS(xpred, file = file.path(outdir, "in_sample_predictions.Rds")) 
   
