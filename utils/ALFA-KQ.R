@@ -550,12 +550,16 @@ alfak <- function(yi, outdir, passage_times, minobs = 20,
   tm <- tmbuild(pm, coords, dims)
   
   ## do a validation prediction
-  dtest <- yi$x[rownames(yi$x) %in% landscape$k, 1]
-  t0 <- min(as.numeric(colnames(yi$x)) * yi$dt)
-  tend <- max(as.numeric(colnames(yi$x)) * yi$dt)
-  t_seq <- t0:tend
-  xpred <- predict_evo(landscape, pred_times=as.numeric(colnames(yi$x))*yi$dt,
-                       dtest, tm, t_seq, pred_iters, cl = cl)
+  
+  xpred <- do.call(rbind,lapply(2:ncol(yi$x),function(i){
+    dtest <- yi$x[rownames(yi$x) %in% landscape$k, i-1]
+    t0 <- as.numeric(colnames(yi$x))[i-1] * yi$dt
+    tend <- as.numeric(colnames(yi$x))[i] * yi$dt
+    t_seq <- t0:tend
+    xpr <- predict_evo(landscape, pred_times=as.numeric(colnames(yi$x))*yi$dt,
+                         dtest, tm, t_seq, pred_iters, cl = cl)
+    xpr[-1,]
+  }))
   saveRDS(xpred, file = file.path(outdir, "in_sample_predictions.Rds")) 
   
   
