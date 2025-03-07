@@ -15,8 +15,8 @@ print(paste("running ",fi))
 
 # Parameters
 pred_iters <- 100
-minobs <- 10
-nboot <- 100
+minobs <- 20
+nboot <- 50
 n0 <- 1e5
 nb <- 1e7
 pm <- 0.00005
