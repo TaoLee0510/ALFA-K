@@ -13,7 +13,7 @@ fi_id <- args[1]
 
 y0 <- readRDS(dataPath)
 
-fi <- y0[fi_id]
+fi <- names(y0)[fi_id]
 y0 <- y0[[fi]]$data
 
 
