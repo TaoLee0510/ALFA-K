@@ -51,7 +51,8 @@ for(i in 1:nrow(pars)){
     ntp <- pars$ntp[i]
     outdir <- paste0(outputBasePath,"minobs_",minobs,"_ntp_",ntp,"/",fi,"/")
     yi <- proc_sweep_input(y0,ntp=ntp,tmax=tmax)
-    passage_times <- get_prediction_passages(y0)
+    pred_times <- get_prediction_passages(y0)
+    passage_times <- as.numeric(colnames(yi$x))*yi$dt
     alfak(yi, outdir, passage_times, minobs = minobs,
           nboot = nboot,
           pred_iters = pred_iters,
