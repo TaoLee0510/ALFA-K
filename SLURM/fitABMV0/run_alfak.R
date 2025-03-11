@@ -12,8 +12,9 @@ args <- commandArgs(trailingOnly=TRUE)
 fi_id <- args[1]
 
 y0 <- readRDS(dataPath)
-
 fi <- names(y0)[fi_id]
+print(fi_id)
+print(fi)
 y0 <- y0[[fi]]$data
 
 
@@ -45,17 +46,20 @@ get_prediction_passages <- function(yi,tmax=1200,npassages=10){
 }
 
 for(i in 1:nrow(pars)){
-  minobs <- pars$minobs[i]
-  ntp <- pars$ntp[i]
-  outdir <- paste0(outputBasePath,"minobs_",minobs,"_ntp_",ntp,"/")
-  yi <- proc_sweep_input(y0,ntp=ntp,tmax=tmax)
-  passage_times <- get_prediction_passages(y0)
-  alfak(yi, outdir, passage_times, minobs = minobs,
-        nboot = nboot,
-        pred_iters = pred_iters,
-        n0 = n0,
-        nb = nb,
-        pred_times = pred_times,
-        pm = 0.00005,
-        num_cores = num_cores)
+  tryCatch({
+    minobs <- pars$minobs[i]
+    ntp <- pars$ntp[i]
+    outdir <- paste0(outputBasePath,"minobs_",minobs,"_ntp_",ntp,"/")
+    yi <- proc_sweep_input(y0,ntp=ntp,tmax=tmax)
+    passage_times <- get_prediction_passages(y0)
+    alfak(yi, outdir, passage_times, minobs = minobs,
+          nboot = nboot,
+          pred_iters = pred_iters,
+          n0 = n0,
+          nb = nb,
+          pred_times = pred_times,
+          pm = 0.00005,
+          num_cores = num_cores)
+  },error=function(e) print(e))
+  
 }
