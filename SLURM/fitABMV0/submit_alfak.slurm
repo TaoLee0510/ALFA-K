@@ -21,6 +21,7 @@ sbatch <<EOSUBMIT
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task=50
 #SBATCH --mem-per-cpu=4G
+#SBATCH --qos=small
 #SBATCH --time=1-6
 #SBATCH --array=1-${NUMF}${CONC}
 #SBATCH --job-name=${SCRIPT}
