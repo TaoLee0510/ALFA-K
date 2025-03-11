@@ -9,7 +9,7 @@ outputBasePath <- "data/proc/sweep_results/"
 source("utils/ALFA-KQ.R")
 
 args <- commandArgs(trailingOnly=TRUE)
-fi_id <- args[1]
+fi_id <- as.numeric(args[1])
 
 y0 <- readRDS(dataPath)
 fi <- names(y0)[fi_id]
