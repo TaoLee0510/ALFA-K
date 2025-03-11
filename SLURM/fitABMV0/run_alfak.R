@@ -49,7 +49,7 @@ for(i in 1:nrow(pars)){
   tryCatch({
     minobs <- pars$minobs[i]
     ntp <- pars$ntp[i]
-    outdir <- paste0(outputBasePath,"minobs_",minobs,"_ntp_",ntp,"/")
+    outdir <- paste0(outputBasePath,"minobs_",minobs,"_ntp_",ntp,"/",fi,"/")
     yi <- proc_sweep_input(y0,ntp=ntp,tmax=tmax)
     passage_times <- get_prediction_passages(y0)
     alfak(yi, outdir, passage_times, minobs = minobs,
