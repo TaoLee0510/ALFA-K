@@ -1406,4 +1406,36 @@ p <- ggplot(smm[smm$good,],aes(x=passage,y=win,color=w))+
 p
 
 ```
+```{r}
+x <- readRDS("data/proc/sweep_results_summaries.Rds")
+
+dfl <- x$dfl
+dfp <- x$dfp
+
+dfp <- split(dfp,f=interaction(dfp$abmrep,dfp$ntp,dfp$w))
+dfp <- do.call(rbind,lapply(dfp,function(di){
+  if(sum(is.finite(di$Rxv))<1) return(NULL)
+  di <- di[is.finite(di$Rxv),]
+  di[di$Rxv==max(di$Rxv),]
+}))
+
+dfpa <- aggregate(list(fwin=dfp$win),by=list(metric=dfp$metric,passage=dfp$passage,ntp=dfp$ntp,w=dfp$w),mean,na.rm=T)
+
+p <- ggplot(dfpa,aes(x=passage,y=fwin,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(metric))+
+  geom_line()
+p
+
+dfpf <- dfp[dfp$Rxv>0,]
+
+dfpfa <- aggregate(list(fwin=dfpf$win),by=list(metric=dfpf$metric,passage=dfpf$passage,ntp=dfpf$ntp,w=dfpf$w),mean,na.rm=T)
+
+dfpfa$ntp <- paste0(dfpfa$ntp," sample timepoints")
+
+p <- ggplot(dfpfa,aes(x=passage,y=fwin,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(metric))+
+  geom_line()
+p
+
+```
 
