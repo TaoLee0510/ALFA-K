@@ -2,7 +2,7 @@
 mkdir -p logs
 
 # Define constants
-MYCOMMAND="Rscript /home/4473331/projects/ALFA-K/SLURM/fitABMV0/run_alfak.R"
+MYCOMMAND="Rscript /home/4473331/projects/ALFA-K/SLURM/fitABMV0/run_alfak_noPar.R"
 MYMODULE="R"
 NUMF=400  # Set to 400 instead of counting files
 SCRIPT=${0##*/} && SCRIPT=${SCRIPT%%.*}
@@ -19,9 +19,8 @@ sbatch <<EOSUBMIT
 #!/bin/bash
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
-#SBATCH --cpus-per-task=50
-#SBATCH --mem-per-cpu=4G
-#SBATCH --qos=small
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=8G
 #SBATCH --time=1-6
 #SBATCH --qos=small
 #SBATCH --array=1-${NUMF}${CONC}

@@ -26,7 +26,7 @@ pred_iters <- 100
 n0 <- 1e5
 nb <- 2e6
 pm <- 0.00005
-num_cores <- 50
+num_cores <- NULL
 nboot <- 50
 
 proc_sweep_input <- function(yi,ntp=8,tmax=1200){

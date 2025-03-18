@@ -15,12 +15,12 @@ print(paste("running ",fi))
 
 # Parameters
 pred_iters <- 100
-minobs <- 20
+minobs <- 5
 nboot <- 50
 n0 <- 1e5
 nb <- 1e7
 pm <- 0.00005
-num_cores <- 50
+num_cores <- NULL
 # Load data
 yi <- readRDS(paste0(inDir, fi))
 ix <- strsplit(fi, split = "_") |> unlist()

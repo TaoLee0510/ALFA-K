@@ -553,8 +553,8 @@ alfak <- function(yi, outdir, passage_times, minobs = 20,
   
   xpred <- do.call(rbind,lapply(2:ncol(yi$x),function(i){
     dtest <- yi$x[rownames(yi$x) %in% landscape$k, i-1]
-    t0 <- as.numeric(colnames(yi$x))[i-1] * yi$dt
-    tend <- as.numeric(colnames(yi$x))[i] * yi$dt
+    t0 <- round(as.numeric(colnames(yi$x))[i-1] * yi$dt)
+    tend <- round(as.numeric(colnames(yi$x))[i] * yi$dt)
     t_seq <- t0:tend
     xpr <- predict_evo(landscape, pred_times=tend,
                          dtest, tm, t_seq, pred_iters, cl = cl)
@@ -564,10 +564,10 @@ alfak <- function(yi, outdir, passage_times, minobs = 20,
   
   
   dtest <- yi$x[rownames(yi$x) %in% landscape$k, ncol(yi$x)]
-  t0 <- max(as.numeric(colnames(yi$x)) * yi$dt)
-  tend <- max(pred_times)
+  t0 <- round(max(as.numeric(colnames(yi$x)) * yi$dt))
+  tend <- round(max(pred_times))
   t_seq <- t0:tend
-  xpred <- predict_evo(landscape, pred_times, dtest, tm, t_seq, pred_iters, cl = cl)
+  xpred <- predict_evo(landscape, round(pred_times), dtest, tm, t_seq, pred_iters, cl = cl)
   saveRDS(xpred, file = file.path(outdir, "predictions.Rds"))
   
   if (!is.null(cl)) stopCluster(cl)
