@@ -54,8 +54,9 @@ struct fitness_landscape{
 
 float fitness_landscape::get_Predicted_fitness(vector<int>& cn){
     float f=0;
-    vector<float> xx0;// = {1.0};
+    vector<float> xx0;
     for(const auto& i:cn) xx0.push_back((float)i);
+    int chrom_number = int(xx0.size());
     for(int i = 0; i<knots.size(); i++)
     {
         int Di = 0;
@@ -66,7 +67,7 @@ float fitness_landscape::get_Predicted_fitness(vector<int>& cn){
                 Di = Di+1;
             }
         }
-        if(Di == xx0.size())
+        if(Di == chrom_number)
         {
             f = c[i];
             break;

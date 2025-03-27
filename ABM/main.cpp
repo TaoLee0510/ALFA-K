@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
         mutants.clear();
 
 
-        cout << "Ncells: " << ncells << "; mean fitness: " << mean_fitness<< "; min fitness: " << min_fitness<< "; max fitness: " << max_fitness << "; Nclones: " << m.size() << endl;
+       // cout << "Ncells: " << ncells << "; mean fitness: " << mean_fitness<< "; min fitness: " << min_fitness<< "; max fitness: " << max_fitness << "; Nclones: " << m.size() << endl;
         // perform passaging if cell threshold is exceeded
         if(ncells>par.max_size){
             // write out a sample of cells to file
@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
         cellfile << ncells << endl;
 
     }
+    cout << "sim completed!" << endl;
     cellfile.close();
 
     return 0;
