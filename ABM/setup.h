@@ -1,4 +1,5 @@
 #include<stdint.h>
+#include <climits>
 struct parameters{
 
     float p=0.001;
