@@ -120,7 +120,7 @@ parameters::parameters(string path){
         if(words[0]=="centre") centre=stof(words[1]);
         if(words[0]=="fitness_noise") fitness_noise=stof(words[1]);
         if(words[0]=="Nsteps") Nsteps=stoi(words[1]);
-        if(words[0]=="init_size") init_size=stof(words[1]);
+        //if(words[0]=="init_size") init_size=stoi(words[1]);
         if(words[0]=="bf") bf=stof(words[1]);
         if(words[0]=="max_size") max_size=stoi(words[1]);
         if(words[0]=="init_kary"){
