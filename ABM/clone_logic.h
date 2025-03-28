@@ -1,6 +1,7 @@
 #include<stdint.h>
 #include <vector>
 #include <random>
+#include <climits>
 struct karyotype{
     int n=0;
     int nchrom;
