@@ -33,6 +33,11 @@ landscape_accuracy_metrics <- function(df){
 R2 <- function(obs,pred){
   1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
 }
+R2R <- function(obs,pred){
+  obs <- obs-mean(obs)
+  pred <- pred-mean(pred)
+  1-sum((pred-obs)^2)/sum((obs-mean(obs))^2)
+}
 RMSE <- function(obs,pred){
   round(sqrt(mean((obs-pred)^2)),digits=2)
 }

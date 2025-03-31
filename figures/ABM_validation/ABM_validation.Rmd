@@ -1,0 +1,1441 @@
+---
+title: "ABM validation"
+author: "Richard J Beck"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir="~/projects/008_birthrateLandscape/ALFA-K/")
+```
+
+```{r}
+library(ggplot2)
+base_theme <- theme(
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain")  
+  )
+```
+
+
+To setup and run:
+
+```{r}
+###....
+```
+
+
+and then fit the simulations:
+
+```{r,eval=FALSE}
+source("figures/alfak_ABM_tests/passage_fits.R")
+#then
+source("utils/aggregate_sweep_results.R")
+get_xval()
+##20 mins 70 cores
+apply_landscape_metrics(fit_path="alfak_eq_space_fits/",
+                                    outPath="data/proc/summaries/landscape_metrics_eq_space_fits.Rds",cores=70)
+  
+ m <- metric_comps(subdir_1="train",subdir_2="train",range_1 = c(NaN,1200), 
+                         range_2=c(NaN,1200), cores = 70, limit=8,
+                         inDir="data/main/", only_train_00000 =T,
+                         outPath="data/proc/summaries/train_train_matrices_eq_space_preds.Rds")
+
+m <- metric_comps(subdir_1="train",subdir_2="alfak_eq_space_preds/abm_output",range_1 = c(NaN,1200), 
+                  range_2=c(-1,1000), cores = 70, limit=8,
+                  inDir="data/main/", only_train_00000 =T,
+                  outPath="data/proc/summaries/train_test_matrices_eq_space_preds.Rds")
+
+```
+
+The following script was used to generate the file train_fitness.Rds
+```{r}
+source("utils/aggregate_sweep_results.R")
+get_evo_rate()
+```
+
+
+Make a merged dataset containing all the landscape data:
+
+```{r}
+
+source("utils/ALFA-K.R")
+source("utils/comparison_functions.R")
+d <- readRDS("data/proc/summaries/sweep_eq_space_data.Rds")
+
+d <- do.call(rbind,pbapply::pblapply(names(d),function(ni){
+  w <- unlist(strsplit(ni,split="_"))
+  w <- w[1+which(w=="w")]
+  di <- d[[ni]]
+  dfi <- do.call(rbind,lapply(names(di),function(nij){
+    dij <- di[[nij]]
+      dij$fit$xo$ftru <- sapply(rownames(dij$fit$xo), function(ki){
+        getf(s2v(ki),dij$fobj)
+      })
+
+      pred <- dij$fit$xo$f_est
+      obs <- dij$fit$xo$ftru
+      fq_r <- tryCatch(cor(pred,obs,use="complete"),error=function(e) return(NaN))
+      fq_R2=R2(obs-mean(obs),pred-mean(pred))
+      
+      pred <- dij$xval$pred
+      obs <- dij$xval$f_est
+      xval_r <- tryCatch(cor(pred,obs,use="complete"),error=function(e) return(NaN))
+      xval_R2 <- tryCatch(R2(obs-mean(obs),pred-mean(pred)),error=function(e) return(NaN))
+      
+      data.frame(fit_id=nij,nfq=nrow(dij$xval),fq_r,fq_R2,xval_r,xval_R2)
+  }))
+  dfi$w <- w
+  dfi$base_path <- ni
+  return(dfi)
+}))
+
+is_in_evo_int <- function(df,ntp=c(2,3,4,8)){
+  tt <- df$tt[df$tt<1200]
+  do.call(rbind,lapply(ntp,function(n){
+    ti <- tail(tt,n)
+    fi <- df$fitness[df$tt%in%ti]
+    evolving <- mean(diff(fi)>0)==1
+    data.frame(ntp=n,base_path=unique(df$id),evolving)
+  }))
+}
+
+x <- readRDS("data/proc/summaries/train_fitness.Rds")
+evodf <- do.call(rbind,lapply(x,is_in_evo_int))
+
+r <- readRDS("data/proc/summaries/landscape_metrics_eq_space_fits.Rds")
+colnames(r) <- gsub("sim_id","base_path",colnames(r))
+
+ids <- data.frame(do.call(rbind,lapply(r$fit_id,function(di){
+    tmp <- unlist(strsplit(di,split="_"))
+    di <- tmp[c(2,4)]
+    names(di) <- tmp[c(1,3)]
+    di
+})))
+r <- cbind(r,ids)
+y <- merge(d,r)
+y <- merge(y,evodf)
+
+saveRDS(y,"figures/ABM_validation/data/landscape_accuracy.Rds")
+
+```
+
+
+
+
+```{r}
+identify_evolution_intervals <- function(df) {
+  # Calculate the difference in fitness
+  df$fitness_diff <- c(NA, diff(df$fitness))
+  
+  # Define threshold for considering upward trend
+  threshold <- 0  # Can adjust based on noise tolerance
+  
+  # Find periods where fitness_diff > threshold
+  evolving <- which(df$fitness_diff > threshold)
+  
+  if (length(evolving) == 0) {
+    return(data.frame(start = NA, end = NA, id = unique(df$id)))
+  }
+  
+  # Find contiguous intervals of evolution
+  intervals <- split(evolving, cumsum(c(TRUE, diff(evolving) != 1)))
+  
+  # Identify the longest contiguous interval
+  longest_interval <- intervals[[which.max(sapply(intervals, length))]]
+  
+  # Return the start and end times of the interval
+  start <- df$tt[min(longest_interval)]
+  end <- df$tt[max(longest_interval)]
+  return(data.frame(start = start, end = end, id = unique(df$id)))
+}
+
+identify_fit_times <- function(df,ntp=c(2,3,4,8)){
+  tt <- df$tt[df$tt<1200]
+  do.call(rbind,lapply(ntp,function(n){
+    data.frame(ntp=n,start=min(tail(tt,n)),end=tail(tt,1),id=unique(df$id))
+  }))
+}
+
+identify_pred_times <- function(df){
+  tt <- df$tt[df$tt>1200]
+  data.frame(end=tail(head(tt,7),1),id=unique(df$id))
+}
+
+
+
+x <- readRDS("data/proc/summaries/train_fitness.Rds")
+# Apply the function to the list of data frames
+result <- lapply(x, identify_evolution_intervals)
+y <- do.call(rbind,lapply(x,identify_fit_times))
+z <- do.call(rbind,lapply(x,identify_pred_times))
+
+# Combine the results into one data frame
+df <- do.call(rbind, result)
+
+library(ggplot2)
+library(dplyr)
+
+# Assuming `result` contains the interval data for all data frames
+# Combine results into one data frame
+df <- do.call(rbind, result)
+
+get_w_from_id <- function(id){
+  id <- unlist(strsplit(id,split="_"))
+  id[1+which(id=="w")]
+}
+
+get_rep_from_id <- function(id){
+  id <- unlist(strsplit(id,split="_"))
+  as.numeric(id[1+which(id=="rep")])
+}
+
+df$w <- sapply(df$id,get_w_from_id)
+df$rep <- sapply(df$id,get_rep_from_id)
+
+y$w <- sapply(y$id,get_w_from_id)
+y$rep <- sapply(y$id,get_rep_from_id)
+
+z$w <- sapply(z$id,get_w_from_id)
+z$rep <- sapply(z$id,get_rep_from_id)
+
+
+# Plot intervals using ggplot
+p1b <- ggplot(df, aes(y = rep, x = start/10, xend = end/10)) +
+  facet_grid(rows = vars(paste0("lambda==", gsub("p", ".", w))), labeller = label_parsed)+
+  geom_segment(aes(x = start/10, xend = end/10, y = rep, yend = rep)) +
+  geom_point(data=y,aes(x = start/10, y = rep,color=as.character(ntp)),shape=95,size=2)+
+  geom_point(data=y,aes(x = end/10, y = rep),color="grey",shape=95,size=2)+
+  geom_point(data=z,aes(x = end/10, y = rep),color="red",shape=95,size=2)+
+  coord_flip()+  # Flip axes for better readability+
+  scale_color_discrete("longitudinal samples")+
+  scale_x_continuous("simulation time (days)")+
+  scale_y_continuous("ABM sim. replicate ID",breaks=NULL)+
+  theme_classic()+
+  theme( legend.direction = "horizontal",
+  legend.position = c(0.0, 1.1),  # Top-left inside the plot
+  legend.justification = c("left", "top"),
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain"))
+
+
+x <- readRDS("data/proc/summaries/train_fitness.Rds")
+x <- do.call(rbind,x)
+x$id1 <- x$id
+x$id[grepl("0p2",x$id)] <- "0p2"
+x$id[grepl("0p4",x$id)] <- "0p4"
+x$id[grepl("0p8",x$id)] <- "0p8"
+x$id[grepl("1p6",x$id)] <- "1p6"
+
+p1a <- ggplot(x,aes(x=tt/10,y=fitness,group=id1))+
+  facet_grid(cols = vars(paste0("lambda==", gsub("p", ".", id))), labeller = label_parsed)+
+  geom_line(alpha=0.5)+
+  scale_y_continuous("mean fitness")+
+  scale_x_continuous("days")+
+  theme_classic()+
+  theme(
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain")  
+  )
+p1a
+
+
+```
+
+```{r,echo=FALSE,eval=FALSE}
+set.seed(42)
+nchrom <- 2
+Nwaves <- 10
+source("utils/landscape_functions.R")
+
+gen_rand_land <- function(wavelength){
+  pk <- gen_rf_landscape(founder = sample(1:10,nchrom,replace = T),Nwaves = Nwaves,wavelength = wavelength)
+dfi <- expand.grid(x=seq(0,10,0.25),y=seq(0,10,0.25))
+dfi$f <- apply(dfi,1,function(xi) get_rf_fitness(k=xi,pk=pk,wavelength=wavelength))
+dfi$wavelength<-wavelength
+dfi
+}
+
+wls <- c(0.4,0.8,1.6)
+df <- do.call(rbind,lapply(wls,gen_rand_land))
+
+
+df$wavelength <- paste0("lambda==",df$wavelength)
+p_grf_complexity <- ggplot(df,aes(x=x,y=y,fill=f))+
+  facet_grid(rows=vars(wavelength),labeller="label_parsed")+
+  geom_raster()+
+  scale_fill_viridis_c("fitness")+
+  scale_x_continuous("chromosome 1",breaks=0:10)+
+  scale_y_continuous("chromosome 2",breaks=0:10)+
+  theme_classic(base_size = 8)+
+  guides(fill = guide_colorbar(title = "fitness",
+                               frame.colour = "black",
+                               barwidth = 5,
+                               barheight = .5))+
+  base_theme+
+  theme(legend.position = "top")
+p_grf_complexity
+```
+
+```{r,echo=FALSE,eval=FALSE}
+
+wrap_vis <- function(dir,nclones){
+  ff <- list.files(dir)
+  ff <- ff[!ff%in%c("log.txt","summary.txt")]
+  tt <- as.numeric(sapply(ff,function(fi) head(unlist(strsplit(fi,split=".csv")),1)))
+
+  x <- proc_sim(dir,times=tt)
+
+  z <- melt_for_plotting(x,nclones=nclones)$data
+  return(z)
+}
+
+source("utils/visualisation_functions.R")
+source("utils/ALFA-K.R")
+dir1 <- "figures/alfak_ABM_tests/data/abm_demo_outputs/lambda_0p2/"
+dir2 <- "figures/alfak_ABM_tests/data/abm_demo_outputs/lambda_1p6/"
+
+z1 <- wrap_vis(dir1,3)
+z2 <- wrap_vis(dir2,5)
+
+
+px <- ggplot(z1,aes(x=time,y=frequency,color=karyotype))+
+  geom_line()+
+  theme_classic()+
+  base_theme+
+  theme(legend.position = c(1.01,1.02),
+        legend.justification = c(1, 1),
+        legend.box.margin = margin(t=0,b=0,l=0,r=0, unit = "mm"),
+        legend.key.height = unit(0.075,"in"),
+        legend.title = element_text(size=7),
+        legend.text = element_text(size=4.5))+
+  scale_x_continuous("days")
+px
+
+py <- ggplot(z2,aes(x=time,y=frequency,color=karyotype))+
+  geom_line()+
+  theme_classic()+
+  base_theme+
+  theme(legend.position = c(1.01,1.02),
+        legend.justification = c(1, 1),
+        legend.box.margin = margin(t=0,b=0,l=0,r=0, unit = "mm"),
+        legend.key.height = unit(0.075,"in"),
+        legend.title = element_text(size=7),
+        legend.text = element_text(size=4.5))+
+  scale_x_continuous("days")
+py
+
+
+```
+
+```{r}
+ptop <- cowplot::plot_grid(px,py,nrow=1,labels = c("A","B"))
+p <- cowplot::plot_grid(p1a,p1b,nrow=2,labels = c("D","E"),rel_heights = c(2,5))
+p <- cowplot::plot_grid(p_grf_complexity,p,ncol=2,labels=c("C",""),rel_widths=c(2,5))
+p <- cowplot::plot_grid(ptop,p,nrow=2,rel_heights = c(2,5))
+
+ggsave("figures/ABM_validation/figures/abm_sampling_strat.png",plot=p,width=7,height=7,units="in")
+```
+
+```{r}
+source("utils/ALFA-K.R")
+source("utils/comparison_functions.R")
+x <- readRDS("data/proc/summaries/train_fitness.Rds")
+
+
+is_in_evo_int <- function(df,ntp=c(2,3,4,8)){
+  tt <- df$tt[df$tt<1200]
+  do.call(rbind,lapply(ntp,function(n){
+    ti <- tail(tt,n)
+    fi <- df$fitness[df$tt%in%ti]
+    evolving <- mean(diff(fi)>0)==1
+    data.frame(ntp=n,base_path=unique(df$id),evolving)
+  }))
+}
+
+evodf <- do.call(rbind,lapply(x,is_in_evo_int))
+
+xval <- readRDS("data/proc/summaries/sweep_xval_eq_space_fits.Rds")
+xval <- do.call(rbind,pbapply::pblapply(names(xval),function(n0){
+  xi <- xval[[n0]]
+  basename <- unlist(strsplit(n0,split="_"))
+  w <- basename[1+which(basename=="w")]
+  res <- do.call(rbind,lapply(names(xi),function(n1){
+    subname <- unlist(strsplit(n1,split="_"))
+    ntp <- subname[1+which(subname=="ntp")]
+    minobs <- subname[1+which(subname=="minobs")]
+    xij <- xi[[n1]]
+    xij <- xij[!is.na(xij$pred),]
+    if(nrow(xij)<2) return(data.frame(w=w,ntp=ntp,minobs=minobs,xval=NaN))
+    xvalScore <- R2(xij$f_est,xij$pred)
+    data.frame(w=w,ntp=ntp,minobs=minobs,xval=xvalScore)
+  }))
+  res$base_path <- n0
+  res
+  
+}))
+
+xval <- merge(xval,evodf)
+xval$xval[!is.finite(xval$xval)] <- -Inf
+xval$xval <- pmax(xval$xval,-1)
+```
+
+```{r}
+
+r <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+
+r <- reshape2::melt(r,measure.vars=c("spearman_rho","pearson_r","adjR2"))
+
+r$value <- pmax(r$value,-1)
+
+z <- aggregate(list(value=r$value),by=list(metric=r$variable,ntp=r$ntp,minobs=r$minobs,w=r$w),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+
+# Define custom labels as named character vector
+custom_labels <- c(
+  spearman_rho = "Spearman~rho",
+  pearson_r = "Pearson~r",
+  adjR2 = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(r$w)))),
+  unique(r$w)
+)
+
+pa <- ggplot(z,aes(x=stringr::str_pad(minobs,width=2),color=as.character(ntp)))+
+  facet_grid(rows=vars(metric),cols=vars(w),scales="free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)))+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,minobs)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous("Metric value") +
+  scale_x_discrete("Minimum Observations", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("longitudinal\nsamples") +
+  theme_classic()+
+  theme(legend.direction = "horizontal",
+  legend.position = c(0.01, .01),  # Top-left inside the plot
+  legend.justification = c("left", "bottom"),  # Anchor the legend by its top-left corner
+  legend.background = element_rect(fill = "transparent", color = NA))
+pa
+
+```
+```{r}
+x <- readRDS("data/proc/boot_test_summaries.Rds")
+y <- data.frame(w=sapply(x$id1,function(i) unlist(strsplit(i,split="_"))[4]))
+y <- cbind(y,do.call(rbind,lapply(x$id2,function(i){
+  i <- unlist(strsplit(i,split="_"))[c(2,4)]
+  data.frame(ntp=i[1],minobs=i[2])
+})))
+
+x <- cbind(y,x)
+r <- reshape2::melt(x[,!colnames(x)%in%c("id1","id2")],id.vars=c("w","ntp","minobs"))
+r$value <- pmax(r$value,-1)
+
+z <- aggregate(list(value=r$value),by=list(metric=r$variable,ntp=r$ntp,minobs=r$minobs,w=r$w),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+z <- z[z$metric%in%c("r","R"),]
+
+
+# Define custom labels as named character vector
+custom_labels <- c(
+  r = "Pearson~r",
+  R = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(r$w)))),
+  unique(r$w)
+)
+
+pa2<- ggplot(z,aes(x=stringr::str_pad(minobs,width=2),color=as.character(ntp)))+
+  facet_grid(rows=vars(metric),cols=vars(w),scales="free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)))+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,minobs)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous("Metric value") +
+  scale_x_discrete("Minimum Observations", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("longitudinal\nsamples") +
+  theme_classic()+
+  theme(legend.direction = "horizontal",
+  legend.position = c(0.01, .01),  # Top-left inside the plot
+  legend.justification = c("left", "bottom"),  # Anchor the legend by its top-left corner
+  legend.background = element_rect(fill = "transparent", color = NA))
+pa2
+```
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(reshape2)
+library(stringr)
+library(viridis)
+library(dplyr)
+
+###############################
+## Process Dataset 1: Landscape Accuracy
+###############################
+
+# Read the first data set
+land_acc <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+
+# Reshape to long format for three metrics
+land_acc_melt <- melt(land_acc, measure.vars = c("spearman_rho", "pearson_r", "adjR2"))
+
+# Ensure that values are at least -1 (as in your code)
+land_acc_melt$value <- pmax(land_acc_melt$value, -1)
+
+# Aggregate quantiles (10%, median, 90%) by group
+agg_land <- aggregate(list(value = land_acc_melt$value),
+                      by = list(metric = land_acc_melt$variable,
+                                ntp    = land_acc_melt$ntp,
+                                minobs = land_acc_melt$minobs,
+                                w      = land_acc_melt$w),
+                      FUN = quantile, probs = c(0.1, 0.5, 0.9))
+# The aggregate returns a matrix in the "value" column; convert it:
+dfz_land <- data.frame(agg_land$value)
+colnames(dfz_land) <- c("lo", "med", "hi")
+agg_land <- cbind(agg_land[, -which(names(agg_land) == "value")], dfz_land)
+
+# Subset only to the metrics common with the other data set (i.e. Pearson r and Rescaled R^2)
+agg_land <- agg_land[agg_land$metric %in% c("pearson_r", "adjR2"), ]
+
+# Recode the metric names so they match the labels in the second data set
+agg_land$metric <- recode(agg_land$metric,
+                          "pearson_r" = "Pearson~r",
+                          "adjR2"    = "Rescaled~R^2")
+
+# Tag this data as coming from the Landscape Accuracy data set
+agg_land$dataset <- "prior pipeline"
+
+
+###############################
+## Process Dataset 2: Boot Test Summaries
+###############################
+
+# Read the second data set
+boot_test <- readRDS("data/proc/boot_test_summaries.Rds")
+
+# Extract variable w from id1 and ntp, minobs from id2
+y_info <- data.frame(w = sapply(boot_test$id1, function(i) unlist(strsplit(i, split = "_"))[4]),
+                     stringsAsFactors = FALSE)
+y_extra <- do.call(rbind, lapply(boot_test$id2, function(i) {
+  parts <- unlist(strsplit(i, split = "_"))
+  data.frame(ntp = parts[2], minobs = parts[4], stringsAsFactors = FALSE)
+}))
+boot_df <- cbind(y_info, y_extra, boot_test)
+
+# Melt the data (drop the id1 and id2 columns)
+boot_melt <- melt(boot_df[, !colnames(boot_df) %in% c("id1", "id2")],
+                  id.vars = c("w", "ntp", "minobs"))
+
+# Ensure that values are at least -1
+boot_melt$value <- pmax(boot_melt$value, -1)
+
+# Aggregate quantiles (10%, median, 90%)
+agg_boot <- aggregate(list(value = boot_melt$value),
+                      by = list(metric = boot_melt$variable,
+                                ntp    = boot_melt$ntp,
+                                minobs = boot_melt$minobs,
+                                w      = boot_melt$w),
+                      FUN = quantile, probs = c(0.1, 0.5, 0.9))
+dfz_boot <- data.frame(agg_boot$value)
+colnames(dfz_boot) <- c("lo", "med", "hi")
+agg_boot <- cbind(agg_boot[, -which(names(agg_boot) == "value")], dfz_boot)
+
+# Keep only the two metrics of interest (here labeled "r" and "R")
+agg_boot <- agg_boot[agg_boot$metric %in% c("r", "R"), ]
+
+# Recode them to the common labels used above
+agg_boot$metric <- recode(agg_boot$metric,
+                          "r" = "Pearson~r",
+                          "R" = "Rescaled~R^2")
+
+# Tag this data as coming from the Boot Test Summaries data set
+agg_boot$dataset <- "bootstrap pipeline"
+
+
+###############################
+## Combine and Plot Comparison
+###############################
+
+# Combine the two aggregated data frames
+combined_df <- rbind(agg_land, agg_boot)
+
+# Convert minobs to a factor (for discrete x-axis labels)
+combined_df$minobs <- factor(combined_df$minobs,
+                             levels = sort(unique(as.numeric(as.character(combined_df$minobs)))))
+
+# Make sure w is a character (for faceting)
+combined_df$w <- as.character(combined_df$w)
+
+# Define custom labels for the metrics and for w (lambda values)
+custom_labels <- c(
+  "Pearson~r"    = "Pearson~r",
+  "Rescaled~R^2" = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(combined_df$w)))),
+  unique(combined_df$w)
+)
+
+# Create the comparison plot.
+# Here we map ntp (longitudinal samples) to color and dataset to shape.
+comp_plot <- ggplot(combined_df[combined_df$ntp%in%c(2,4,8)&combined_df$minobs%in%c(10,20),],
+                    aes(x = str_pad(minobs, width = 2),
+                        y = med,
+                        color = as.character(ntp),
+                        shape = dataset,
+                        group = interaction(dataset, ntp, minobs))) +
+  facet_grid(rows = vars(metric),
+             cols = vars(w),
+             scales = "free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)
+             )) +
+  geom_errorbar(aes(ymin = lo, ymax = hi),
+                position = position_dodge(width = 0.8), width = 0.2) +
+  geom_point(position = position_dodge(width = 0.8), size = 2) +
+  scale_y_continuous("Metric value") +
+  scale_x_discrete("Minimum Observations", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("Longitudinal\nsamples") +
+  theme_classic() +
+  theme(legend.direction = "horizontal",
+        legend.position = c(0.01, 0.01),
+        legend.justification = c("left", "bottom"),
+        legend.background = element_rect(fill = "transparent", color = NA))
+
+# Display the plot
+print(comp_plot)
+
+```
+
+
+So question will be why is the accuracy shit where it is?
+```{r}
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+y$nfq_bins <- '<=8'
+y$nfq_bins[y$nfq>8] <- ">8" 
+
+y$failVar <- "R[~f]^2<0"
+y$failVar[y$fq_R2>0] <- "R[~f]^2>0"
+
+pb <- ggplot(y,aes(x=nfq_bins,y=pmax(-1,adjR2)))+
+  facet_grid(rows=vars(failVar),labeller = "label_parsed")+
+  geom_violin()+
+  scale_x_discrete("num. freq. karyotypes",labels = c(">8" = ">8", "<=8" = bquote("≤" ~ 8)))+
+  scale_y_continuous(expression(rescaled~R^2~(landscape)))+
+  theme_classic()+
+  coord_flip()
+pb
+
+
+
+```
+
+```{r}
+x <- readRDS("data/proc/summaries/sweep_eq_space_data.Rds")
+x <- x[["N_22_w_0p8_m_0.00005_rep_06"]]
+
+k1 <- "2.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2"
+k2 <- "2.2.2.2.2.2.2.3.2.2.2.2.2.2.2.2.2.1.2.2.2.2"
+k3 <- "2.2.2.2.2.2.2.2.2.2.2.1.2.2.2.2.2.2.2.2.2.2"
+
+nx <- names(x)
+df <- do.call(rbind,lapply(nx,function(n){
+  xn <- x[[n]]
+  n <- unlist(strsplit(n,split="_"))
+  minobs <- n[2]
+  ntp <- n[4]
+  df <- xn$fit$xo
+  df$ftru <- sapply(rownames(df), function(ki){
+    getf(s2v(ki),xn$fobj)
+  })
+  df$ntp <- ntp
+  df$minobs <- minobs
+  df$sel <- rownames(df)%in%c(k1,k2,k3)
+  df$f_est <- df$f_est-mean(df$f_est)
+  df$ftru <- df$ftru-mean(df$ftru)
+  df
+}))
+
+
+df <- df[order(df$sel),]
+pc <- ggplot(df,aes(x=ftru,y=f_est,color=sel))+
+  facet_grid(rows=vars(paste0(ntp," samples")),
+             cols=vars(paste0("N=",stringr::str_pad(minobs,width=2))),scales="free")+
+  geom_abline()+
+  geom_point(show.legend=F)+
+  scale_color_manual("",values = c("FALSE" = "black", "TRUE" = "#FF8000"))+
+  scale_x_continuous("true fitness",breaks = scales::pretty_breaks(n = 2))+
+  scale_y_continuous("estimated fitness")+
+  theme_classic()
+pc
+
+source("utils/visualisation_functions.R")
+y <- x[["minobs_20_ntp_2"]]
+
+m1 <- melt_for_plotting(y$input,nclones = 8 ,fit_obj = y$fit)
+
+m1$data$sel <- m1$data$karyotype%in%c(k1,k2,k3)
+m1$fit$sel <- m1$fit$karyotype%in%c(k1,k2,k3)
+
+y <- x[["minobs_20_ntp_8"]]
+
+m2 <- melt_for_plotting(y$input,nclones = 8 ,fit_obj = y$fit)
+
+m2$data$sel <- m2$data$karyotype%in%c(k1,k2,k3)
+m2$fit$sel <- m2$fit$karyotype%in%c(k1,k2,k3)
+
+
+k <- as.character(unique(c(m1$data$karyotype,m2$data$karyotype)))
+lut <- LETTERS[1:length(k)]
+names(lut) <- k
+
+m1$data$karyotype <- lut[as.character(m1$data$karyotype)]
+m1$fit$karyotype <- lut[as.character(m1$fit$karyotype)]
+
+
+m2$data$karyotype <- lut[as.character(m2$data$karyotype)]
+m2$fit$karyotype <- lut[as.character(m2$fit$karyotype)]
+
+
+pd <- ggplot(m1$data,aes(x=time,y=frequency,color=sel))+
+  facet_wrap(~karyotype, scales = "free", ncol = 4) +
+  geom_point(show.legend = F)+
+  geom_line(data=m1$fit,show.legend = F)+
+  scale_color_manual("",values = c("FALSE" = "black", "TRUE" = "#FF8000"))+
+  scale_y_continuous("kary. freq.",breaks = scales::pretty_breaks(n = 2))+
+  scale_x_continuous("sim. time (days)",breaks = scales::pretty_breaks(n = 2))+
+  theme_classic()
+pd
+
+
+
+pe <- ggplot(m2$data,aes(x=time,y=frequency,color=sel))+
+  facet_wrap(~karyotype, scales = "free", ncol = 4) +
+  geom_point(show.legend = F)+
+  geom_line(data=m2$fit,show.legend = F)+
+  scale_color_manual("",values = c("FALSE" = "black", "TRUE" = "#FF8000"))+
+  scale_y_continuous("kary. freq.",breaks = scales::pretty_breaks(n = 2))+
+  scale_x_continuous("sim. time (days)",breaks = scales::pretty_breaks(n = 2))+
+  theme_classic()
+pe
+
+
+
+```
+
+
+```{r}
+
+custom_labels <- c(
+  spearman_rho = "Spearman~rho",
+  pearson_r = "Pearson~r",
+  adjR2 = "Rescaled~R^2"
+)
+
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+y$adjR2[!is.finite(y$adjR2)] <- -1
+
+
+
+z <- aggregate(list(n=y$base_path),by=list(ntp=y$ntp,nfq=y$nfq>8,fq_r=y$fq_R2>0,evo=y$evolving,w=y$w,adjR2=y$adjR2>0),length)
+
+z$fillvar <- ""
+z$fillvar[z$fq_r] <- "fq_R2>0"
+z$fillvar[z$fq_r&!z$adjR2] <- "?"
+
+z$w <- gsub("p",".",z$w)
+
+pf <- ggplot(z, aes(axis1 = w, axis2 = ntp, axis3 = fq_r, axis4 = nfq,axis5= adjR2, y = n)) +
+  geom_alluvium(aes(fill=fillvar),show.legend=F) +
+  geom_stratum(width = 1/3, color = "black") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), 
+          size = theme_get()$text$size * 0.3)+
+
+  scale_fill_viridis_d()+
+  scale_x_discrete(
+    labels = c(
+      "axis1" = expression(lambda),
+      "axis2" = "longitudinal\nsamples",
+      "axis3" = expression(R[f]^2>0),
+      "axis4" = expression(N[f]>8),
+      "axis5" = expression(R^2>0)),
+    limits = c("axis1", "axis2", "axis3", "axis4","axis5"),
+    expand = c(0.1, 0.1))+
+  theme_minimal()+
+  theme(
+    axis.title.y = element_blank(),  # Remove y-axis title
+    axis.text.y = element_blank(),   # Remove y-axis labels
+    axis.ticks.y = element_blank(),  # Remove y-axis ticks
+    panel.grid.major.y = element_blank(),  # Remove horizontal grid lines
+    panel.grid.minor.y = element_blank()
+  )
+pf
+```
+
+
+```{r}
+ptop <- cowplot::plot_grid(pa,pb,nrow=1,labels=c("A","B"),rel_widths = c(3,1.2))
+
+
+pbot <- cowplot::plot_grid(pd,pe,nrow=2,labels=c("D","E"))
+pbot <- cowplot::plot_grid(pc,pbot,nrow=1,labels=c("C",""),rel_widths=c(3,4))
+
+p <- cowplot::plot_grid(ptop,pbot,pf,nrow=3,labels=c("","","F"),rel_heights = c(3.5,3.5,3))
+ggsave("figures/ABM_validation/figures/landscape_quality.png",width=7,height=10,units="in")
+```
+
+
+```{r}
+x <- readRDS("data/proc/summaries/sweep_eq_space_data.Rds")
+x <- x[["N_22_w_0p8_m_0.00005_rep_06"]]
+
+nx <- names(x)
+df <- do.call(rbind,lapply(nx,function(n){
+  xn <- x[[n]]
+  n <- unlist(strsplit(n,split="_"))
+  minobs <- n[2]
+  ntp <- n[4]
+  df <- xn$fit$xo
+  df$ftru <- sapply(rownames(df), function(ki){
+    getf(s2v(ki),xn$fobj)
+  })
+  df$ntp <- ntp
+  df$minobs <- minobs
+  #df$f_est <- df$f_est-mean(df$f_est)
+  #df$ftru <- df$ftru-mean(df$ftru)
+  df
+}))
+
+
+p <- ggplot(df,aes(x=ftru,y=f_est))+
+  facet_grid(rows=vars(ntp),cols=vars(stringr::str_pad(minobs,width=2)),scales="free")+
+  geom_point()+
+  geom_abline()
+p
+
+
+y <- x[["minobs_10_ntp_2"]]
+source("utils/visualisation_functions.R")
+
+m <- melt_for_plotting(y$input,nclones = 8 ,fit_obj = y$fit)
+
+p <- ggplot(m$data,aes(x=time,y=frequency,color=karyotype))+
+  facet_wrap(~karyotype,scales="free")+
+  geom_point()+
+  geom_line(data=m$fit)
+p
+
+y <- x[["minobs_10_ntp_8"]]
+source("utils/visualisation_functions.R")
+
+m <- melt_for_plotting(y$input,nclones = 8 ,fit_obj = y$fit)
+
+p <- ggplot(m$data,aes(x=time,y=frequency,color=karyotype))+
+  facet_wrap(~karyotype,scales="free")+
+  geom_point()+
+  geom_line(data=m$fit)
+p
+
+df[df$minobs==10&df$ntp==2,]
+
+
+```
+
+```{r}
+
+custom_labels <- c(
+  spearman_rho = "Spearman~rho",
+  pearson_r = "Pearson~r",
+  adjR2 = "Rescaled~R^2"
+)
+
+
+
+row_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(xval$w)))),
+  unique(xval$w)
+)
+
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+y$xval_R2[!is.finite(y$xval_R2)] <- -Inf
+y$xval_R2 <- pmax(-1,y$xval_R2)
+
+z <- aggregate(list(value=y$xval_R2),by=list(ntp=y$ntp,minobs=y$minobs,w=y$w),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+
+pa <- ggplot(z,aes(x=stringr::str_pad(minobs,width=2),color=as.character(ntp)))+
+  facet_grid(cols=vars(w),scales="free",
+             labeller = labeller(
+               w = as_labeller(col_labels, default = label_parsed),
+               metric = as_labeller(custom_labels, default = label_parsed)))+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,minobs)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous(expression(R[X]^2)) +
+  scale_x_discrete("Observation threshold (N)", expand = expansion(add = c(0.2, 0.8))) +
+  scale_color_viridis_d("longitudinal\nsamples") +
+  theme_classic()
+pa
+```
+
+
+```{r}
+
+custom_labels <- c(
+  spearman_rho = "Spearman~rho",
+  pearson_r = "Pearson~r",
+  adjR2 = "Rescaled~R^2"
+)
+
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+y$xval_R2[!is.finite(y$xval_R2)] <- -1
+y$adjR2[!is.finite(y$adjR2)] <- -1
+
+
+
+z <- aggregate(list(n=y$base_path),by=list(ntp=y$ntp,xv=y$xval_R2>0,evo=y$evolving,w=y$w,adjR2=y$adjR2>0),length)
+
+z$w <- gsub("p",".",z$w)
+
+pb <- ggplot(z, aes(axis1 = w, axis2 = ntp, axis3 = xv, axis4 = adjR2, y = n)) +
+  geom_alluvium(aes(fill=adjR2),show.legend=F) +
+  geom_stratum(width = 1/3, color = "black") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), 
+          size = theme_get()$text$size * 0.3)+
+
+  scale_fill_viridis_d()+
+  scale_x_discrete(
+    labels = c(
+      "axis1" = expression(lambda),
+      "axis2" = "longitudinal\nsamples",
+      "axis3" = expression(R[X]^2>0),
+      "axis4" = expression(R[R]^2>0)),
+    limits = c("axis1", "axis2", "axis3", "axis4"),
+    expand = c(0.1, 0.1))+
+  theme_minimal()+
+  theme(
+    axis.title.y = element_blank(),  # Remove y-axis title
+    axis.text.y = element_blank(),   # Remove y-axis labels
+    axis.ticks.y = element_blank(),  # Remove y-axis ticks
+    panel.grid.major.y = element_blank(),  # Remove horizontal grid lines
+    panel.grid.minor.y = element_blank()
+  )
+
+```
+
+```{r}
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+y$xval_R2[!is.finite(y$xval_R2)] <- -1
+y <- reshape2::melt(y,measure.vars=c("spearman_rho","pearson_r","adjR2"))
+
+
+y <- split(y,f=interaction(y$ntp,y$base_path))
+y <- y[sapply(y,nrow)>0]
+y <- do.call(rbind,lapply(y,function(xi){
+  xi[xi$xval_R2==max(xi$xval_R2),] ## in case of ties just pick the first?
+}))
+
+
+
+z <- aggregate(list(value=y$value),by=list(filter=y$xval_R2>0,ntp=y$ntp,metric=y$variable),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+
+
+pc <- ggplot(z,aes(x=ntp,color=filter))+
+  facet_grid(rows=vars(metric),scales="free",
+             labeller = labeller(
+               metric = as_labeller(custom_labels, default = label_parsed)))+
+  geom_point(aes(y=med,group=filter),position = position_dodge(width = 0.8))+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=filter),position = position_dodge(width = 0.8))+
+  scale_y_continuous("metric value")+
+  scale_x_discrete("num. longitudinal samples")+
+  scale_color_viridis_d("",labels=c(expression(R[X]^2<0),
+                                    expression(R[X]^2>0)))+
+  theme_classic()+
+  theme(legend.position = "top")
+pc
+
+```
+```{r}
+ls <- cowplot::plot_grid(pa,pb,nrow=2,labels=c("A","B"),rel_heights = c(2,3))
+p <- cowplot::plot_grid(ls,pc,nrow=1,labels=c("","C"),rel_widths = c(2,1))
+
+ggsave("figures/ABM_validation/figures/xval_summary.png",width=7,height=5,units="in")
+```
+
+
+Process the longitudinal data:
+
+```{r}
+
+xa <- readRDS("data/proc/summaries/train_test_eq_space_angles.Rds")
+xa$base_path <- gsub("data/main//","",xa$base_path)
+xa$fit_id <- sapply(xa$path_2,function(p) unlist(strsplit(p,split="/"))[3])
+xa$pred_rep <- sapply(xa$path_2,function(p) unlist(strsplit(p,split="/"))[4])
+xa <- xa[,!colnames(xa)%in%c("path_1","path_2")]
+xa <- reshape2::melt(xa,id.vars=c("base_path","fit_id","pred_rep"))
+colnames(xa)[colnames(xa)=="variable"] <- "tt"
+colnames(xa)[colnames(xa)=="value"] <- "angle"
+xa$tt <- as.numeric(gsub("a","",xa$tt))-1
+
+xtp <- readRDS("data/proc/summaries/train_test_matrices_eq_space_preds.Rds")
+xtt <- readRDS("data/proc/summaries/train_train_matrices_eq_space_preds.Rds")
+ids <- ids_from_fitPath(xtp$df$path_2)
+
+
+x <- do.call(rbind,pbapply::pblapply(1:length(xtp$res),function(i){
+  do.call(rbind,lapply(dimnames(xtp$res[[i]])$metrics,function(metric){
+    xj <- xtt$res[[which(xtt$df$base_path==xtp$df$base_path[i])]][,,metric]
+    xi <- xtp$res[[i]][,,metric]
+    data.frame(x_0_pred=xi[1,-ncol(xi)],x_0_ref=xj[1,-1],x_pred_ref=diag(xi[-1,]),tt=1:(ncol(xj)-1),
+             base_path=tail(unlist(strsplit(xtp$df$base_path[i],split="/")),1),
+             fit_id = unlist(strsplit(xtp$df$path_2[i],split="/"))[3],
+             pred_rep = unlist(strsplit(xtp$df$path_2[i],split="/"))[4],
+             metric=metric,row.names = NULL)    
+  }))
+
+}))
+colnames(x) <- gsub("path_2","fit_id",colnames(x))
+x <- merge(xa,x)
+saveRDS(x,"figures/ABM_validation/data/prediction_accuracy.Rds")
+
+
+
+```
+```{r}
+
+
+x <- readRDS("figures/ABM_validation/data/prediction_accuracy.Rds")
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+
+y$xval_R2[!is.finite(y$xval_R2)] <- -1
+y <- split(y,f=interaction(y$ntp,y$base_path))
+y <- y[sapply(y,nrow)>0]
+y <- do.call(rbind,lapply(y,function(xi){
+  xi[xi$xval_R2==max(xi$xval_R2),] ## in case of ties just pick the first?
+}))
+
+z <- merge(x,y)
+
+
+
+xval_thresh <- 0
+z$xv <- z$xval_R2>0
+metrics <- unique(z$metric)
+ntp <- unique(z$ntp)
+ntp <- ntp[order(ntp)]
+times <- 1:7
+df <- expand.grid(metric=metrics,ntp=ntp,times=times,xv=c(T,F))
+
+
+res <- do.call(rbind,lapply(1:nrow(df),function(i){
+  metric <- df$metric[i]
+  alternative <- "greater"
+  if(metric%in%c("euclidean","wasserstein")) alternative <- "less"
+  screen <- z$ntp==df$ntp[i] & z$metric==df$metric[i] &z$tt==df$times[i] &z$xv==df$xv[i] 
+  predictions <- z$x_pred_ref[screen]
+  baseline <- z$x_0_ref[screen]
+  
+  pval=tryCatch({
+  res <- wilcox.test(predictions,baseline,paired=TRUE,alternative=alternative)
+  res$p.value    
+  },error=function(e) return(NA))
+    fwins <- mean(predictions<baseline)
+  if(alternative=="greater") fwins <- mean(predictions>baseline)
+  data.frame(pval=pval,fwins=fwins)
+}))
+
+df <- cbind(df,res)
+
+
+pp <- ggplot(df,aes(x=times,y=pval,color=ntp))+
+  facet_grid(cols=vars(metric),rows=vars(xv),scales="free")+
+  geom_line(size=1)+
+  scale_y_log10("Wilcoxon P. value")
+pp
+
+df$label_filter <- "R[X]^2<0"
+df$label_filter[df$xv] <- "R[X]^2>0"
+df$metric <- gsub("jaccard","Overlap",df$metric)
+pw <- ggplot(df,aes(x=times,y=fwins,color=ntp))+
+  facet_grid(cols=vars(metric),rows=vars(label_filter),labeller="label_parsed",scales="free")+
+  geom_line(size=1)+
+  geom_hline(yintercept=0.5,color="red",linetype=2)+
+  scale_y_continuous("beat baseline",limits=c(0,1))+
+  scale_x_continuous("passage number")+
+  scale_color_viridis_d("longitudinal\nsamples")+
+  theme_classic()+
+  theme(
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain")  
+  )
+
+pw
+
+```
+
+```{r}
+dSphereAngle <- function(theta, N) {
+  coef <- integrate(function(t) sin(t)^(N - 2), lower = 0, upper = pi)$value
+  sin(theta)^(N - 2)/coef
+}
+
+
+# Define the cumulative distribution function for angles
+cSphereAngle <- function(theta, N) {
+  if(!is.finite(theta)) return(1)
+  # Compute CDF using numerical integration of the PDF
+  cdf <- integrate(function(t) dSphereAngle(t, N), lower = 0, upper = theta)$value
+  return(cdf)
+}
+
+nulldf <- data.frame(angle=0:180)
+nulldf$rads <- pi*nulldf$angle/180
+nulldf$CDF <- sapply(nulldf$rads,cSphereAngle,N=22)
+
+
+x <- readRDS("figures/ABM_validation/data/prediction_accuracy.Rds")
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+
+y$xval_R2[!is.finite(y$xval_R2)] <- -1
+y <- split(y,f=interaction(y$ntp,y$base_path))
+y <- y[sapply(y,nrow)>0]
+y <- do.call(rbind,lapply(y,function(xi){
+  xi[xi$xval_R2==max(xi$xval_R2),] ## in case of ties just pick the first?
+}))
+
+z <- merge(x,y)
+
+
+pa <- ggplot(z[z$tt%in%c(1,7),],aes(x=angle))+
+  facet_grid(rows=vars(paste("passage",tt)),cols=vars(paste(stringr::str_pad(ntp,width=2),"samples")),scales="free")+
+  stat_ecdf(aes(color=as.character(xval_R2>0)))+
+  geom_line(data=nulldf,aes(x=angle,y=CDF),linetype=2)+
+  scale_color_viridis_d("",labels=c(expression(R[X]^2<0,R[X]^2>0)))+
+  scale_y_continuous("cum. dist.")+
+  scale_x_continuous("angle metric")+
+  theme_classic()+
+  theme(
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain")  
+  )
+pa
+
+
+```
+```{r}
+pp <- cowplot::plot_grid(pa,pw,nrow=2,labels=c("A","B"))
+ggsave("figures/ABM_validation/figures/prediction_validation.png",width=7,height=7,units="in")
+```
+
+
+```{r}
+xval <- readRDS("data/proc/summaries/sweep_xval.Rds")
+xval <- split(xval,f=interaction(xval$ntp,xval$minobs,xval$rep))
+
+xval <- do.call(rbind,lapply(xval,function(xi){
+  xi <- xi[!is.na(xi$pred),]
+  df <- xi[1,c("ntp","minobs","rep")]
+  df$xval <- R2(xi$f_est,xi$pred)
+  df
+}))
+rownames(xval) <- NULL
+xval <- xval[!is.na(xval$xval),]
+xval$w <- wavelength_from_basePath(xval$rep)
+colnames(xval) <- gsub("rep","base_path",colnames(xval))
+xval <- xval[is.finite(xval$xval),]
+xval <- split(xval,f=interaction(xval$ntp,xval$w,xval$base_path))
+xval <- xval[sapply(xval,nrow)>0]
+xval <- do.call(rbind,lapply(xval,function(xi){
+  xi[xi$xval==max(xi$xval),]  
+}))
+
+r <- readRDS("data/proc/summaries/landscape_metrics.Rds")
+
+ids <- ids_from_fitPath(r$fit_id)
+ids$w <- wavelength_from_basePath(r$sim_id)
+
+r <- cbind(r,ids)
+
+r <- reshape2::melt(r,measure.vars=colnames(r)[1:4])
+
+colnames(r)[2] <- "base_path"
+
+r <- merge(r,xval)
+r$xval <- pmax(-1,r$xval)
+
+saveRDS(r,"figures/ABM_validation/data/landscape_accuracy_wide.Rds")
+
+
+
+```
+
+My old sampling strategy yields way better fits.
+```{r}
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy.Rds")
+r <- readRDS("figures/ABM_validation/data/landscape_accuracy_wide.Rds")
+y <- reshape2::melt(y,measure.vars=unique(r$variable))
+y$xval_R2[!is.finite(y$xval_R2)] <- -1
+y <- split(y,f=interaction(y$ntp,y$base_path))
+y <- y[sapply(y,nrow)>0]
+y <- do.call(rbind,lapply(y,function(xi){
+  xi[xi$xval_R2==max(xi$xval_R2),] ## in case of ties just pick the first?
+}))
+y$xval <- y$xval_R2
+y <- y[,colnames(r)]
+y$id <- "narrow"
+r$id <- "wide"
+r <- rbind(y,r)
+r$xval[!is.finite(r$xval)] <- -1
+
+z <- aggregate(list(value=r$value),by=list(metric=r$variable,ntp=r$ntp,xv=r$xval>0,id=r$id),quantile,probs=c(0.1,0.5,0.9))
+dfz <- data.frame(z$value)
+colnames(dfz) <- c("lo","med","hi")
+z <- cbind(z[,-ncol(z)],dfz)
+
+# Define custom labels as named character vector
+custom_labels <- c(
+  spearman_rho = "Spearman~rho",
+  pearson_r = "Pearson~r",
+  adjR2 = "Rescaled~R^2"
+)
+
+col_labels <- setNames(
+  paste0("lambda==", as.numeric(gsub("p", ".", unique(r$w)))),
+  unique(r$w)
+)
+
+
+
+pa <- ggplot(z[z$metric!="nrmse"&z$xv,],aes(x=ntp,color=id))+
+  facet_grid(rows=vars(metric),scales="free")+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,id)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous("Metric value") 
+pa
+
+z2 <- aggregate(list(value=r$xval),by=list(ntp=r$ntp,id=r$id),quantile,probs=c(0.1,0.5,0.9),na.rm=T)
+dfz <- data.frame(z2$value)
+colnames(dfz) <- c("lo","med","hi")
+z2 <- cbind(z2[,-ncol(z2)],dfz)
+pb <- ggplot(z2,aes(x=ntp,color=id))+
+
+  geom_errorbar(aes(ymin=lo,ymax=hi,group=interaction(ntp,id)),
+                position = position_dodge(width = 0.8))+
+  geom_point(aes(y=med),position = position_dodge(width = 0.8))+
+  scale_y_continuous("Metric value") 
+pb
+```
+```{r}
+xtp <- readRDS("data/proc/summaries/train_test_passages.Rds")
+xtt <- readRDS("data/proc/summaries/train_train_passages.Rds")
+ids <- ids_from_fitPath(xtp$df$path_2)
+
+
+x <- do.call(rbind,pbapply::pblapply(1:length(xtp$res),function(i){
+  do.call(rbind,lapply(dimnames(xtp$res[[i]])$metrics,function(metric){
+    xj <- xtt$res[[which(xtt$df$base_path==xtp$df$base_path[i])]][,,metric]
+    xi <- xtp$res[[i]][,,metric]
+    
+    data.frame(x_0_pred=NaN,x_0_ref=c(xj),x_pred_ref=diag(xi),tt=1:ncol(xi),
+             base_path=tail(unlist(strsplit(xtp$df$base_path[i],split="/")),1),
+             fit_id = unlist(strsplit(xtp$df$path_2[i],split="/"))[2],
+             pred_rep = unlist(strsplit(xtp$df$path_2[i],split="/"))[3],
+             metric=metric,row.names = NULL)    
+  }))
+
+}))
+x$fit_id <- paste0(x$fit_id,"_00000")
+saveRDS(x,"figures/ABM_validation/data/prediction_accuracy_wide.Rds")
+
+```
+
+
+
+```{r}
+
+
+x <- readRDS("figures/ABM_validation/data/prediction_accuracy_wide.Rds")
+y <- readRDS("figures/ABM_validation/data/landscape_accuracy_wide.Rds")
+
+y$xval[!is.finite(y$xval)] <- -1
+y <- split(y,f=interaction(y$ntp,y$base_path))
+y <- y[sapply(y,nrow)>0]
+y <- do.call(rbind,lapply(y,function(xi){
+  xi[xi$xval==max(xi$xval),] ## in case of ties just pick the first?
+}))
+
+x <- split(x,f=interaction(x$base_path,x$fit_id,x$tt,x$metric))
+x <- x[sapply(x,nrow)>0]
+x <- do.call(rbind,pbapply::pblapply(x,function(xi)xi[xi$x_pred_ref==median(xi$x_pred_ref),]))
+
+z <- merge(x,y)
+
+
+
+xval_thresh <- 0
+z$xv <- z$xval>0
+metrics <- unique(z$metric)
+ntp <- unique(z$ntp)
+ntp <- ntp[order(ntp)]
+times <- unique(z$tt)
+df <- expand.grid(metric=metrics,times=times,xv=c(T,F))
+
+
+res <- do.call(rbind,lapply(1:nrow(df),function(i){
+  metric <- df$metric[i]
+  alternative <- "greater"
+  if(metric%in%c("euclidean","wasserstein")) alternative <- "less"
+  screen <-  z$metric==df$metric[i] &z$tt==df$times[i] &z$xv==df$xv[i] 
+  predictions <- z$x_pred_ref[screen]
+  baseline <- z$x_0_ref[screen]
+  
+  pval=tryCatch({
+  res <- wilcox.test(predictions,baseline,paired=TRUE,alternative=alternative)
+  res$p.value    
+  },error=function(e) return(NA))
+    fwins <- mean(predictions<baseline)
+  if(alternative=="greater") fwins <- mean(predictions>baseline)
+  data.frame(pval=pval,fwins=fwins)
+}))
+
+df <- cbind(df,res)
+
+
+
+df$label_filter <- "R[X]^2<0"
+df$label_filter[df$xv] <- "R[X]^2>0"
+df$metric <- gsub("jaccard","Overlap",df$metric)
+pw <- ggplot(df,aes(x=times,y=fwins))+
+  facet_grid(cols=vars(metric),rows=vars(label_filter),labeller="label_parsed",scales="free")+
+  geom_line(size=1)+
+  geom_hline(yintercept=0.5,color="red",linetype=2)+
+  scale_y_continuous("beat baseline",limits=c(0,1))+
+  scale_x_continuous("passage number")+
+  scale_color_viridis_d("longitudinal\nsamples")+
+  theme_classic()+
+  theme(
+  text = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.title = element_text(size = 10, family = "sans", face = "plain"),  
+  axis.text = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.title = element_text(size = 10, family = "sans", face = "plain"),  
+  legend.text = element_text(size = 10, family = "sans", face = "plain"),  
+  strip.text = element_text(size = 10, family = "sans", face = "plain")  
+  )
+
+pw
+
+```
+
+
+PREDICTIONNS WITH THE NEW PIPELINE...
+
+```{r}
+x <- readRDS("data/proc/boot_pred_summaries.Rds")
+y <- readRDS("data/proc/boot_test_summaries.Rds")
+xv <- y[,c("Rxv","id1","id2")]
+xv$id2 <- gsub(".Rds","",xv$id2)
+x$id2 <- gsub(".Rds","",x$id2)
+
+x <- merge(x,xv,by = c("id1","id2"))
+
+ids <- do.call(rbind,lapply(x$id1,function(idi){
+  idi <- strsplit(idi,split="_")|>unlist()
+  data.frame(w=idi[4],rep=idi[8])
+}))
+
+ids <- cbind(ids,do.call(rbind,lapply(x$id2,function(idi){
+  idi <- strsplit(idi,split="_")|>unlist()
+  data.frame(ntp=idi[2],minobs=idi[4])
+})))
+
+x <- cbind(ids,x[,!colnames(x)%in%c("id1","id2")])
+x <- x[!is.na(as.numeric(x$minobs)),]
+
+x <- split(x,f=interaction(x$w,x$rep,x$minobs,x$ntp))
+x <- x[sapply(x,nrow)>0]
+x <- do.call(rbind,lapply(x,function(xi){
+  xi$passage <- 1:nrow(xi)
+  xi$win <- xi$ddatpred_t<xi$ddat0
+  xi
+}))
+
+smm <- aggregate(list(win=x$win),by=list(w=x$w,ntp=x$ntp,minobs=x$minobs,passage=x$passage,good=x$Rxv>0),mean)
+
+p <- ggplot(smm[smm$good,],aes(x=passage,y=win,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(minobs))+
+  geom_line()
+p
+
+```
+```{r}
+x <- readRDS("data/proc/sweep_results_summaries.Rds")
+
+dfl <- x$dfl
+dfp <- x$dfp
+
+dfp <- split(dfp,f=interaction(dfp$abmrep,dfp$ntp,dfp$w))
+dfp <- do.call(rbind,lapply(dfp,function(di){
+  if(sum(is.finite(di$Rxv))<1) return(NULL)
+  di <- di[is.finite(di$Rxv),]
+  di[di$Rxv==max(di$Rxv),]
+}))
+
+dfpa <- aggregate(list(fwin=dfp$win),by=list(metric=dfp$metric,passage=dfp$passage,ntp=dfp$ntp,w=dfp$w),mean,na.rm=T)
+
+p <- ggplot(dfpa,aes(x=passage,y=fwin,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(metric))+
+  geom_line()
+p
+
+dfpf <- dfp[dfp$Rxv>0,]
+
+dfpfa <- aggregate(list(fwin=dfpf$win),by=list(metric=dfpf$metric,passage=dfpf$passage,ntp=dfpf$ntp,w=dfpf$w),mean,na.rm=T)
+
+dfpfa$ntp <- paste0(dfpfa$ntp," sample timepoints")
+
+p <- ggplot(dfpfa,aes(x=passage,y=fwin,color=w))+
+  facet_grid(cols=vars(ntp),rows=vars(metric))+
+  geom_line()
+p
+
+```
+
