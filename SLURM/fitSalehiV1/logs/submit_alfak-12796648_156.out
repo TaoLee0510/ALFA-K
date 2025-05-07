@@ -1,0 +1,364 @@
+Inside Slurm job - SLURM_ARRAY_TASK_ID: 156
+SLURM_JOB_ID: 12796805
+Current working directory: /home/4473331/projects/ALFA-K/SLURM/fitSalehiV1
+Listing all files in input directory:
+total 8.7M
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA000_X4_l_2_d1_3_d2_5.Rds
+-rwxrwxr-- 1 4473331 domain users 3.1K Mar  5 14:08 SA000_X4_l_3_d1_3_d2_5.Rds
+-rwxrwxr-- 1 4473331 domain users 5.4K Mar  5 14:08 SA000_X4_l_4_d1_3_d2_5.Rds
+-rwxrwxr-- 1 4473331 domain users 3.3K Mar  5 14:08 SA000_X5_l_2_d1_4_d2_4.Rds
+-rwxrwxr-- 1 4473331 domain users 4.4K Mar  5 14:08 SA000_X5_l_3_d1_4_d2_4.Rds
+-rwxrwxr-- 1 4473331 domain users 5.8K Mar  5 14:08 SA000_X5_l_4_d1_4_d2_4.Rds
+-rwxrwxr-- 1 4473331 domain users 8.1K Mar  5 14:08 SA000_X5_l_5_d1_4_d2_4.Rds
+-rwxrwxr-- 1 4473331 domain users 5.0K Mar  5 14:08 SA000_X6_l_2_d1_4_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.5K Mar  5 14:08 SA000_X6_l_3_d1_4_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.5K Mar  5 14:08 SA000_X6_l_4_d1_4_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.0K Mar  5 14:08 SA000_X6_l_5_d1_4_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA000_X6_l_6_d1_4_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA000_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.6K Mar  5 14:08 SA000_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.1K Mar  5 14:08 SA000_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.2K Mar  5 14:08 SA000_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA000_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA000_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA001_X5_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.9K Mar  5 14:08 SA001_X5_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.3K Mar  5 14:08 SA001_X5_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.7K Mar  5 14:08 SA001_X5_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.6K Mar  5 14:08 SA001_X6_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA001_X6_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.1K Mar  5 14:08 SA001_X6_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.5K Mar  5 14:08 SA001_X6_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.9K Mar  5 14:08 SA001_X6_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.7K Mar  5 14:08 SA001_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.2K Mar  5 14:08 SA001_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.7K Mar  5 14:08 SA001_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.8K Mar  5 14:08 SA001_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA001_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA001_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  448 Mar  5 14:08 SA039U_X30_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  423 Mar  5 14:08 SA039U_X51_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  528 Mar  5 14:08 SA039U_X51_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  340 Mar  5 14:08 SA039U_X60_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  471 Mar  5 14:08 SA039U_X60_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  580 Mar  5 14:08 SA039U_X60_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.2K Mar  5 14:08 SA1035T_X5_l_2_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 1.4K Mar  5 14:08 SA1035T_X6_l_2_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA1035T_X6_l_3_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users  838 Mar  5 14:08 SA1035T_X7_l_2_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA1035T_X7_l_3_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA1035T_X7_l_4_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  761 Mar  5 14:08 SA1035T_X8_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.2K Mar  5 14:08 SA1035T_X8_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA1035T_X8_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA1035T_X8_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  647 Mar  5 14:08 SA1035U_X5_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  778 Mar  5 14:08 SA1035U_X6_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1012 Mar  5 14:08 SA1035U_X6_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  647 Mar  5 14:08 SA1035U_X7_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  799 Mar  5 14:08 SA1035U_X7_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.1K Mar  5 14:08 SA1035U_X7_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  508 Mar  5 14:08 SA1035U_X8_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  903 Mar  5 14:08 SA1035U_X8_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.1K Mar  5 14:08 SA1035U_X8_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.3K Mar  5 14:08 SA1035U_X8_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA532_X2_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.8K Mar  5 14:08 SA532_X3_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.5K Mar  5 14:08 SA532_X3_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA532_X4_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.3K Mar  5 14:08 SA532_X4_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.0K Mar  5 14:08 SA532_X4_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.2K Mar  5 14:08 SA532_X5_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA532_X5_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.7K Mar  5 14:08 SA532_X5_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.4K Mar  5 14:08 SA532_X5_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  991 Mar  5 14:08 SA532_X7_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA532_X7_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA532_X7_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.0K Mar  5 14:08 SA532_X7_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.7K Mar  5 14:08 SA532_X7_l_6_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.1K Mar  5 14:08 SA532_X8_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA532_X8_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.0K Mar  5 14:08 SA532_X8_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.9K Mar  5 14:08 SA532_X8_l_5_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.5K Mar  5 14:08 SA532_X8_l_6_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.2K Mar  5 14:08 SA532_X8_l_7_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA532_X9_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.8K Mar  5 14:08 SA532_X9_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.2K Mar  5 14:08 SA532_X9_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.8K Mar  5 14:08 SA532_X9_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.6K Mar  5 14:08 SA532_X9_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.2K Mar  5 14:08 SA532_X9_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.9K Mar  5 14:08 SA532_X9_l_8_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X10_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.0K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X10_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.3K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X10_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.1K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X10_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.6K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X10_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.9K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.4K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.7K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X8_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.7K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X8_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X8_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.3K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X9_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.5K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X9_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.4K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X9_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.9K Mar  5 14:08 SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.8K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X10_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.0K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X10_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.2K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X10_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.1K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X10_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.5K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.7K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X6_l_2_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 3.5K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X7_l_2_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 3.9K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X7_l_3_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 3.7K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X8_l_2_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 5.6K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X8_l_3_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 6.0K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X8_l_4_d1_2_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 3.0K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X9_l_2_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.2K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X9_l_3_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.1K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X9_l_4_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.5K Mar  5 14:08 SA535_CISPLATIN_CombinedT_X9_l_5_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.4K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X6_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X7_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X7_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X8_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.5K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X8_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.9K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X8_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X9_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.5K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X9_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.1K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X9_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.5K Mar  5 14:08 SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.2K Mar  5 14:08 SA609H1_X6_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.7K Mar  5 14:08 SA609H1_X6_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.2K Mar  5 14:08 SA609H1_X6_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609H1_X6_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.7K Mar  5 14:08 SA609H1_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.2K Mar  5 14:08 SA609H1_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.7K Mar  5 14:08 SA609H1_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.7K Mar  5 14:08 SA609H1_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609H1_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA609H1_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.4K Mar  5 14:08 SA609H2_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.9K Mar  5 14:08 SA609H2_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.9K Mar  5 14:08 SA609H2_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609H2_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA609H2_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.5K Mar  5 14:08 SA609R2b_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.6K Mar  5 14:08 SA609R2b_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.1K Mar  5 14:08 SA609R2b_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609R2b_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  12K Mar  5 14:08 SA609R2b_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  14K Mar  5 14:08 SA609R2b_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.8K Mar  5 14:08 SA609R2_X5_l_2_d1_1_d2_3.Rds
+-rwxrwxr-- 1 4473331 domain users 4.8K Mar  5 14:08 SA609R2_X5_l_3_d1_1_d2_3.Rds
+-rwxrwxr-- 1 4473331 domain users 6.2K Mar  5 14:08 SA609R2_X5_l_4_d1_1_d2_3.Rds
+-rwxrwxr-- 1 4473331 domain users 8.6K Mar  5 14:08 SA609R2_X5_l_5_d1_1_d2_3.Rds
+-rwxrwxr-- 1 4473331 domain users 6.2K Mar  5 14:08 SA609R2_X6_l_2_d1_3_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.7K Mar  5 14:08 SA609R2_X6_l_3_d1_3_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.7K Mar  5 14:08 SA609R2_X6_l_4_d1_3_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.1K Mar  5 14:08 SA609R2_X6_l_5_d1_3_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  12K Mar  5 14:08 SA609R2_X6_l_6_d1_3_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.9K Mar  5 14:08 SA609R2_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.0K Mar  5 14:08 SA609R2_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.5K Mar  5 14:08 SA609R2_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.6K Mar  5 14:08 SA609R2_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609R2_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  14K Mar  5 14:08 SA609R2_X7_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.0K Mar  5 14:08 SA609TIIDT_X4_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.4K Mar  5 14:08 SA609TIIDT_X4_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.7K Mar  5 14:08 SA609TIIDT_X4_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.9K Mar  5 14:08 SA609TIIDT_X5_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.9K Mar  5 14:08 SA609TIIDT_X5_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609TIIDT_X5_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA609TIIDT_X5_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA609UnBU_X4_l_2_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 3.0K Mar  5 14:08 SA609UnBU_X4_l_3_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 5.3K Mar  5 14:08 SA609UnBU_X4_l_4_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 2.2K Mar  5 14:08 SA609UnBU_X6_l_2_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 4.6K Mar  5 14:08 SA609UnBU_X6_l_4_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.9K Mar  5 14:08 SA609UnBU_X6_l_5_d1_2_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.3K Mar  5 14:08 SA609UnBU_X7_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.7K Mar  5 14:08 SA609UnBU_X7_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.6K Mar  5 14:08 SA609UnBU_X7_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA609UnBU_X7_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.4K Mar  5 14:08 SA609UnBU_X7_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  13K Mar  5 14:08 SA609_X10_l_10_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.8K Mar  5 14:08 SA609_X10_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.7K Mar  5 14:08 SA609_X10_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.0K Mar  5 14:08 SA609_X10_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.3K Mar  5 14:08 SA609_X10_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.5K Mar  5 14:08 SA609_X10_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.5K Mar  5 14:08 SA609_X10_l_8_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 9.9K Mar  5 14:08 SA609_X10_l_9_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.9K Mar  5 14:08 SA609_X2_l_2_d1_1_d2_5.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA609_X3_l_2_d1_5_d2_6.Rds
+-rwxrwxr-- 1 4473331 domain users 4.9K Mar  5 14:08 SA609_X3_l_3_d1_5_d2_6.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA609_X4_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.9K Mar  5 14:08 SA609_X4_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 6.2K Mar  5 14:08 SA609_X4_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.8K Mar  5 14:08 SA609_X5_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.7K Mar  5 14:08 SA609_X5_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA609_X5_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 7.4K Mar  5 14:08 SA609_X5_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.8K Mar  5 14:08 SA609_X6_l_2_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 4.0K Mar  5 14:08 SA609_X6_l_3_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 4.9K Mar  5 14:08 SA609_X6_l_4_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 6.4K Mar  5 14:08 SA609_X6_l_5_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 8.7K Mar  5 14:08 SA609_X6_l_6_d1_1_d2_2.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA609_X7_l_2_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.7K Mar  5 14:08 SA609_X7_l_3_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 4.9K Mar  5 14:08 SA609_X7_l_4_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 5.8K Mar  5 14:08 SA609_X7_l_5_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 7.2K Mar  5 14:08 SA609_X7_l_6_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 9.6K Mar  5 14:08 SA609_X7_l_7_d1_2_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.3K Mar  5 14:08 SA609_X8_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA609_X8_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.9K Mar  5 14:08 SA609_X8_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA609_X8_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 6.0K Mar  5 14:08 SA609_X8_l_6_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 7.5K Mar  5 14:08 SA609_X8_l_7_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 9.8K Mar  5 14:08 SA609_X8_l_8_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.8K Mar  5 14:08 SA609_X9_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.5K Mar  5 14:08 SA609_X9_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.8K Mar  5 14:08 SA609_X9_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 5.1K Mar  5 14:08 SA609_X9_l_5_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 6.3K Mar  5 14:08 SA609_X9_l_6_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 7.2K Mar  5 14:08 SA609_X9_l_7_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 8.7K Mar  5 14:08 SA609_X9_l_8_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  11K Mar  5 14:08 SA609_X9_l_9_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  582 Mar  5 14:08 SA906a_X15_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  558 Mar  5 14:08 SA906a_X25_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users  761 Mar  5 14:08 SA906a_X25_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.2K Mar  5 14:08 SA906a_X30_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.4K Mar  5 14:08 SA906a_X30_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA906a_X30_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA906a_X40_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA906a_X40_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA906a_X40_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.0K Mar  5 14:08 SA906a_X40_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.3K Mar  5 14:08 SA906a_X50_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA906a_X50_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.2K Mar  5 14:08 SA906a_X50_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA906a_X50_l_5_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA906a_X50_l_6_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA906a_X57_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA906a_X57_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.7K Mar  5 14:08 SA906a_X57_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.8K Mar  5 14:08 SA906a_X57_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.0K Mar  5 14:08 SA906a_X57_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.2K Mar  5 14:08 SA906a_X57_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  796 Mar  5 14:08 SA906b_X20_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.3K Mar  5 14:08 SA906b_X30_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.5K Mar  5 14:08 SA906b_X30_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.7K Mar  5 14:08 SA906b_X35_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.0K Mar  5 14:08 SA906b_X35_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.2K Mar  5 14:08 SA906b_X35_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA906b_X40_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA906b_X40_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA906b_X40_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA906b_X40_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.3K Mar  5 14:08 SA906b_X45_l_2_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.1K Mar  5 14:08 SA906b_X45_l_3_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA906b_X45_l_4_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 2.9K Mar  5 14:08 SA906b_X45_l_5_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 3.1K Mar  5 14:08 SA906b_X45_l_6_d1_1_d2_1.Rds
+-rwxrwxr-- 1 4473331 domain users 1.2K Mar  5 14:08 SA906b_X50_l_2_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.6K Mar  5 14:08 SA906b_X50_l_3_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.4K Mar  5 14:08 SA906b_X50_l_4_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.9K Mar  5 14:08 SA906b_X50_l_5_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.2K Mar  5 14:08 SA906b_X50_l_6_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.4K Mar  5 14:08 SA906b_X50_l_7_d1_1_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users  928 Mar  5 14:08 SA906b_X55_l_2_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.4K Mar  5 14:08 SA906b_X55_l_3_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 1.9K Mar  5 14:08 SA906b_X55_l_4_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 2.6K Mar  5 14:08 SA906b_X55_l_5_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.1K Mar  5 14:08 SA906b_X55_l_6_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.4K Mar  5 14:08 SA906b_X55_l_7_d1_0_d2_0.Rds
+-rwxrwxr-- 1 4473331 domain users 3.6K Mar  5 14:08 SA906b_X55_l_8_d1_0_d2_0.Rds
+Inside Slurm - MYFILES expanded to: /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X4_l_2_d1_3_d2_5.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X4_l_3_d1_3_d2_5.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X4_l_4_d1_3_d2_5.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X5_l_2_d1_4_d2_4.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X5_l_3_d1_4_d2_4.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X5_l_4_d1_4_d2_4.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X5_l_5_d1_4_d2_4.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X6_l_2_d1_4_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X6_l_3_d1_4_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X6_l_4_d1_4_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X6_l_5_d1_4_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X6_l_6_d1_4_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA000_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X5_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X5_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X5_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X5_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X6_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X6_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X6_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X6_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X6_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA001_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X30_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X51_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X51_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X60_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X60_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA039U_X60_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X5_l_2_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X6_l_2_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X6_l_3_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X7_l_2_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X7_l_3_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X7_l_4_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X8_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X8_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X8_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035T_X8_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X5_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X6_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X6_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X7_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X7_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X7_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X8_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X8_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X8_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA1035U_X8_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X2_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X3_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X3_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X4_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X4_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X4_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X5_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X5_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X5_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X5_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X7_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X7_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X7_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X7_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X7_l_6_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_5_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_6_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X8_l_7_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA532_X9_l_8_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X10_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X10_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X10_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X10_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X10_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X8_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X8_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X8_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X9_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X9_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X9_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedH_X9_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X10_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X10_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X10_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X10_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X10_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X6_l_2_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X7_l_2_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X7_l_3_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X8_l_2_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X8_l_3_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X8_l_4_d1_2_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X9_l_2_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X9_l_3_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X9_l_4_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedT_X9_l_5_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X6_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X7_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X7_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X8_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X8_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X8_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X9_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X9_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X9_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA535_CISPLATIN_CombinedU_X9_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X6_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X6_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X6_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X6_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H1_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H2_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H2_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H2_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H2_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609H2_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2b_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X5_l_2_d1_1_d2_3.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X5_l_3_d1_1_d2_3.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X5_l_4_d1_1_d2_3.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X5_l_5_d1_1_d2_3.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X6_l_2_d1_3_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X6_l_3_d1_3_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X6_l_4_d1_3_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X6_l_5_d1_3_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X6_l_6_d1_3_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X4_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X4_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X4_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X5_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X5_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X5_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609TIIDT_X5_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X4_l_2_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X4_l_3_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X4_l_4_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X6_l_2_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X6_l_4_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X6_l_5_d1_2_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X7_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X7_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X7_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X7_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609UnBU_X7_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_10_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_8_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X10_l_9_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X2_l_2_d1_1_d2_5.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X3_l_2_d1_5_d2_6.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X3_l_3_d1_5_d2_6.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X4_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X4_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X4_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X5_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X5_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X5_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X5_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X6_l_2_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X6_l_3_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X6_l_4_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X6_l_5_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X6_l_6_d1_1_d2_2.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_2_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_3_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_4_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_5_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_6_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X7_l_7_d1_2_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_6_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_7_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X8_l_8_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_5_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_6_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_7_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_8_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609_X9_l_9_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X15_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X25_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X25_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X30_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X30_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X30_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X40_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X40_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X40_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X40_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X50_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X50_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X50_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X50_l_5_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X50_l_6_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906a_X57_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X20_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X30_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X30_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X35_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X35_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X35_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X40_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X40_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X40_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X40_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X45_l_2_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X45_l_3_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X45_l_4_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X45_l_5_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X45_l_6_d1_1_d2_1.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_2_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_3_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_4_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_5_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_6_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X50_l_7_d1_1_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_2_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_3_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_4_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_5_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_6_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_7_d1_0_d2_0.Rds /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA906b_X55_l_8_d1_0_d2_0.Rds
+Number of files in MYFILES: 273
+Processing file: /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_2_d1_0_d2_0.Rds
+/app/eb/software/R/4.4.2-gfbf-2024a/bin/Rscript
+Running: Rscript /home/4473331/projects/ALFA-K/SLURM/fitSalehiV1/run_alfak.R /home/4473331/projects/ALFA-K/data/salehi/alfak_inputs/SA609R2_X7_l_2_d1_0_d2_0.Rds
+[1] "STARTING JOB"
+[1] "running  SA609R2_X7_l_2_d1_0_d2_0.Rds"
+[1] "entering alfak"
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  0.01333458 (eff. df= 83.60004 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  5011.461 (eff. df= 23.001 )
+[1] "entering alfak"
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  76576.25 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  61412.73 (eff. df= 23.00102 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  63785.35 (eff. df= 23.001 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  64830.05 (eff. df= 23.00099 )
+Warning: 
+Grid searches over lambda (nugget and sill variances) with  minima at the endpoints: 
+  (REML) Restricted maximum likelihood 
+   minimum at  right endpoint  lambda  =  62081.47 (eff. df= 23.00099 )
+[1] "entering alfak"

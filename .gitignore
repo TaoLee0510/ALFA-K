@@ -1,5 +1,8 @@
 examples/example_1/sim_output
-data
+data/main
+data/proc
+data/salehi
 dev
 tests
 figures/worked_examples
+SLURM

@@ -5,17 +5,20 @@ library(ggplot2)
 
 proc_data <- function(i,x,fit){
   
+  ## return the space of karyotypes we'll test over
   nn <- rownames(fit$xv_res)
   nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
   nn <- c(nn,apply(gen_all_neighbours(nn),1,paste,collapse="."))
   
+  ## karyotypes appearing at next timepoint
   newk <- rownames(x)[x[,i+1]>0 & x[,i]==0]
+  ## karyotypes at current timepoint
   oldk <- rownames(x)[x[,i]>0]
   oldv <- do.call(rbind,lapply(oldk,s2v)) 
  
   vn <- do.call(rbind,lapply(nn,s2v))
   
-  
+  ## feature creating
   df <- apply(vn,1,function(ni){
     d <- apply(oldv,1,function(oi){
       sum(abs(oi-ni))

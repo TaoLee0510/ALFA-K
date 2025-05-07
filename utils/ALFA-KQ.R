@@ -453,8 +453,12 @@ predict_evo <- function(landscape, pred_times, dtest, tm, t, pred_iters, cl = NU
     fb <- rnorm(nrow(landscape), mean = landscape$mean, sd = landscape$sd)
     for (time in t[-1]) {
       mean_fitness <- sum(xp * fb)
-      M <- Diagonal(x = fb) - mean_fitness * Diagonal(length(fb)) + tm
-      xp <- M %*% xp
+      
+      M_sel  <- Diagonal(x = fb) - mean_fitness * Diagonal(length(fb))
+      M_mut  <- Diagonal(x = fb) %*% tm    # now each column of tm is scaled by the parent’s f
+      M      <- M_sel + M_mut
+      xp     <- M %*% xp
+      
       if (time %in% pred_times) {
         idx <- which(time == pred_times)
         iter_xpred[idx, ] <- iter_xpred[idx, ] + as.numeric(xp / sum(xp))

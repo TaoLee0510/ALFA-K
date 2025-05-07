@@ -1,0 +1,26 @@
+Loading required package: spam
+Spam version 2.11-1 (2025-01-20) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: viridisLite
+
+Try help(fields) to get started.
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:spam’:
+
+    det
+
+Error in solve.QP(Dmat_boot, dvec_boot, A, bvec, meq = 1) : 
+  NA/NaN/Inf in foreign function call (arg 1)
+Calls: alfak ... solve_fitness_bootstrap -> lapply -> FUN -> bootstrap_iter -> solve.QP

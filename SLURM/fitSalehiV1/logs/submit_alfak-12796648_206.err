@@ -1,0 +1,30 @@
+Loading required package: spam
+Spam version 2.11-1 (2025-01-20) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: viridisLite
+
+Try help(fields) to get started.
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:spam’:
+
+    det
+
+Warning messages:
+1: In dir.create(outdir, recursive = TRUE) :
+  'data/salehi/alfak_outputs_V1a/minobs_20/SA609_X7_l_5_d1_2_d2_1' already exists
+2: In dir.create(outdir, recursive = TRUE) :
+  'data/salehi/alfak_outputs_V1a/minobs_10/SA609_X7_l_5_d1_2_d2_1' already exists
+3: In dir.create(outdir, recursive = TRUE) :
+  'data/salehi/alfak_outputs_V1a/minobs_5/SA609_X7_l_5_d1_2_d2_1' already exists
