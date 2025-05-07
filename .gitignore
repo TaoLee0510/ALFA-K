@@ -2,7 +2,9 @@ examples/example_1/sim_output
 data/main
 data/proc
 data/salehi
+data/processed/salehi/alfak_outputs
 dev
 tests
+logs
 figures/worked_examples
 SLURM
