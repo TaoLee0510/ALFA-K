@@ -1,4 +1,0 @@
-Error in max(passage_times * yi$dt):(max(pred_times)) : 
-  result would be too long a vector
-In addition: Warning message:
-In max(pred_times) : no non-missing arguments to max; returning -Inf
