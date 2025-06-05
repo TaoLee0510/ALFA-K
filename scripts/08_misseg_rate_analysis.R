@@ -1,11 +1,11 @@
-library(alfakR)
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K")
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages("alfakR")
 
 procDir <- "data/processed/salehi/alfak_outputs_proc/"
 files <- list.files(procDir, full.names = TRUE)
-# Read all files and keep only those with 13 columns
 x_list <- lapply(files, readRDS)
-#x_list <- x_list[sapply(x_list, ncol) == 13]
+
 x <- do.call(rbind, x_list)
 
 # Filter data and select observation with maximum xv per file and per clean_id

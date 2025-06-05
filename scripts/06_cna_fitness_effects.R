@@ -1,49 +1,14 @@
-# Load required libraries
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+
+
+source("R/utils_karyo.R")
+source("R/utils_theme.R")
+source("R/utils_env.R")
 libs <- c("igraph", "lme4", "glmmTMB", "car", "ggplot2", "pbapply", "tidygraph", 
-          "ggraph","ggsignif","isotone","dplyr")
-invisible(lapply(libs, require, character.only = TRUE))
+          "ggraph","ggsignif","isotone","dplyr","ggnewscale")
+ensure_packages(libs)
+
 base_text_size <- 5
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K")
-#source("utils/ALFA-KQ.R")
-
-##some functions which perhaps are redefined elsewhere and ought to be in a shared
-## script:
-
-gen_all_neighbours <- function(ids, as.strings = TRUE, remove_nullisomes = TRUE) {
-  if (as.strings) 
-    ids <- lapply(ids, function(ii) as.numeric(unlist(strsplit(ii, split = "[.]"))))
-  nkern <- do.call(rbind, lapply(1:length(ids[[1]]), function(i) {
-    x0 <- rep(0, length(ids[[1]]))
-    x1 <- x0
-    x0[i] <- -1
-    x1[i] <- 1
-    rbind(x0, x1)
-  }))
-  n <- do.call(rbind, lapply(ids, function(ii) t(apply(nkern, 1, function(i) i + ii))))
-  n <- unique(n)
-  nids <- length(ids)
-  n <- rbind(do.call(rbind, ids), n)
-  n <- unique(n)
-  n <- n[-(1:nids), ]
-  if (remove_nullisomes) 
-    n <- n[apply(n, 1, function(ni) sum(ni < 1) == 0), ]
-  n
-}
-
-s2v <- function(s) as.numeric(unlist(strsplit(s, split = "[.]")))
-
-# 0. Plot theme helper
-get_text_theme <- function(size = 8) {
-  theme(
-    text         = element_text(size = size, family = "sans"),
-    axis.title   = element_text(size = size, family = "sans"),
-    axis.text    = element_text(size = size, family = "sans"),
-    legend.title = element_text(size = size, family = "sans"),
-    legend.text  = element_text(size = size, family = "sans"),
-    strip.text   = element_text(size = size, family = "sans")
-  )
-}
-
 # 1. Load and process lineages
 load_lineages <- function(path) {
   raw <- readRDS(path)
@@ -322,7 +287,7 @@ get_iso_slope <- function(dat) {
 # 16. Main orchestration
 main <- function() {
   
-  theme <- get_text_theme()
+  theme <- make_base_theme()
   
   l   <- load_lineages("data/processed/salehi/lineages.Rds")
   x   <- load_fits("data/processed/salehi/alfak_outputs_proc/")
@@ -580,7 +545,7 @@ xmeta <- function(x,linpath="data/processed/salehi/lineages.Rds"){
   }))
 }
 
-text_size_theme <- get_text_theme()
+text_size_theme <- make_base_theme()
 
 l   <- load_lineages("data/processed/salehi/lineages.Rds")
 x   <- load_fits("data/processed/salehi/alfak_outputs_proc/")
@@ -775,7 +740,7 @@ perm_test_within_vs_across_pdx <- function(a, value_col = "value", n_perm = 1000
 
 tmp <- perm_test_within_vs_across_pdx(a)
 print(tmp$p_empirical)
-library(ggnewscale)
+
 
 p_angles <- ggplot(a, aes(x=xcoord, y=ycoord,fill=pval))+
   geom_raster()+
@@ -811,15 +776,9 @@ p_angles <- ggplot(a, aes(x=xcoord, y=ycoord,fill=pval))+
 p_angles
 
 
-# --- Utility function to prune metadata tree ---
-prune_children <- function(df) {
-  while (sum(is.na(df$xval) & !df$uid %in% df$parent) > 0) {
-    df <- df[!(is.na(df$xval) & !df$uid %in% df$parent), ]
-  }
-  df
-}
+source("R/utils_lineage.R")
 
-df <- readRDS("figures/misc/data/annotated_metadata.Rds")
+df <- read.csv("data/raw/salehi/metadata.csv") 
 df <- prune_children(df)
 
 # Create dummy root to fix missing parent values
@@ -874,7 +833,8 @@ if(do_switch){
 
 
 lineage_labels <- layout %>% 
-  filter(parent == dummy_uid) %>% 
+  filter(parent == dummy_uid) %>%
+  filter(name != dummy_uid) %>% 
   mutate(x_label = x,y_label = y)
 
 sample_lineage_map2 <- c(
@@ -957,4 +917,4 @@ ptop <- cowplot::plot_grid(p_network,p_angles,ncol=2,labels=c("A","G"),rel_width
 pbot <- cowplot::plot_grid(px,pxx,plotList[[4]],nrow=1,labels=c("","","F"),rel_widths=c(3,3,2))
 
 plt <- cowplot::plot_grid(ptop,pbot,ncol=1,rel_heights = c(3,4))
-ggsave("figs/cna_fitness_effects.png",width=12,height=12,units="in",bg="white")
+ggsave("figs/cna_fitness_effects.png",width=7,height=7,units="in",bg="white")

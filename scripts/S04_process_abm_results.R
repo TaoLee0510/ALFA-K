@@ -1,14 +1,7 @@
-
-library(transport)
-
-getf <- function(k,wavelength,tru_lscape){
-  Nwaves <- nrow(tru_lscape)
-  scalef <- 1/(pi*sqrt(Nwaves))
-  d <- apply(tru_lscape,1,function(ci){
-    sqrt(sum((k-ci)^2))
-  })
-  sum(sin(d/wavelength)*scalef)
-}
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages(c("transport"))
+source("R/utils_karyo.R")
 
 R2R <- function(obs, pred) {
   obs <- obs - mean(obs)

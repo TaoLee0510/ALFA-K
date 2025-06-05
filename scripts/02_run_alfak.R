@@ -11,8 +11,9 @@
 # ---- SLURM template ------------------------------------------------------
 ## see companion sh script
 # -------------------------------------------------------------------------
-
-suppressPackageStartupMessages(library(alfakR))
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages("alfakR")
 
 # ---- Parse arguments -----------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
@@ -28,8 +29,6 @@ if (!file.exists(fi_full)) stop("Input file not found: ", fi_full)
 fi <- basename(fi_full)                        # keep only filename
 id <- sub("\\.Rds$", "", fi)                  # sample identifier
 
-# ---- Paths & metadata ----------------------------------------------------
-setwd("~/projects/ALFA-K")                    # project root
 
 in_dir   <- "data/processed/salehi/alfak_inputs/"
 meta     <- read.csv("data/raw/salehi/metadata.csv")

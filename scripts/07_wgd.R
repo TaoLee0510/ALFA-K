@@ -1,52 +1,11 @@
 ## Whole‑genome‑doubling (WGD) analysis – mixed‑model edition 2025‑04‑28 (rev‑E)
-## • Fixes: explicit creation of `wgd_str` in **each** table (no shadow copies).
-## • Script is now complete end‑to‑end (no truncation).
-## • Divergence model weighted by WGD‑population size.
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
 
-# ───────────────────────────────────────── 0 • setup
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K")
-
-library(ggplot2)
-library(pbapply)
-library(cowplot)
-library(lme4)
-library(lmerTest)
-
-base_text_size <- 8
-text_size_theme <- theme(
-  text = element_text(size = base_text_size, family = "sans"),
-  axis.title = element_text(size = base_text_size, family = "sans"),
-  axis.text = element_text(size = base_text_size, family = "sans"),
-  legend.title = element_text(size = base_text_size, family = "sans"),
-  legend.text = element_text(size = base_text_size, family = "sans"),
-  strip.text = element_text(size = base_text_size, family = "sans")
-)
-
-##some functions which perhaps are redefined elsewhere and ought to be in a shared
-## script:
-
-gen_all_neighbours <- function(ids, as.strings = TRUE, remove_nullisomes = TRUE) {
-  if (as.strings) 
-    ids <- lapply(ids, function(ii) as.numeric(unlist(strsplit(ii, split = "[.]"))))
-  nkern <- do.call(rbind, lapply(1:length(ids[[1]]), function(i) {
-    x0 <- rep(0, length(ids[[1]]))
-    x1 <- x0
-    x0[i] <- -1
-    x1[i] <- 1
-    rbind(x0, x1)
-  }))
-  n <- do.call(rbind, lapply(ids, function(ii) t(apply(nkern, 1, function(i) i + ii))))
-  n <- unique(n)
-  nids <- length(ids)
-  n <- rbind(do.call(rbind, ids), n)
-  n <- unique(n)
-  n <- n[-(1:nids), ]
-  if (remove_nullisomes) 
-    n <- n[apply(n, 1, function(ni) sum(ni < 1) == 0), ]
-  n
-}
-
-s2v <- function(s) as.numeric(unlist(strsplit(s, split = "[.]")))
+source("R/utils_karyo.R")
+source("R/utils_theme.R")
+source("R/utils_env.R")
+ensure_packages(c("ggplot2","pbapply","cowplot","lme4","lmerTest"))
+common_theme <- make_base_theme()
 
 # ───────────────────────────────────────── 1 • helpers
 is_wgd   <- function(k, cut = 3) mean(k) > cut
@@ -251,7 +210,7 @@ pa <- ggplot(dfdiff, aes(passage, avg_diff, colour = wgd_str, group = wgd_str)) 
   scale_colour_manual(values = c("WGD-" = "#8E44AD", "WGD+" = "#00724D"), "") +
   #scale_x_log10()+
   #scale_y_log10()+
-  theme_classic(base_size = base_text_size) +
+  common_theme+
   theme(legend.position = "top")
 pa
 
@@ -264,14 +223,14 @@ pb <- ggplot(dffit, aes(dk, fitness)) +
   geom_jitter(height = 0, width = 0.15, colour = "grey70", size = 0.6) +
   geom_point(data = dffit_means, colour = "red", size = 5, shape = 95) +
   labs(x = "chromosomes altered", y = "fitness") +
-  theme_classic(base_size = base_text_size)
+  common_theme
 pb
 pc <- ggplot(dfl, aes(df, colour = wgd_str)) +
   facet_grid(rows=vars(traj))+
   stat_ecdf(size = 0.8) +
   labs(x = "fitness effect", y = "cum. dist.") +
   scale_colour_manual(values = c("WGD-" = "#8E44AD", "WGD+" = "#00724D"), "") +
-  theme_classic(base_size = base_text_size) +
+  common_theme+
   scale_x_continuous(limits=c(-0.05,0.05))+
   theme(legend.position = "top")
 pc

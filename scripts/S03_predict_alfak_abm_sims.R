@@ -1,5 +1,6 @@
-
-library(alfakR)
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages(c("alfakR","stringr"))
 Nreps <- 5 ## number of ABM replicates
 rawDir <- "data/raw/ABM"
 procDir <- "data/processed/ABM"

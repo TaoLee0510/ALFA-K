@@ -1,36 +1,14 @@
-###########################
-# Combined & Refactored Script
-###########################
-
-# --- Libraries ---
-tryCatch({
-  library(ggplot2)
-  library(tidyverse)
-  library(igraph)
-  library(tidygraph)
-  library(ggraph)
-  library(ggrepel)
-  library(reshape2)
-  library(transport)
-  library(pbapply)
-  library(cowplot)
-}, error = function(e) stop("Please restart R and ensure all packages are installed."))
-# --- Global settings ---
-base_text_size <- 8
-text_size_theme <- theme(
-  text         = element_text(size = base_text_size, family = "sans"),
-  axis.title   = element_text(size = base_text_size, family = "sans"),
-  axis.text    = element_text(size = base_text_size, family = "sans"),
-  legend.title = element_text(size = base_text_size, family = "sans"),
-  legend.text  = element_text(size = base_text_size, family = "sans"),
-  strip.text   = element_text(size = base_text_size, family = "sans")
-)
-base_theme <- theme_classic() + text_size_theme
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
 # --- Utility for s2v ---
-s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
+source("R/utils_karyo.R")
+source("R/utils_env.R")
+source("R/utils_theme.R")
 
-# Set working directory if needed
-setwd("~/projects/ALFA-K/")
+ensure_packages(c("ggplot2","tidyverse","igraph","tidygraph","ggraph","ggrepel","reshape2","transport","pbapply","cowplot"))
+base_text_size <- 5
+base_theme <- make_base_theme()
+
+
 
 # 1. Read & filter prediction outputs
 procDir <- "data/processed/salehi/alfak_outputs_proc/"
@@ -349,17 +327,10 @@ p_pass_count <- ggplot(z_bar_tmp, aes(lineage, n)) +
   base_theme
 p_pass_count
 ##############################
-# Section 2: Network/Dendrogram Plot (Script 2)
+# Section 2: Network/Dendrogram Plot 
 ##############################
 
-# --- Utility function to prune metadata tree ---
-prune_children <- function(df) {
-  while (sum(is.na(df$xval) & !df$uid %in% df$parent) > 0) {
-    df <- df[!(is.na(df$xval) & !df$uid %in% df$parent), ]
-  }
-  df
-}
-
+source("R/utils_lineage.R")
 # --- Process metadata for network plot ---
 sample_lineage_map2 <- c(
   SA1035 = "SA1035",
@@ -369,7 +340,15 @@ sample_lineage_map2 <- c(
   SA039  = "p53 w.t",
   SA535  = "SA535"
 )
-df <- readRDS("figures/misc/data/annotated_metadata.Rds")
+df <- read.csv("data/raw/salehi/metadata.csv")
+df$shortName <- paste(df$datasetname,df$timepoint,sep="_")
+x0$shortName <- sapply(x0$fi,function(i){
+  strsplit(i,split="_l_") |> unlist() |> head(1)
+})
+x0_tmp <- do.call(rbind,lapply(split(x0,f=x0$shortName),function(xi) xi[xi$ntrain==max(xi$ntrain),]))
+df <- merge(df,x0_tmp[,c("xv","shortName","min_obs","fi")],all=T)
+colnames(df)[colnames(df)=="xv"] <- "xval"
+df$xval <- pmax(-1,df$xval)
 df <- prune_children(df)
 df$linlab <- sample_lineage_map2[df$PDX_id]
 
@@ -404,9 +383,9 @@ tg <- as_tbl_graph(g) %>%
 set.seed(42)
 layout <- create_layout(tg, layout = "dendrogram", circular = TRUE,
                         height = -node_distance_to(1, mode = "all"))
-# Swap x/y and flip y as per original logic
-tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
-layout$y <- -layout$y
+# Swap x/y and flip y (sometimes necessary)
+#tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
+#layout$y <- -layout$y
 
 # Compute label positions for nodes whose parent is the dummy root
 radius_multipliers <- c(
@@ -460,7 +439,7 @@ p_network <- ggraph(layout) +
   geom_text(data = lineage_labels,
             aes(x = x_label, y = y_label, label = linlab),
             fontface = "bold",size = base_text_size / .pt,family = "sans") +
-  text_size_theme+
+  base_theme+
   theme(legend.position = c(0.0, 0.0),
         legend.justification = c("left", "bottom"),
         legend.margin = margin(0, 0, 0, 0),

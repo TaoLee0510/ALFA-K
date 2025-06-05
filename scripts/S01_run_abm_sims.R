@@ -1,5 +1,6 @@
-setwd("~/projects/ALFA-K/")
-
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages("parallel","alfakR","stringr")
 
 setup_and_run_abm <- function(rep_id,wavelength,outDir){
   library(alfakR)
@@ -70,7 +71,6 @@ dir.create(outDir,showWarnings = F,recursive = TRUE)
 reps <- 1:100
 w <- c(0.2,0.4,0.8,1.6)
 
-library(parallel)
 
 # Define parameter grid
 param_grid <- expand.grid(rep_id = reps, wavelength = w, KEEP.OUT.ATTRS = FALSE)

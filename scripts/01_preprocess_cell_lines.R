@@ -1,8 +1,7 @@
-# Load data.table for fast CSV/RDS I/O.
-library(data.table)
-# Load stringr for string manipulation helpers.
-library(stringr)
-library(R.utils) ## read gz compressed input data
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages(c("stringr","R.utils","data.table"))
+
 # Helper to wrap lineage IDs into a list.
 # Args:
 #   ids: Vector of identifiers for a lineage segment.

@@ -1,4 +1,4 @@
-
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
 
 proc_data <- function(lscape, x) {
   ## 1) figure out which karyotypes “just appeared” vs. “old” 
@@ -57,8 +57,6 @@ proc_data <- function(lscape, x) {
   return(df)
 }
 
-
-
 get_descendents_ids <- function(id,lineages,meta){
 
   lin <- lineages[[id]]
@@ -72,6 +70,12 @@ get_descendents_ids <- function(id,lineages,meta){
   
   
 }
+source("R/utils_karyo.R")
+source("R/utils_env.R")
+source("R/utils_theme.R")
+ensure_packages(c("ggplot2","reshape2","dplyr","viridis","gridExtra","ggforce"))
+## --- Global Theme Definition ---------------------
+common_theme <- make_base_theme()
 
 REGENERATE_DATA <- FALSE ## this analysis takes about 5-10 mins
 if(REGENERATE_DATA){
@@ -137,22 +141,9 @@ if(REGENERATE_DATA){
 res <- readRDS("data/processed/salehi/novel_kary_predictions.Rds")
 pthresh <- 0.05
 
-## --- Global Theme Definition ---------------------
-base_text_size <- 5
-common_theme <- theme_classic() + theme(
-  text         = element_text(size = base_text_size, family = "sans"),
-  axis.title   = element_text(size = base_text_size, family = "sans"),
-  axis.text    = element_text(size = base_text_size, family = "sans"),
-  legend.title = element_text(size = base_text_size, family = "sans"),
-  legend.text  = element_text(size = base_text_size, family = "sans"),
-  strip.text   = element_text(size = base_text_size, family = "sans")
-)
 
 df <- res$df
 dfxmpl <- res$dfxmpl
-
-
-
 
 pc <- ggplot(dfxmpl,aes(x=d,y=frac,fill=id))+
   geom_col(position="dodge")+
@@ -187,11 +178,6 @@ z$var <- renamr[z$var]
 w$id <- renamr[w$id]
 
 
-# Load necessary libraries
-library(ggplot2)
-library(reshape2)
-library(dplyr)
-library(viridis)
 
 # Define the data manually
 data <- data.frame(
@@ -255,7 +241,7 @@ p0 <- ggplot(tmp, aes(x = Time, y = Frequency, group=Clone,fill = Clone,alpha=Cl
   scale_y_continuous("clone frequency")
 p0
 
-library(ggforce)
+
 circles <- data.frame(
   x0 = c(1,4),
   y0 = c(0,0),
@@ -310,7 +296,6 @@ pe <- ggplot(w,aes(x=ids))+
   scale_y_continuous("fraction most significant")
 pe
 
-library(gridExtra)
 
 plt <- grid.arrange(p0,grid.arrange(pa,pb,ncol=2),
                     grid.arrange(pc,pd,pe,ncol=3),

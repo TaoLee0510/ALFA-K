@@ -1,21 +1,10 @@
-library(alfakR)
-library(ggplot2)
-library(ggrepel)
-library(rootSolve)
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K")
-
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+source("R/utils_karyo.R")
+source("R/utils_theme.R")
+ensure_packages(c("alfakR","ggplot2","ggrepel","rootSolve","reshape2","umap","cowplot")) ## is rootSolve actually used??
 base_text_size <- 5
-text_size_theme <- theme(
-  text         = element_text(size = base_text_size, family = "sans"),
-  axis.title   = element_text(size = base_text_size, family = "sans"),
-  axis.text    = element_text(size = base_text_size, family = "sans"),
-  legend.title = element_text(size = base_text_size, family = "sans"),
-  legend.text  = element_text(size = base_text_size, family = "sans"),
-  strip.text   = element_text(size = base_text_size, family = "sans"),
-  legend.key.height = unit(3, "mm"),  
-  legend.key.width  = unit(3, "mm")   
-)
-base_theme <- theme_classic(base_size = 6) + text_size_theme
+base_theme <- make_base_theme(base_text_size)
 
 make_example_data <- function(){
   chrmod <- function(time,state,parms){
@@ -136,7 +125,7 @@ ndom <- sapply(df,function(di) apply(di,2,which.max) |> unique() |>length())
 cat("num with multiple dominators:", sum(ndom>1), "\n")
 cat("out of landscapes:", length(ndom), "\n")
 
-s2v <- function(charvec) as.numeric(unlist(strsplit(charvec,split="[.]")))
+
 
 if(FALSE){
   ## this is a manual screen looking to see if there is a missegregation rate dependent switch in clonal dominance.
@@ -245,7 +234,6 @@ p_fit <- ggplot(x,aes(x=fitness,fill=grp))+
   facet_grid(cols=vars(fi),scales="free")+
   geom_histogram(position = "identity",binwidth=0.02,alpha=0.5,color="black")+
   scale_fill_manual("group",labels=c("x","y"),values=c("#CC79A7","#00724D"))+
-  theme_classic()+
   base_theme
 p_fit
 
@@ -253,7 +241,6 @@ p_ploidy <- ggplot(x,aes(x=ploidy,fill=grp))+
   facet_grid(cols=vars(fi),scales="free")+
   geom_histogram(position = "identity",binwidth=0.1,alpha=0.5,color="black")+
   scale_fill_manual("group",labels=c("x","y"),values=c("#CC79A7","#00724D"))+
-  theme_classic()+
   base_theme
 p_ploidy
 

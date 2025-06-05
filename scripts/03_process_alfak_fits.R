@@ -1,9 +1,11 @@
-setwd("~/projects/ALFA-K")
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
 dataDir <- "data/processed/salehi/alfak_inputs/"
 fitDir <- "data/processed/salehi/alfak_outputs/"
 outputDir <- "data/processed/salehi/alfak_outputs_proc/"
 
-library(transport)
+source("R/utils_env.R")
+ensure_packages(c("transport","parallel","pbapply"))
+
 
 lineages <- readRDS("data/processed/salehi/lineages.Rds")
 m <- read.csv("data/raw/salehi/metadata.csv")
@@ -26,7 +28,6 @@ xval_res <- function(fi,mi){
 }
 
 prediction_res <- function(dj,fi,mi){
-  s2v <- function(charvec) as.numeric(unlist(strsplit(charvec,split="[.]")))
   
   fpath <- paste(c(fitDir,fi,mi),collapse="/")
   avail_data <- list.files(fpath)
@@ -133,12 +134,13 @@ prediction_res <- function(dj,fi,mi){
   df
 }
 
-library(parallel)
+
 cl <- makeCluster(getOption("cl.cores", 50))
 
 clusterExport(cl,varlist=c("lineages","m","outputDir","fitDir","dataDir","xval_res","prediction_res","inputs","treat_lut"))
 clusterEvalQ(cl,{
   library(transport)
+  source("R/utils_karyo.R")
 })
 dir.create(outputDir,recursive = T,showWarnings = F)
 df <- parLapplyLB(cl,ff,function(fi){

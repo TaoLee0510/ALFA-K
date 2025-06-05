@@ -1,6 +1,6 @@
-setwd("~/projects/ALFA-K/")
-
-library(alfakR)
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+source("R/utils_env.R")
+ensure_packages("alfakR")
 
 inDir <- "data/raw/ABM/"
 outDir_base <- "data/processed/ABM/"

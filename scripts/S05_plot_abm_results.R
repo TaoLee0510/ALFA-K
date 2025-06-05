@@ -1,34 +1,16 @@
-
-tryCatch({
-  library(cli)
-  library(ggplot2)
-  library(reshape2)
-  library(scales)
-  library(stringr)
-  library(cowplot)
-  library(ggalluvial)
-},error=function(e) {
-  print(e)
-  stop("try restarting R")
-  })
+if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
+pkgs <- c("cli","ggplot2","reshape2","scales","stringr","cowplot","ggalluvial")
 
 ## set true if the ABM summaries need to be compiled, false if not to speed up a bit
 REAGGREGATE_DATA <- FALSE
 
-## --- Global Theme Definition ---------------------
-base_text_size <- 5
-common_theme <- theme_classic() + theme(
-  text         = element_text(size = base_text_size, family = "sans"),
-  axis.title   = element_text(size = base_text_size, family = "sans"),
-  axis.text    = element_text(size = base_text_size, family = "sans"),
-  legend.title = element_text(size = base_text_size, family = "sans"),
-  legend.text  = element_text(size = base_text_size, family = "sans"),
-  strip.text   = element_text(size = base_text_size, family = "sans")
-)
+source("R/utils_env.R")
+ensure_packages(pkgs)
+source("R/utils_theme.R")
+source("R/utils_karyo.R")
 
 
-## Candidates for external utility functions??
-s2v <- function(s) as.numeric(unlist(strsplit(s, split = "[.]")))
+common_theme <- make_base_theme()
 
 project_forward_log <- function(x0, f, timepoints) {
   K <- length(x0)
@@ -47,14 +29,7 @@ logSumExp <- function(v) {
   m + log(sum(exp(v - m)))
 }
 
-getf <- function(k,wavelength,tru_lscape){
-  Nwaves <- nrow(tru_lscape)
-  scalef <- 1/(pi*sqrt(Nwaves))
-  d <- apply(tru_lscape,1,function(ci){
-    sqrt(sum((k-ci)^2))
-  })
-  sum(sin(d/wavelength)*scalef)
-}
+
 
 ## --- Data Loading ---------------------
 
