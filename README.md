@@ -1,36 +1,78 @@
+# Chromosome Fitness Landscapes – alfak Analysis Code
 ALFA-K takes longitudinal single cell sequencing data from an evolving
 cell population as input, then estimates a local fitness landscape
 encompassing thousands of karyotypes located near to the input data in
 karyotype space. This repository contains source code and examples for
 running ALFA-K, as well as an Agent Based Model (ABM) which simulates
 evolving cell populations using fitness landscapes estimated by ALFA-K.
-
-The repository is organized as follows:
-
-    ##                                                        levelName
-    ## 1  ALFA-K                                                       
-    ## 2   ¦--ABM                                                      
-    ## 3   ¦   °--agent based model source code                        
-    ## 4   ¦--examples                                                 
-    ## 5   ¦   ¦--example_0                                            
-    ## 6   ¦   ¦   °--visualizing karyotype frequencies and ALFA-K fits
-    ## 7   ¦   ¦--example_1                                            
-    ## 8   ¦   ¦   °--basics of running ABM and fitting landscapes     
-    ## 9   ¦   °--example_2                                            
-    ## 10  ¦       °--cross validation procedure for ALFA-K landscapes 
-    ## 11  ¦--example_data                                             
-    ## 12  ¦   °--example datasets                                     
-    ## 13  °--utils                                                    
-    ## 14      °--ALFA-K source code and utility functions
-
-The ABM requires compilation before use. E.g. to compile with the GCC
-C++ compiler, change to ALFA-K root directory and run:
-
-``` r
-g++ ./ABM/main.cpp -o ./ABM/bin/ABM -std=c++17
-```
-
-For more details on the methods, see:
+This repository contains all scripts and data needed to reproduce the analyses and figures from:
 
 Beck, Richard J., and Noemi Andor. “Local Adaptive Mapping of Karyotype
-Fitness Landscapes.” bioRxiv (2023): 2023-07.
+Fitness Landscapes.” bioRxiv (2023): 2023-07. (pending citation update)
+
+---
+
+Quick Start
+-----------
+
+Clone the repository and recreate the exact R environment:
+
+    git clone https://github.com/Richard-Beck/ALFA-K.git
+    cd ALFA-K
+
+    # Set up R environment
+    install.packages("renv")
+    renv::restore()
+
+    # Run the pipeline
+    Rscript scripts/01_preprocess_cell_lines.R
+    # See note about batch scripts below
+    ./scripts/02_batch_run_alfak.R
+    # ... etc.
+
+All outputs will be written to `data/` and `figs/`.
+
+---
+
+Repository Structure
+--------------------
+
+.
+├── README.md             # You're here  
+├── install.R             # Calls renv::restore()  
+├── renv.lock             # Exact package versions  
+├── scripts/              # Main analysis scripts  
+├── R/                    # Utility functions (themes, packages, etc.)  
+├── data/  
+│   ├── raw/              # Immutable input data  
+│   └── processed/        # Outputs from scripts   
+├── figures/              # Generated figures 
+
+
+---
+
+Analysis Details
+-----------------
+
+Scripts should be run in order. 
+
+Some scripts are standalone, others 
+
+
+---
+
+Software Environment
+--------------------
+
+- R ≥ 4.3  
+- alfakR (https://github.com/Richard-Beck/alfakR, ≥ 0.9.1)  
+- All required packages and versions are listed in `renv.lock`
+
+
+
+
+
+  
+
+
+
