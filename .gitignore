@@ -5,6 +5,8 @@ data/salehi
 data/processed
 data/raw/ABM
 dev
+utils_old
+figures_old
 tests
 logs
 figures/worked_examples
