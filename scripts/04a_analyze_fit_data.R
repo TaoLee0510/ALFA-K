@@ -15,10 +15,6 @@ tryCatch({
   library(pbapply)
   library(cowplot)
 }, error = function(e) stop("Please restart R and ensure all packages are installed."))
-
-# --- Utility for s2v ---
-s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
-
 # --- Global settings ---
 base_text_size <- 8
 text_size_theme <- theme(
@@ -30,27 +26,17 @@ text_size_theme <- theme(
   strip.text   = element_text(size = base_text_size, family = "sans")
 )
 base_theme <- theme_classic() + text_size_theme
+# --- Utility for s2v ---
+s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
 
 # Set working directory if needed
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K/")
+setwd("~/projects/ALFA-K/")
 
-##############################
-# Section 1: Data Processing & Salehi Plots
-##############################
-
-# 1. Read & filter prediction outputs
-#procDir <- "data/salehi/alfak_outputs_V1a_procv0/"
+# 1. Read  prediction outputs
 procDir <- "data/processed/salehi/alfak_outputs_proc/"
 files <- list.files(procDir, full.names = TRUE)
 x_list <- lapply(files, readRDS)
 x <- do.call(rbind, x_list)
-x0 <- x  # keep for violin plot
-
-x <- x[!is.na(x$xv) & x$xv > 0 & x$test_treat != "NaN", ]
-x <- do.call(rbind, lapply(split(x, x$fi), function(df) df[df$xv == max(df$xv), ]))
-rownames(x) <- NULL
-x$clean_id <- sub("_l_\\d+_d1_\\d+_d2_\\d+$", "", x$fi)
-x <- do.call(rbind, lapply(split(x, x$clean_id), function(df) df[df$xv == max(df$xv), ]))
 
 # 2. Merge metadata
 m <- read.csv("data/raw/salehi/metadata.csv")
@@ -63,6 +49,8 @@ x$pdx <- lut[sapply(x$fi, function(i) {
 
 # 3. Map sample lineages
 sample_lineage_map <- c(
+  SA000="SA609",
+  SA609R2="SA609",
   SA1035T                   = "SA1035",
   SA1035U                   = "SA1035",
   SA532                     = "SA532",
@@ -76,11 +64,30 @@ sample_lineage_map <- c(
 )
 x$type <- sample_lineage_map[x$pdx]
 
+## filter prediction outputs:
+## here we just want one row per fit (to get the CV score), doesn't matter which row
+x0 <- x[!duplicated(interaction(x$fi,x$min_obs)),] 
+x0 <- x0[!is.na(x0$xv),] ## keep one row per fit (NA vals indicate fit failed), for all CV scores
+x0 <- do.call(rbind, lapply(split(x0, x0$fi), function(df) df[df$xv == max(df$xv), ])) ## determine min_obs per fit, using CV score.
+
+
+## Here retain just the fits that have a prediction accuracy measure 
+## e.g. remove lineages with no descendents, filter on xv score, keep 1 
+## per min_obs.
+x <- x[!is.na(x$xv) & x$xv > 0 & x$test_treat != "NaN", ]
+x <- do.call(rbind, lapply(split(x, x$fi), function(df) df[df$xv == max(df$xv), ]))
+rownames(x) <- NULL
+
+
+#x$clean_id <- sub("_l_\\d+_d1_\\d+_d2_\\d+$", "", x$fi)
+#x <- do.call(rbind, lapply(split(x, x$clean_id), function(df) df[df$xv == max(df$xv), ]))
+
 # 4. Identify evaluation time point
 x <- split(x, x$fi)
 x <- x[sapply(x, function(df) 1 %in% df$tt)]
 x <- lapply(x, function(df) {
   maxp <- if (df$type[1] %in% c("p53 k.o", "p53 w.t")) 25 else 15
+  maxp <- max(df$tt)
   df <- df[df$tt %in% 1:maxp, ]
   df$eval_tp <- FALSE
   df$eval_tp[df$tt == maxp] <- TRUE
@@ -93,10 +100,12 @@ rownames(x) <- NULL
 x$win <- x$base > x$pred
 sel <- x$metric %in% c("overlap", "cosine")
 x$win[sel] <- (x$base < x$pred)[sel]
+mean(x$win[x$eval_tp])
 
 # 6. Aggregate for line & bar plots
 z <- aggregate(win ~ type + metric + tt, data = x, FUN = mean)
 names(z) <- c("lineage", "metric", "day", "fwin")
+
 
 x_eval <- subset(x, eval_tp)
 z_bar <- aggregate(win ~ type + metric, data = x_eval, FUN = mean)
@@ -105,7 +114,10 @@ n_count <- aggregate(win ~ type + metric, data = x_eval, FUN = length)
 names(n_count)[3] <- "n"
 z_bar$n <- n_count$n
 
+
+
 # 7. Salehi Plots
+z$metric[z$metric=="wasserstein"] <- "wasserst."
 p_salehi_lineage <- ggplot(z, aes(day, fwin)) +
   facet_grid(rows = vars(metric)) +
   geom_line(aes(color = lineage, group = lineage)) +
@@ -119,6 +131,7 @@ p_salehi_lineage <- ggplot(z, aes(day, fwin)) +
     legend.background = element_rect(fill = "transparent", color = NA)
   )
 p_salehi_lineage
+z_bar$metric[z_bar$metric=="wasserstein"] <- "wasserst."
 p_bar <- ggplot(z_bar, aes(type, fwin)) +
   facet_grid(rows = vars(metric)) +
   geom_col(color="black",fill="grey80")+
@@ -127,21 +140,34 @@ p_bar <- ggplot(z_bar, aes(type, fwin)) +
   scale_x_discrete("") +
   base_theme
 p_bar
-p_violin <- ggplot(subset(x0, metric=="overlap" & tt==1),
-                   aes(pmax(-1,xv), ntrain, group=ntrain)) +
+
+x0s <- split(x0,f=x0$type)
+x0s <- lapply(x0s,function(xi) xi$xv[xi$ntrain>3])
+nsamples <- 10000
+
+ci <- sapply(1:nsamples,function(i){
+  median(unlist(x0s[sample(1:length(x0s),length(x0s),replace=T)]))
+})
+
+quantile(ci,probs=c(0.025,0.5,0.975))
+
+p_violin <- ggplot(x0, aes(pmax(-1,xv), ntrain, group=ntrain)) +
   geom_violin() +
   geom_jitter(width=0, height=0.2) +
   scale_x_continuous("CV score") +
   scale_y_continuous("training\nsamples", breaks=2:9) +
   base_theme
-
-p_scatter <- ggplot(subset(x_eval, metric=="wasserstein"),
+p_violin
+x_eval_wass <- subset(x_eval, metric=="wasserstein")
+p_scatter <- ggplot(x_eval_wass,
                     aes(base, pred0)) +
   geom_point() +
   scale_x_continuous("actual distance") +
   scale_y_continuous("predicted\ndistance") +
   base_theme
-
+p_scatter
+cor(x_eval_wass$pred0,x_eval_wass$pred)
+cor(x_eval_wass$pred0,x_eval_wass$pred,method="spearman")
 ##############################
 # Section 1b: Reference ECDFs & Null Bar Plot
 ##############################
@@ -270,10 +296,64 @@ z_pairs <- do.call(rbind, pbapply::pblapply(seq_len(ncol(combos_mm)), function(i
   data.frame(PDX1=mm$PDX_id[j1], PDX2=mm$PDX_id[j2], angle=angle, stringsAsFactors=FALSE)
 }))
 
+## for the bootstrapping we take unique lineage pairs as groupings
+## have to account for the fact that PDX1-PDX2 is equivalent to PDX2-PDX1
+make_pair_df <- function(z_pairs){
+  tmp <- cbind(paste(z_pairs$PDX1,z_pairs$PDX2,sep="-"),
+               paste(z_pairs$PDX2,z_pairs$PDX1,sep="-"))
+  
+  tmp <- apply(tmp,1,function(ti) ti[order(ti)])[1,]   
+  z_pairs$type <- tmp
+  z_pairs
+}
+
+
+
+
+##df has columns type (independent groups) and angle
+test_angle_sig <- function(df){
+  ## compute median by group and then median-of-medians test statistic
+  obs_meds <- df %>%
+    group_by(type) %>%                # 'type' == lineage ID
+    summarise(med = median(angle), .groups = "drop") %>%
+    pull(med)
+  T_obs <- median(obs_meds)           # median-of-medians
+  
+  # --- 2.  Null sampler ------------------------------------------------------
+  r_sphere_angle <- function(n, N){
+    r      <- (N - 1) / 2             # shape parameters
+    cos_th <- 2 * rbeta(n, r, r) - 1  # cos(theta) ~ scaled Beta
+    acos(cos_th) * 180 / pi           # convert to degrees
+  }
+  
+  sizes <- table(x_filt$type)         # n_g per lineage *after* filtering
+  N     <- 22                         # ambient dimension
+  B     <- 10000                      # ≥10k
+  
+  null_T <- replicate(B, {
+    null_med <- vapply(sizes,
+                       function(n) median(r_sphere_angle(n, N)),
+                       numeric(1))
+    median(null_med)
+  })
+  p_val <- mean(null_T <= T_obs)
+  c(test_val=T_obs,p_val=p_val)
+  
+}
+
+z_pairs <- make_pair_df(z_pairs)
+z_sisters <- subset(y, metric=="angle")
+z_sisters <- z_sisters[,c("value","lineage")]
+colnames(z_sisters) <- c("angle","type")
+
+test_angle_sig(z_pairs)
+test_angle_sig(z_euc)
+test_angle_sig(z_sisters)
+
 # --- Plot: combined ECDF ---
 p_ecdf <- ggplot() +
   stat_ecdf(data=z_euc,      aes(angle,color="predicted"),     geom="step", size=1.5)   +
-  stat_ecdf(data=data.frame(angle=subset(y, metric=="angle")$value),
+  stat_ecdf(data=z_sisters,
             aes(angle, color="forked"),     geom="step", size=1) +
   stat_ecdf(data=z_pairs,     aes(angle,color="unrelated"),     geom="step", size=1) +
   geom_line(data=nulldf,      aes(angle, CDF,color="theoretical"), size=1, linetype="dashed") +
@@ -289,6 +369,8 @@ p_ecdf
 z_euc$rads <- z_euc$angle*pi/180
 F_null <- function(x) sapply(x, cSphereAngle, N=22)
 print(ks.test(z_euc$rads, F_null, alternative="greater"))
+
+mean(y2$win[!y2$metric=="angle"]<0)
 
 # --- Null‐reference bar plot formatted like salehi_bar ---
 yagg_ref <- aggregate(list(win=y2$win),
@@ -308,7 +390,7 @@ plot_df_ref <- merge(combos_ref,
 plot_df_ref$win[is.na(plot_df_ref$win)] <- 0
 plot_df_ref$n  [is.na(plot_df_ref$n)]   <- 0
 plot_df_ref$lineage <- factor(plot_df_ref$lineage, levels=lineage_levels)
-
+plot_df_ref$metric[plot_df_ref$metric=="wasserstein"] <- "wasserst."
 p_ref_null <- ggplot(plot_df_ref, aes(lineage, win)) +
   facet_grid(rows=vars(metric)) +
   geom_col(color="black",fill="grey80")+
@@ -392,8 +474,8 @@ set.seed(42)
 layout <- create_layout(tg, layout = "dendrogram", circular = TRUE,
                         height = -node_distance_to(1, mode = "all"))
 # Swap x/y and flip y as per original logic
-tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
-layout$y <- -layout$y
+#tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
+#layout$y <- -layout$y
 
 # Compute label positions for nodes whose parent is the dummy root
 radius_multipliers <- c(
@@ -489,7 +571,7 @@ combined_plot <- plot_grid(
   rel_heights = c(3, 2) # Adjust these heights to fit your preference
 )
 
-ggsave("figures/misc/figures/salehi_validation_tmp.png",plot=combined_plot,width=8,height=8,units="in", 
+ggsave("figs/salehi_validation.png",plot=combined_plot,width=8,height=8,units="in", 
        bg = "white")
 
 

@@ -15,10 +15,6 @@ tryCatch({
   library(pbapply)
   library(cowplot)
 }, error = function(e) stop("Please restart R and ensure all packages are installed."))
-
-# --- Utility for s2v ---
-s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
-
 # --- Global settings ---
 base_text_size <- 8
 text_size_theme <- theme(
@@ -30,21 +26,20 @@ text_size_theme <- theme(
   strip.text   = element_text(size = base_text_size, family = "sans")
 )
 base_theme <- theme_classic() + text_size_theme
+# --- Utility for s2v ---
+s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
 
 # Set working directory if needed
-setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K/")
-
-##############################
-# Section 1: Data Processing & Salehi Plots
-##############################
+setwd("~/projects/ALFA-K/")
 
 # 1. Read & filter prediction outputs
-#procDir <- "data/salehi/alfak_outputs_V1a_procv0/"
 procDir <- "data/processed/salehi/alfak_outputs_proc/"
 files <- list.files(procDir, full.names = TRUE)
 x_list <- lapply(files, readRDS)
 x <- do.call(rbind, x_list)
-x0 <- x  # keep for violin plot
+x0 <- x[!duplicated(interaction(x$fi,x$min_obs)),] 
+x0 <- x0[!is.na(x0$xv),] ## keep one row per fit (NA vals indicate fit failed), for all CV scores
+x0 <- do.call(rbind, lapply(split(x0, x0$fi), function(df) df[df$xv == max(df$xv), ]))
 
 x <- x[!is.na(x$xv) & x$xv > 0 & x$test_treat != "NaN", ]
 x <- do.call(rbind, lapply(split(x, x$fi), function(df) df[df$xv == max(df$xv), ]))
@@ -57,6 +52,11 @@ m <- read.csv("data/raw/salehi/metadata.csv")
 lut <- m$datasetname
 names(lut) <- paste(m$datasetname, m$timepoint, sep = "_")
 x$pdx <- lut[sapply(x$fi, function(i) {
+  parts <- strsplit(i, "_")[[1]]
+  paste(parts[1:(length(parts) - 6)], collapse = "_")
+})]
+
+x0$pdx <- lut[sapply(x0$fi, function(i) {
   parts <- strsplit(i, "_")[[1]]
   paste(parts[1:(length(parts) - 6)], collapse = "_")
 })]
@@ -75,6 +75,7 @@ sample_lineage_map <- c(
   SA535_CISPLATIN_CombinedU = "SA535"
 )
 x$type <- sample_lineage_map[x$pdx]
+x0$type <- sample_lineage_map[x0$pdx]
 
 # 4. Identify evaluation time point
 x <- split(x, x$fi)
@@ -105,6 +106,8 @@ n_count <- aggregate(win ~ type + metric, data = x_eval, FUN = length)
 names(n_count)[3] <- "n"
 z_bar$n <- n_count$n
 
+
+
 # 7. Salehi Plots
 p_salehi_lineage <- ggplot(z, aes(day, fwin)) +
   facet_grid(rows = vars(metric)) +
@@ -127,14 +130,24 @@ p_bar <- ggplot(z_bar, aes(type, fwin)) +
   scale_x_discrete("") +
   base_theme
 p_bar
-p_violin <- ggplot(subset(x0, metric=="overlap" & tt==1),
-                   aes(pmax(-1,xv), ntrain, group=ntrain)) +
+
+x0s <- split(x0,f=x0$type)
+x0s <- lapply(x0s,function(xi) xi$xv[xi$ntrain>3])
+nsamples <- 10000
+
+ci <- sapply(1:nsamples,function(i){
+  median(unlist(x0s[sample(1:length(x0s),length(x0s),replace=T)]))
+})
+
+quantile(ci,probs=c(0.025,0.5,0.975))
+
+p_violin <- ggplot(x0, aes(pmax(-1,xv), ntrain, group=ntrain)) +
   geom_violin() +
   geom_jitter(width=0, height=0.2) +
   scale_x_continuous("CV score") +
   scale_y_continuous("training\nsamples", breaks=2:9) +
   base_theme
-
+p_violin
 p_scatter <- ggplot(subset(x_eval, metric=="wasserstein"),
                     aes(base, pred0)) +
   geom_point() +
@@ -489,7 +502,7 @@ combined_plot <- plot_grid(
   rel_heights = c(3, 2) # Adjust these heights to fit your preference
 )
 
-ggsave("figures/misc/figures/salehi_validation_tmp.png",plot=combined_plot,width=8,height=8,units="in", 
+ggsave("figs/salehi_validation.png",plot=combined_plot,width=8,height=8,units="in", 
        bg = "white")
 
 

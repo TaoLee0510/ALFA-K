@@ -2,7 +2,8 @@ examples/example_1/sim_output
 data/main
 data/proc
 data/salehi
-data/processed/salehi/alfak_outputs
+data/processed
+data/raw/ABM
 dev
 tests
 logs

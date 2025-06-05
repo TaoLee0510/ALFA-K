@@ -2,7 +2,7 @@
 libs <- c("igraph", "lme4", "glmmTMB", "car", "ggplot2", "pbapply", "tidygraph", 
           "ggraph","ggsignif","isotone","dplyr")
 invisible(lapply(libs, require, character.only = TRUE))
-
+base_text_size <- 5
 setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K")
 #source("utils/ALFA-KQ.R")
 
@@ -85,6 +85,40 @@ get_reps <- function(lineages, df) {
   reps <- by(seq_len(nrow(res)), res$overlap_id, function(ids) ids[which.max(res$n_pass[ids])])
   res[unlist(reps), ]
 }
+
+get_reps <- function(lineages, df) {
+  # 1) restrict to fits present in df$fi
+  lineages <- lineages[names(lineages) %in% df$fi]
+  if (length(lineages) == 0) {
+    return(data.frame(fit_id = character(0), n_pass = integer(0), stringsAsFactors = FALSE))
+  }
+  
+  # 2) compute size (# of passages) for each fit
+  sizes <- lengths(lineages)  # named integer vector
+  
+  # 3) order fits by descending size
+  sorted_fits <- names(sort(sizes, decreasing = TRUE))
+  
+  # 4) greedily pick non-overlapping fits
+  covered <- character(0)
+  chosen  <- character(0)
+  for (fit in sorted_fits) {
+    passages <- lineages[[fit]]
+    if (length(intersect(passages, covered)) == 0) {
+      chosen  <- c(chosen, fit)
+      covered <- c(covered, passages)
+    }
+  }
+  
+  # 5) return data.frame of chosen fits and their sizes
+  res <- data.frame(
+    fit_id = chosen,
+    n_pass = sizes[chosen],
+    stringsAsFactors = FALSE
+  )
+  res[res$n_pass>1,]
+}
+
 
 # 4. Annotate with metadata
 annotate_samples <- function(df, meta_file) {
@@ -290,11 +324,11 @@ main <- function() {
   
   theme <- get_text_theme()
   
-  l   <- load_lineages("data/salehi/lineages.Rds")
-  x   <- load_fits("data/salehi/alfak_outputs_V1a_proc/")
+  l   <- load_lineages("data/processed/salehi/lineages.Rds")
+  x   <- load_fits("data/processed/salehi/alfak_outputs_proc/")
   rep <- get_reps(l, x)
   x   <- x[x$fi %in% rep$fit_id, ]
-  x   <- annotate_samples(x, "data/salehi/metadata.csv")
+  x   <- annotate_samples(x, "data/raw/salehi/metadata.csv")
   
   df  <- build_deltaf_df(x)
   df  <- derive_cat_vars(df)
@@ -483,7 +517,7 @@ plotList <- main()
 #5.1 Get mean karyotype per timepoint/trajectory
 get_centroids <- function(x){
   do.call(rbind,lapply(1:nrow(x),function(i){
-    l <- readRDS(paste0("data/salehi/alfak_inputs/",x$fi[i],".Rds"))$x
+    l <- readRDS(paste0("data/processed/salehi/alfak_inputs/",x$fi[i],".Rds"))$x
     k <- do.call(rbind,lapply(rownames(l),s2v))
     mean_kary <- data.frame(t(t(k) %*% as.matrix(l) / rep(colSums(l), each = ncol(k))))
     mean_kary$time <- colnames(l)
@@ -498,7 +532,7 @@ get_overlap <- function(meta_df){
   do.call(rbind, lapply(seq_len(nrow(meta_df)), function(i){
     # load clone × time count matrix
     mat  <- readRDS(
-      sprintf("data/salehi/alfak_inputs/%s.Rds", meta_df$fi[i])
+      sprintf("data/processed/salehi/alfak_inputs/%s.Rds", meta_df$fi[i])
     )$x
     # convert to relative frequencies
     freq <- sweep(mat, 2, colSums(mat), "/")
@@ -537,7 +571,7 @@ cSphereAngle <- function(theta, N) {
   integrate(function(t) dSphereAngle(t, N), 0, theta)$value
 }
 
-xmeta <- function(x,linpath="data/salehi/lineages.Rds"){
+xmeta <- function(x,linpath="data/processed/salehi/lineages.Rds"){
   l <- readRDS(linpath)
   
   do.call(rbind,lapply(1:nrow(x),function(i){
@@ -548,14 +582,14 @@ xmeta <- function(x,linpath="data/salehi/lineages.Rds"){
 
 text_size_theme <- get_text_theme()
 
-l   <- load_lineages("data/salehi/lineages.Rds")
-x   <- load_fits("data/salehi/alfak_outputs_V1a_proc/")
+l   <- load_lineages("data/processed/salehi/lineages.Rds")
+x   <- load_fits("data/processed/salehi/alfak_outputs_proc/")
 
 
 
 rep <- get_reps(l, x)
 x   <- x[x$fi %in% rep$fit_id, ]
-x   <- annotate_samples(x, "data/salehi/metadata.csv")
+x   <- annotate_samples(x, "data/raw/salehi/metadata.csv")
 xm <- xmeta(x)
 
 lut_pdx <- x$pdx
@@ -830,9 +864,14 @@ tg <- as_tbl_graph(g) %>%
 set.seed(42)
 layout <- create_layout(tg, layout = "dendrogram", circular = TRUE,
                         height = -node_distance_to(1, mode = "all"))
-# Swap x/y and flip y as per original logic
-tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
-layout$y <- -layout$y
+# the plot gets rotated for certain versions of the ggtree package.
+# this flip reorients it to how it was originally setup:
+do_switch <- FALSE
+if(do_switch){
+  tmp <- layout$x; layout$x <- layout$y; layout$y <- tmp
+  layout$y <- -layout$y
+}
+
 
 lineage_labels <- layout %>% 
   filter(parent == dummy_uid) %>% 
@@ -858,7 +897,6 @@ lineage_labels$y_label <- lineage_positions[lineage_labels$linlab,"y_label"]
 # --- Plot 6: Dendrogram/Network Plot ---
 cb_palette <- c("#E69F00", "#56B4E9", "#009E73", 
                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
 
 
 p_network <- ggraph(layout) + 
@@ -919,4 +957,4 @@ ptop <- cowplot::plot_grid(p_network,p_angles,ncol=2,labels=c("A","G"),rel_width
 pbot <- cowplot::plot_grid(px,pxx,plotList[[4]],nrow=1,labels=c("","","F"),rel_widths=c(3,3,2))
 
 plt <- cowplot::plot_grid(ptop,pbot,ncol=1,rel_heights = c(3,4))
-ggsave("figures/misc/figures/cna_fitness_effects.png",width=12,height=12,units="in",bg="white")
+ggsave("figs/cna_fitness_effects.png",width=12,height=12,units="in",bg="white")

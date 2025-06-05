@@ -17,7 +17,7 @@ tryCatch({
 }, error = function(e) stop("Please restart R and ensure all packages are installed."))
 
 # --- Utility for s2v ---
-s2v <- function(s) as.numeric(strsplit(s,"[.]")[[1]])
+source("utils/ALFA-KQ.R")
 
 # --- Global settings ---
 base_text_size <- 8
@@ -39,10 +39,10 @@ setwd("/share/lab_crd/M010_ALFAK_2023/ALFA-K/")
 ##############################
 
 # 1. Read & filter prediction outputs
-#procDir <- "data/salehi/alfak_outputs_V1a_procv0/"
-procDir <- "data/processed/salehi/alfak_outputs_proc/"
+procDir <- "data/salehi/alfak_outputs_V1a_procv0/"
 files <- list.files(procDir, full.names = TRUE)
 x_list <- lapply(files, readRDS)
+x_list <- x_list[sapply(x_list, ncol) == 13]
 x <- do.call(rbind, x_list)
 x0 <- x  # keep for violin plot
 
@@ -53,7 +53,7 @@ x$clean_id <- sub("_l_\\d+_d1_\\d+_d2_\\d+$", "", x$fi)
 x <- do.call(rbind, lapply(split(x, x$clean_id), function(df) df[df$xv == max(df$xv), ]))
 
 # 2. Merge metadata
-m <- read.csv("data/raw/salehi/metadata.csv")
+m <- read.csv("data/salehi/metadata.csv")
 lut <- m$datasetname
 names(lut) <- paste(m$datasetname, m$timepoint, sep = "_")
 x$pdx <- lut[sapply(x$fi, function(i) {
@@ -161,7 +161,7 @@ nulldf$rads <- pi * nulldf$angle/180
 nulldf$CDF  <- sapply(nulldf$rads, cSphereAngle, N=22)
 
 # B) Compute reference-angle pairs (exact from Script 2)
-input_dir <- "data/processed/salehi/alfak_inputs/"
+input_dir <- "data/salehi/alfak_inputs/"
 ff <- list.files(input_dir)
 
 pairs_list <- lapply(m$uid, function(id) m[m$parent==id & !is.na(m$parent),])
