@@ -1,3 +1,47 @@
+# ------------------------------------------------------------------------------
+# ALFA‑K DATA‑PREPARATION PIPELINE
+#
+# Purpose
+#   Convert the longitudinal single‑cell copy‑number dataset of Salehi et.al.
+#   (2021) into the chromosome‑level karyotype and lineage files required by
+#   the ALFA‑K fitness‑inference framework.
+#
+# Workflow
+#   1. Validate project root and load helper utilities.
+#   2. Aggregate per‑bin absolute copy‑number calls to:
+#        • whole‑chromosome integer states (used by ALFA‑K)
+#        • chromosome‑arm states (generated but not used downstream)
+#   3. Reconstruct ancestry paths for every single‑cell library (one uid per
+#      sample) and retain all lineage segments ≥ 2 generations deep.
+#   4. For every lineage, build a karyotype‑by‑passage count matrix and save it
+#      with the assumed passage interval for ALFA‑K.
+#
+# Key Assumptions
+#   • Passage interval = 15days for all models except SA039 & SA906 (i.e. in vitro lines), which are
+#     assigned 5days (exact intervals unavailable).
+#   • Sex chromosomes and rows with malformed genomic‑bin labels are ignored;
+#     sample “SA004” is discarded due to corrupted input files.
+#
+# Inputs (relative to project root)
+#   data/raw/salehi/
+#     ├─ arm_loci.Rds            genomic bin lookup table
+#     ├─ metadata.csv            sample metadata with parent links & time points
+#     └─ raw_post_jump/          <sample>/named_mat.csv.gz per single‑cell library
+#
+# Outputs (written to data/processed/salehi/)
+#   chrom_level_cn.Rds           list of per‑sample 22‑chromosome copy numbers
+#   arm_level_cn.Rds             list of per‑sample arm‑level copy numbers
+#   lineages.Rds                 named list of reconstructed lineage objects
+#   alfak_inputs/
+#     └─ <lineage_id>.Rds        list with:
+#                                  $x  = karyotype counts by passage
+#                                  $dt = assumed passage interval
+#
+#   The arm‑level file is produced for completeness but is not consumed by
+#   downstream ALFA‑K analyses.
+# ------------------------------------------------------------------------------
+
+
 if(!basename(getwd())=="ALFA-K") stop("Ensure working directory set to ALFA-K root")
 source("R/utils_env.R")
 ensure_packages(c("stringr","R.utils","data.table"))

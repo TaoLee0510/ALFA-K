@@ -122,7 +122,7 @@ if(REGENERATE_DATA){
     return(res)
   }))
   
-  i <- 6
+  i <- 10
   lscape <- readRDS(paste0("data/processed/salehi/alfak_outputs/",df_meta$fi[i],"/minobs_",df_meta$min_obs[i],"/landscape.Rds"))
   x <- readRDS(paste0("data/processed/salehi/alfak_inputs/",df_meta$dec_id[i],".Rds"))$x
   test <- proc_data(lscape,x)

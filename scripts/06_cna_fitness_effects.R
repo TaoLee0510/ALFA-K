@@ -34,6 +34,10 @@ load_fits <- function(proc_dir) {
   df
 }
 
+
+
+
+
 # 3. Compute overlap components and select reps
 get_reps <- function(lineages, df) {
   lineages <- lineages[names(lineages) %in% df$fi]
@@ -84,7 +88,6 @@ get_reps <- function(lineages, df) {
   res[res$n_pass>1,]
 }
 
-
 # 4. Annotate with metadata
 annotate_samples <- function(df, meta_file) {
   meta <- read.csv(meta_file, stringsAsFactors = FALSE)
@@ -103,9 +106,14 @@ annotate_samples <- function(df, meta_file) {
 # 5. Build Δf table per focal karyotype
 build_deltaf_df <- function(df) {
   lst <- pbapply::pblapply(seq_len(nrow(df)), function(i) {
-    path <- file.path("data/salehi/alfak_outputs_V1a",
+    path <- file.path("data/processed/salehi/alfak_outputs",
+                      df$fi[i],
                       paste0("minobs_", df$min_obs[i]),
-                      df$fi[i], "landscape.Rds")
+                       "landscape.Rds")
+   # path <- file.path("data/salehi/alfak_outputs_V1a",
+    #                  paste0("minobs_", df$min_obs[i]),
+     #                 df$fi[i],
+      #                "landscape.Rds")
     if (!file.exists(path)) return(NULL)
     ls <- readRDS(path)
     lut <- setNames(ls$mean, ls$k)
@@ -411,6 +419,14 @@ main <- function() {
     data = tmp
   )
   print(summary(cross_fit))
+  
+  print("Adjusted fit when there are no good pairs across trajectories:")
+  tmp2 <- tmp[tmp$pair_type%in%c("parallel","same_traj"),]
+  cross_fit2 <- lmer(
+    z ~ log1p(dk) * pair_type + treat_pair + (1 | fi1) + (1 | fi2),
+    data = tmp2
+  )
+  print(summary(cross_fit2))
   
   # predicted similarity for every observed pair
   pair$fit <- tanh(predict(cross_fit, re.form = NULL))  # includes random intercepts
@@ -856,7 +872,7 @@ lineage_labels$y_label <- lineage_positions[lineage_labels$linlab,"y_label"]
 
 # --- Plot 6: Dendrogram/Network Plot ---
 cb_palette <- c("#E69F00", "#56B4E9", "#009E73", 
-                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+                "#F0E442", "#0072B2", "#D55E00", "#CC79A7","pink")
 
 
 p_network <- ggraph(layout) + 

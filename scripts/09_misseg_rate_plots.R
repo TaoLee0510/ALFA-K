@@ -149,7 +149,8 @@ if(FALSE){
     },error=function(e) return(NULL))
     
     
-  }) 
+  })
+  stop("check results of manual screen: inspect plots, check for two distinct clusters and population transition with misseg rate")
 }
 
 
@@ -174,14 +175,14 @@ get_plot_data <- function(dfi){
   cbind(dfi,ump,ploidy,fitness,fi)
 }
 
-ids <- c("SA532_X4_l_4_d1_1_d2_1","SA906a_X50_l_5_d1_1_d2_0")
+ids <- c("SA906a_X50_l_4_d1_1_d2_0","SA532_X4_l_4_d1_1_d2_1")
 df_list <- df[ids]
 
 x <- do.call(rbind,lapply(df_list,get_plot_data))
 x$grp <- x[,5]>x[,7]
 
-lut <- c("p53 k.o. A\n(scenario A)","SA532\n(scenario B)")
-names(lut) <- c("SA906a_X50_l_5_d1_1_d2_0","SA532_X4_l_4_d1_1_d2_1")
+lut <- c("SA532\n(scenario B)","p53 k.o. A\n(scenario A)")
+names(lut) <- ids
 x$fi <- lut[x$fi]
 xre <- reshape2::melt(x,id.vars=c("X1","X2","ploidy","fitness","fi","grp"))
 xre <- xre[order(xre$fitness),]

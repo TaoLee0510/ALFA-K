@@ -50,7 +50,9 @@ sample_lineage_map <- c(
   SA906b                    = "p53 k.o",
   SA039U                    = "p53 w.t",
   SA535_CISPLATIN_CombinedT = "SA535",
-  SA535_CISPLATIN_CombinedU = "SA535"
+  SA535_CISPLATIN_CombinedU = "SA535",
+  SA000 = "SA609",
+  SA609R2 = "SA609"
 )
 x$type <- sample_lineage_map[x$pdx]
 x0$type <- sample_lineage_map[x0$pdx]
@@ -138,7 +140,7 @@ p_scatter <- ggplot(subset(x_eval, metric=="wasserstein"),
 ##############################
 
 # A) Null sphere CDF
-z_euc <- subset(x, metric=="euclidean")
+z_euc <- subset(x_eval, metric=="euclidean")
 dSphereAngle <- function(theta, N) {
   coef <- integrate(function(t) sin(t)^(N-2), 0, pi)$value
   sin(theta)^(N-2)/coef
@@ -277,9 +279,20 @@ p_ecdf <- ggplot() +
                    legend.background = element_rect(fill = "transparent", color = NA))
 p_ecdf
 # Optional: KS test
-z_euc$rads <- z_euc$angle*pi/180
-F_null <- function(x) sapply(x, cSphereAngle, N=22)
-print(ks.test(z_euc$rads, F_null, alternative="greater"))
+
+source("R/utils_stats.R")
+
+pred_res  <- sphere_null_test(z_euc$angle, z_euc$type)  # predictions
+sis_res   <- sphere_null_test(y$value[y$metric=="angle"],
+                               y$lineage[y$metric=="angle"])      # sisters
+unrel_res <- sphere_null_test(z_pairs$angle,
+                              paste(pmin(z_pairs$PDX1, z_pairs$PDX2),
+                                    pmax(z_pairs$PDX1, z_pairs$PDX2),
+                                    sep = "--")) # unrelated
+
+print(pred_res)
+print(sis_res)
+print(unrel_res)
 
 # --- Null‐reference bar plot formatted like salehi_bar ---
 yagg_ref <- aggregate(list(win=y2$win),

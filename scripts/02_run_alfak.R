@@ -41,7 +41,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 message("Running ALFA‑K for ", fi, "(minobs=", minobs, ")")
 
 # ---- ALFA‑K parameters ---------------------------------------------------
-pred_iters <- 100; nboot <- 50
+pred_iters <- 100; nboot <- 100
 n0 <- 1e5; nb <- 1e7; pm <- 5e-5          # NB pm = 0.00005
 yi <- readRDS(file.path(in_dir, fi))
 
@@ -90,7 +90,7 @@ for (rep in 1:5) {
   abm_res <- predict_evo(lscape, p = pm, times = sim_times, x0 = x0,
                          prediction_type = "ABM",
                          abm_pop_size = 1e5, abm_delta_t = 0.1,
-                         abm_max_pop = nb, abm_record_interval = 10)
+                         abm_max_pop = nb, abm_record_interval = 10,abm_culling_survival = 0.01)
   saveRDS(abm_res, file.path(abm_dir, paste0("rep_", rep, ".Rds")))
 }
 
