@@ -1,5 +1,13 @@
 examples/example_1/sim_output
-data
+data/main
+data/proc
+data/salehi
+data/processed
+data/raw/ABM
 dev
+utils_old
+figures_old
 tests
+logs
 figures/worked_examples
+SLURM_OLD
