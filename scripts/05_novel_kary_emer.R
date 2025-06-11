@@ -296,7 +296,10 @@ pe <- ggplot(w,aes(x=ids))+
   scale_y_continuous("fraction most significant")
 pe
 
-
+frac_f_signif <- z["f","frac"]
+paste("fitness significant in",round(nrow(w)*frac_f_signif),"/",nrow(w),"tests")
+n_f_most_signif <- table(w$ids)["f"]
+paste("fitness most significant in",n_f_most_signif,"/",nrow(w),"tests")
 plt <- grid.arrange(p0,grid.arrange(pa,pb,ncol=2),
                     grid.arrange(pc,pd,pe,ncol=3),
                     nrow=3,heights=c(4,3.5,4))

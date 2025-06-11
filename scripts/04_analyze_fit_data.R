@@ -135,6 +135,9 @@ p_scatter <- ggplot(subset(x_eval, metric=="wasserstein"),
   scale_y_continuous("predicted\ndistance") +
   base_theme
 
+cor.tst.df <- subset(x_eval, metric=="wasserstein")[,c("base","pred0")]
+cor(cor.tst.df$base,cor.tst.df$pred0,method="spear")
+cor(cor.tst.df$base,cor.tst.df$pred0,method="pear")
 ##############################
 # Section 1b: Reference ECDFs & Null Bar Plot
 ##############################
@@ -339,6 +342,11 @@ p_pass_count <- ggplot(z_bar_tmp, aes(lineage, n)) +
   scale_fill_viridis_c("num.\nsub-lins.", option="magma") +
   base_theme
 p_pass_count
+
+print("Sister baseline beating fraction:")
+sum(plot_df_ref$win*plot_df_ref$n)/sum(plot_df_ref$n)
+print("prediction baseline beating fraction:")
+sum(z_bar_tmp$win*z_bar_tmp$n)/sum(z_bar_tmp$n)
 ##############################
 # Section 2: Network/Dendrogram Plot 
 ##############################
